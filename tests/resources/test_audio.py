@@ -109,3 +109,101 @@ def test_create_download_url(httpx_mock: HTTPXMock):
     res = c.audio.create_download_url("aud_1")
     assert res.download_url == "https://s3.example.com/dl"
     c.close()
+
+
+def test_upload_does_presign_then_put(httpx_mock: HTTPXMock, tmp_path):
+    # Step A: presign call
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/audio/upload-url",
+        method="POST",
+        json={
+            "uploadUrl": "https://s3.example.com/signed",
+            "audioId": "aud_xyz",
+            "expiresIn": 3600,
+        },
+    )
+    # Step B: S3 PUT
+    httpx_mock.add_response(
+        url="https://s3.example.com/signed",
+        method="PUT",
+        status_code=200,
+    )
+    # Step C: fetch metadata after upload
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/audio/aud_xyz",
+        json={"id": "aud_xyz", "fileName": "a.wav", "contentType": "audio/wav"},
+    )
+
+    f = tmp_path / "a.wav"
+    f.write_bytes(b"RIFF...WAVEfmt ")
+    c = client()
+    audio = c.audio.upload(file=str(f), content_type="audio/wav")
+    assert audio.id == "aud_xyz"
+    c.close()
+
+
+def test_upload_accepts_bytes(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/audio/upload-url",
+        method="POST",
+        json={"uploadUrl": "https://s3.example.com/x", "audioId": "aud_1", "expiresIn": 60},
+    )
+    httpx_mock.add_response(url="https://s3.example.com/x", method="PUT")
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/audio/aud_1",
+        json={"id": "aud_1", "fileName": "clip.wav", "contentType": "audio/wav"},
+    )
+    c = client()
+    audio = c.audio.upload(file=b"RIFF...", content_type="audio/wav", name="clip.wav")
+    assert audio.id == "aud_1"
+    c.close()
+
+
+def test_upload_s3_put_failure_surfaces_as_connection_error(httpx_mock: HTTPXMock):
+    from nopaque._errors import APIConnectionError
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/audio/upload-url",
+        method="POST",
+        json={"uploadUrl": "https://s3.example.com/x", "audioId": "aud_1", "expiresIn": 60},
+    )
+    httpx_mock.add_response(
+        url="https://s3.example.com/x",
+        method="PUT",
+        status_code=403,
+        text="<Error>access denied</Error>",
+    )
+    c = client()
+    with pytest.raises(APIConnectionError):
+        c.audio.upload(file=b"RIFF", content_type="audio/wav", name="x.wav")
+    c.close()
+
+
+def test_download_returns_bytes(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/audio/download-url?audioId=aud_1",
+        json={"downloadUrl": "https://s3.example.com/dl", "expiresIn": 60},
+    )
+    httpx_mock.add_response(
+        url="https://s3.example.com/dl",
+        content=b"WAVE_BYTES",
+    )
+    c = client()
+    data = c.audio.download("aud_1")
+    assert data == b"WAVE_BYTES"
+    c.close()
+
+
+def test_download_writes_to_path(httpx_mock: HTTPXMock, tmp_path):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/audio/download-url?audioId=aud_1",
+        json={"downloadUrl": "https://s3.example.com/dl", "expiresIn": 60},
+    )
+    httpx_mock.add_response(
+        url="https://s3.example.com/dl",
+        content=b"BYTES",
+    )
+    dest = tmp_path / "out.wav"
+    c = client()
+    c.audio.download("aud_1", to=str(dest))
+    assert dest.read_bytes() == b"BYTES"
+    c.close()

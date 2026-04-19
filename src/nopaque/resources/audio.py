@@ -1,11 +1,20 @@
 """Audio resource - CRUD + upload/download helpers."""
 from __future__ import annotations
 
-from typing import Optional
+from pathlib import Path
+from typing import Any, Optional, Union
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
+from .._s3 import (
+    _read_bytes,
+    s3_get_async,
+    s3_get_sync,
+    s3_put_async,
+    s3_put_sync,
+    sniff_content_type,
+)
 from ..models.audio import AudioDownloadURL, AudioFile, AudioUploadURL
 
 
@@ -94,6 +103,50 @@ class AudioResource(SyncResource):
         )
         return AudioDownloadURL.model_validate(raw)
 
+    # ---- Helpers ---------------------------------------------------------
+
+    def upload(
+        self,
+        *,
+        file: Any,
+        content_type: Optional[str] = None,
+        name: Optional[str] = None,
+        request_options: Optional[RequestOptions] = None,
+    ) -> AudioFile:
+        """Upload a local file or bytes to Nopaque in one call.
+
+        `file` may be a path string, Path, bytes, or a file-like object opened
+        in binary mode.
+        """
+        data, inferred_name = _read_bytes(file)
+        resolved_name = name or inferred_name or "upload.bin"
+        resolved_type = content_type or sniff_content_type(resolved_name)
+
+        presign = self.create_upload_url(
+            file_name=resolved_name,
+            content_type=resolved_type,
+            request_options=request_options,
+        )
+        s3_put_sync(presign.upload_url, data, content_type=resolved_type)
+        return self.get(presign.audio_id, request_options=request_options)
+
+    def download(
+        self,
+        audio_id: str,
+        *,
+        to: Optional[Union[str, Path]] = None,
+        request_options: Optional[RequestOptions] = None,
+    ) -> Optional[bytes]:
+        """Download an audio file. Returns bytes if `to` is None; otherwise
+        writes to the given path and returns None.
+        """
+        presign = self.create_download_url(audio_id, request_options=request_options)
+        data = s3_get_sync(presign.download_url)
+        if to is None:
+            return data
+        Path(to).write_bytes(data)
+        return None
+
 
 class AsyncAudioResource(AsyncResource):
     """Asynchronous /audio endpoints."""
@@ -179,3 +232,43 @@ class AsyncAudioResource(AsyncResource):
             request_options=request_options,
         )
         return AudioDownloadURL.model_validate(raw)
+
+    # ---- Helpers ---------------------------------------------------------
+
+    async def upload(
+        self,
+        *,
+        file: Any,
+        content_type: Optional[str] = None,
+        name: Optional[str] = None,
+        request_options: Optional[RequestOptions] = None,
+    ) -> AudioFile:
+        """Async variant of AudioResource.upload."""
+        data, inferred_name = _read_bytes(file)
+        resolved_name = name or inferred_name or "upload.bin"
+        resolved_type = content_type or sniff_content_type(resolved_name)
+
+        presign = await self.create_upload_url(
+            file_name=resolved_name,
+            content_type=resolved_type,
+            request_options=request_options,
+        )
+        await s3_put_async(presign.upload_url, data, content_type=resolved_type)
+        return await self.get(presign.audio_id, request_options=request_options)
+
+    async def download(
+        self,
+        audio_id: str,
+        *,
+        to: Optional[Union[str, Path]] = None,
+        request_options: Optional[RequestOptions] = None,
+    ) -> Optional[bytes]:
+        """Async variant of AudioResource.download."""
+        presign = await self.create_download_url(
+            audio_id, request_options=request_options
+        )
+        data = await s3_get_async(presign.download_url)
+        if to is None:
+            return data
+        Path(to).write_bytes(data)
+        return None
