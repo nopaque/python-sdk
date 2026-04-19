@@ -117,7 +117,7 @@ def test_jobs_delete(httpx_mock: HTTPXMock):
 
 # --- runs ---
 
-def test_runs_create(httpx_mock: HTTPXMock):
+def test_runs_create_from_job(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/runs",
         method="POST",
@@ -126,6 +126,33 @@ def test_runs_create(httpx_mock: HTTPXMock):
     c = client()
     run = c.testing.runs.create(job_id="job_1")
     assert run.run_id == "r1"
+    # Verify we sent jobId, not testConfigId
+    import json as _j
+    assert _j.loads(httpx_mock.get_requests()[0].content) == {"jobId": "job_1"}
+    c.close()
+
+
+def test_runs_create_from_config(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/runs",
+        method="POST",
+        json={"runId": "r2", "status": "running"},
+    )
+    c = client()
+    run = c.testing.runs.create(test_config_id="cfg_1")
+    assert run.run_id == "r2"
+    import json as _j
+    assert _j.loads(httpx_mock.get_requests()[0].content) == {"testConfigId": "cfg_1"}
+    c.close()
+
+
+def test_runs_create_requires_exactly_one_id():
+    import pytest
+    c = client()
+    with pytest.raises(ValueError):
+        c.testing.runs.create()
+    with pytest.raises(ValueError):
+        c.testing.runs.create(job_id="j", test_config_id="c")
     c.close()
 
 

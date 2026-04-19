@@ -241,13 +241,23 @@ class _SyncRuns:
     def create(
         self,
         *,
-        job_id: str,
+        job_id: str | None = None,
+        test_config_id: str | None = None,
         request_options: RequestOptions | None = None,
     ) -> TestRun:
+        """Start a test run from an existing test job OR directly from a test config.
+
+        Pass exactly one of `job_id` or `test_config_id`.
+        """
+        if bool(job_id) == bool(test_config_id):
+            raise ValueError(
+                "Pass exactly one of job_id or test_config_id"
+            )
+        body = {"jobId": job_id} if job_id else {"testConfigId": test_config_id}
         raw = self._transport.request(
             "POST",
             "/testing/runs",
-            json={"jobId": job_id},
+            json=body,
             request_options=request_options,
         )
         return TestRun.model_validate(raw)
@@ -510,13 +520,23 @@ class _AsyncRuns:
     async def create(
         self,
         *,
-        job_id: str,
+        job_id: str | None = None,
+        test_config_id: str | None = None,
         request_options: RequestOptions | None = None,
     ) -> TestRun:
+        """Start a test run from an existing test job OR directly from a test config.
+
+        Pass exactly one of `job_id` or `test_config_id`.
+        """
+        if bool(job_id) == bool(test_config_id):
+            raise ValueError(
+                "Pass exactly one of job_id or test_config_id"
+            )
+        body = {"jobId": job_id} if job_id else {"testConfigId": test_config_id}
         raw = await self._transport.request(
             "POST",
             "/testing/runs",
-            json={"jobId": job_id},
+            json=body,
             request_options=request_options,
         )
         return TestRun.model_validate(raw)
