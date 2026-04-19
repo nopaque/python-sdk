@@ -2,12 +2,12 @@
 
 Owns: URL composition, auth header injection, User-Agent, JSON (de)serialization,
 error classification, per-request timeouts, and retry orchestration.
-
-Retry logic itself lives in _retry.py and is added in a subsequent task.
 """
 from __future__ import annotations
 
+import asyncio
 import json as jsonlib
+import time
 from typing import Any, Dict, Optional
 
 import httpx
@@ -17,10 +17,12 @@ from ._errors import (
     APIConnectionError,
     APITimeoutError,
     NopaqueAPIError,
+    NopaqueError,
     RateLimitError,
     classify_status,
 )
 from ._request_options import RequestOptions, merge_options
+from ._retry import RetryContext, delay_for, should_retry
 from ._user_agent import compose_user_agent
 
 
@@ -86,6 +88,26 @@ def _raise_for_status(response: httpx.Response) -> None:
     )
 
 
+def _effective_max_retries(
+    config: NopaqueConfig, options: Optional[RequestOptions]
+) -> int:
+    if options and "max_retries" in options:
+        return int(options["max_retries"])
+    return config.max_retries
+
+
+def _invoke_on_retry(
+    config: NopaqueConfig, attempt: int, err: NopaqueError, delay: float
+) -> None:
+    if config.on_retry is None:
+        return
+    try:
+        config.on_retry(attempt, err, delay)
+    except Exception:
+        # Never let a user callback break the request.
+        pass
+
+
 class SyncTransport:
     """Synchronous HTTP transport."""
 
@@ -108,26 +130,44 @@ class SyncTransport:
         url = _build_url(self._config, path)
         opts = merge_options(None, request_options)
         timeout = opts.get("timeout", self._config.timeout)
+        ctx = RetryContext(
+            max_retries=_effective_max_retries(self._config, request_options)
+        )
 
-        try:
-            response = self._client.request(
-                method,
-                url,
-                params=params,
-                json=json,
-                headers=headers,
-                timeout=timeout,
-            )
-        except httpx.TimeoutException as e:
-            raise APITimeoutError(str(e)) from e
-        except httpx.HTTPError as e:
-            raise APIConnectionError(str(e), cause=e) from e
+        while True:
+            before_send = True
+            err: Optional[NopaqueError] = None
+            try:
+                response = self._client.request(
+                    method,
+                    url,
+                    params=params,
+                    json=json,
+                    headers=headers,
+                    timeout=timeout,
+                )
+                before_send = False
+                _raise_for_status(response)
+            except httpx.TimeoutException as e:
+                err = APITimeoutError(str(e))
+            except httpx.HTTPError as e:
+                err = APIConnectionError(str(e), cause=e)
+            except NopaqueAPIError as e:
+                err = e
+            else:
+                if response.status_code == 204 or not response.content:
+                    return None
+                return response.json()
 
-        _raise_for_status(response)
-
-        if response.status_code == 204 or not response.content:
-            return None
-        return response.json()
+            assert err is not None
+            if not should_retry(method=method, error=err, before_send=before_send):
+                raise err
+            if ctx.exhausted():
+                raise err
+            delay = delay_for(attempt=ctx.attempts_used, error=err)
+            _invoke_on_retry(self._config, ctx.attempts_used, err, delay)
+            time.sleep(delay)
+            ctx.record_attempt()
 
     def close(self) -> None:
         self._client.close()
@@ -164,26 +204,44 @@ class AsyncTransport:
         url = _build_url(self._config, path)
         opts = merge_options(None, request_options)
         timeout = opts.get("timeout", self._config.timeout)
+        ctx = RetryContext(
+            max_retries=_effective_max_retries(self._config, request_options)
+        )
 
-        try:
-            response = await self._client.request(
-                method,
-                url,
-                params=params,
-                json=json,
-                headers=headers,
-                timeout=timeout,
-            )
-        except httpx.TimeoutException as e:
-            raise APITimeoutError(str(e)) from e
-        except httpx.HTTPError as e:
-            raise APIConnectionError(str(e), cause=e) from e
+        while True:
+            before_send = True
+            err: Optional[NopaqueError] = None
+            try:
+                response = await self._client.request(
+                    method,
+                    url,
+                    params=params,
+                    json=json,
+                    headers=headers,
+                    timeout=timeout,
+                )
+                before_send = False
+                _raise_for_status(response)
+            except httpx.TimeoutException as e:
+                err = APITimeoutError(str(e))
+            except httpx.HTTPError as e:
+                err = APIConnectionError(str(e), cause=e)
+            except NopaqueAPIError as e:
+                err = e
+            else:
+                if response.status_code == 204 or not response.content:
+                    return None
+                return response.json()
 
-        _raise_for_status(response)
-
-        if response.status_code == 204 or not response.content:
-            return None
-        return response.json()
+            assert err is not None
+            if not should_retry(method=method, error=err, before_send=before_send):
+                raise err
+            if ctx.exhausted():
+                raise err
+            delay = delay_for(attempt=ctx.attempts_used, error=err)
+            _invoke_on_retry(self._config, ctx.attempts_used, err, delay)
+            await asyncio.sleep(delay)
+            ctx.record_attempt()
 
     async def aclose(self) -> None:
         await self._client.aclose()

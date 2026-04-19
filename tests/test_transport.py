@@ -132,3 +132,65 @@ async def test_async_404_raises(httpx_mock: HTTPXMock):
     with pytest.raises(NotFoundError):
         await t.request("GET", "/x")
     await t.aclose()
+
+
+def test_sync_retries_on_500_up_to_max(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/mapping", status_code=500, json={"error": "boom"}
+    )
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/mapping", status_code=500, json={"error": "boom"}
+    )
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/mapping", status_code=200, json={"ok": True}
+    )
+    t = SyncTransport(NopaqueConfig(api_key="k", max_retries=2))
+    assert t.request("GET", "/mapping") == {"ok": True}
+    assert len(httpx_mock.get_requests()) == 3
+    t.close()
+
+
+def test_sync_does_not_retry_post_on_500(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/mapping", status_code=500, json={"error": "boom"}
+    )
+    t = SyncTransport(NopaqueConfig(api_key="k", max_retries=3))
+    with pytest.raises(ServerError):
+        t.request("POST", "/mapping", json={"x": 1})
+    assert len(httpx_mock.get_requests()) == 1  # no retries
+    t.close()
+
+
+def test_sync_retries_post_on_429(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/mapping",
+        status_code=429,
+        headers={"retry-after": "0"},
+        json={"error": "rate"},
+    )
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/mapping", json={"ok": True}
+    )
+    t = SyncTransport(NopaqueConfig(api_key="k", max_retries=1))
+    assert t.request("POST", "/mapping", json={"x": 1}) == {"ok": True}
+    t.close()
+
+
+def test_on_retry_callback_fires(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/x", status_code=500, json={"error": "x"}
+    )
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/x", json={"ok": True}
+    )
+    events = []
+
+    def cb(attempt, err, delay):
+        events.append((attempt, type(err).__name__, delay))
+
+    t = SyncTransport(NopaqueConfig(api_key="k", max_retries=1, on_retry=cb))
+    t.request("GET", "/x")
+    assert len(events) == 1
+    assert events[0][0] == 0
+    assert events[0][1] == "ServerError"
+    t.close()
