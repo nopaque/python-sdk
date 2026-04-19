@@ -1,0 +1,77 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nopaque"
+dynamic = ["version"]
+description = "Official Python SDK for the Nopaque API"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [{ name = "Nopaque", email = "support@nopaque.co.uk" }]
+keywords = ["nopaque", "ivr", "sdk", "api"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Typing :: Typed",
+]
+dependencies = [
+    "httpx>=0.27",
+    "pydantic>=2.6",
+]
+
+[project.urls]
+Homepage = "https://nopaque.co.uk"
+Documentation = "https://nopaque.co.uk/docs/sdks"
+Repository = "https://github.com/nopaque/python-sdk"
+Issues = "https://github.com/nopaque/python-sdk/issues"
+
+[tool.hatch.version]
+path = "src/nopaque/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nopaque"]
+
+[tool.hatch.envs.default]
+dependencies = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "pytest-httpx>=0.30",
+    "mypy>=1.10",
+    "ruff>=0.4",
+]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+"test:integration" = "pytest tests/integration {args}"
+type = "mypy src/nopaque"
+lint = "ruff check src/nopaque tests"
+format = "ruff format src/nopaque tests"
+
+[[tool.hatch.envs.default.matrix]]
+python = ["3.9", "3.10", "3.11", "3.12"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N"]
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
