@@ -207,6 +207,18 @@ def test_remap(httpx_mock: HTTPXMock):
     c.close()
 
 
+def test_probe(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/mapping/map_1/runs/r_1/probe",
+        method="POST",
+        json={"probed": True},
+    )
+    c = client()
+    out = c.mapping.probe("map_1", "r_1", payload={"foo": "bar"})
+    assert out == {"probed": True}
+    c.close()
+
+
 def test_wait_for_complete(httpx_mock: HTTPXMock):
     # Three polls: running, running, completed.
     for status in ("running", "running", "completed"):

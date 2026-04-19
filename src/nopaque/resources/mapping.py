@@ -295,6 +295,21 @@ class MappingResource(SyncResource):
         )
         return MappingJob.model_validate(raw)
 
+    def probe(
+        self,
+        job_id: str,
+        run_id: str,
+        *,
+        payload: dict | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> dict:
+        return self._transport.request(
+            "POST",
+            f"/mapping/{job_id}/runs/{run_id}/probe",
+            json=payload or {},
+            request_options=request_options,
+        )
+
     def wait_for_complete(
         self,
         job_id: str,
@@ -585,6 +600,21 @@ class AsyncMappingResource(AsyncResource):
             request_options=request_options,
         )
         return MappingJob.model_validate(raw)
+
+    async def probe(
+        self,
+        job_id: str,
+        run_id: str,
+        *,
+        payload: dict | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> dict:
+        return await self._transport.request(
+            "POST",
+            f"/mapping/{job_id}/runs/{run_id}/probe",
+            json=payload or {},
+            request_options=request_options,
+        )
 
     async def wait_for_complete(
         self,
