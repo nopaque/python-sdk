@@ -20,8 +20,8 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install hatch
-        run: pip install hatch
+      - name: Install hatch and build
+        run: pip install hatch build
 
       - name: Verify tag matches package version
         run: |
@@ -36,7 +36,7 @@ jobs:
         run: hatch run test
 
       - name: Build distributions
-        run: hatch build
+        run: python -m build
 
       - name: Publish to PyPI (trusted publishing)
         uses: pypa/gh-action-pypi-publish@release/v1

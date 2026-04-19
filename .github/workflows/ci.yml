@@ -19,13 +19,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-      - name: Install hatch
-        run: pip install hatch
+      - name: Install hatch and build
+        run: pip install hatch build
       - name: Lint
         run: hatch run lint
       - name: Type check
         run: hatch run type
       - name: Test
         run: hatch run test
-      - name: Build
-        run: hatch build
+      - name: Build distributions
+        run: python -m build
