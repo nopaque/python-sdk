@@ -6,12 +6,17 @@ from pydantic import BaseModel, ConfigDict
 _ALIAS_MAP = {
     "phone_number": "phoneNumber",
     "config_id": "configId",
+    "test_config_id": "testConfigId",
     "job_id": "jobId",
-    "run_id": "runId",
+    "workspace_id": "workspaceId",
     "created_at": "createdAt",
     "updated_at": "updatedAt",
     "started_at": "startedAt",
     "completed_at": "completedAt",
+    "launch_deadline": "launchDeadline",
+    "total_steps": "totalSteps",
+    "passed_steps": "passedSteps",
+    "failed_steps": "failedSteps",
 }
 
 
@@ -46,10 +51,21 @@ class TestJob(_TestingBase):
 
 
 class TestRun(_TestingBase):
-    run_id: Optional[str] = None
-    id: Optional[str] = None
+    """A single execution of a test.
+
+    The primary identifier is `id` (matches what the server sends in the
+    entity). Pass this to `wait_for_run()` and `get()`.
+    """
+
+    id: str
     job_id: Optional[str] = None
-    status: str
+    test_config_id: Optional[str] = None
+    workspace_id: Optional[str] = None
+    status: Optional[str] = None
     result: Optional[str] = None
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
+    launch_deadline: Optional[str] = None
+    total_steps: Optional[int] = None
+    passed_steps: Optional[int] = None
+    failed_steps: Optional[int] = None

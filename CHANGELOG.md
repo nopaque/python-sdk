@@ -6,6 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-04-19
+
+### Fixed
+- `client.testing.runs.create()` now unwraps the server's `{message, run}`
+  response envelope. Previously, validation failed because the SDK tried to
+  parse the envelope itself as a `TestRun`, raising
+  `pydantic.ValidationError: status — Field required`.
+- `client.testing.configs.list()` / `list_page()`,
+  `client.testing.jobs.list()` / `list_page()`, and
+  `client.testing.runs.list()` / `list_page()` now read the server's actual
+  response shape (`{configs: [...]}`, `{jobs: [...]}`, `{runs: [...]}`)
+  rather than the never-emitted `{items: [...]}`. All three list methods
+  previously returned empty results.
+
+### Changed (breaking vs. 0.1.1)
+- `TestRun.id` is now the canonical test-run identifier, matching the
+  server's entity shape. The spurious `run_id` field (which was never
+  populated) is removed. Callers should use `run.id` instead of
+  `run.run_id`, and pass `run.id` to
+  `client.testing.runs.wait_for_run()` and `get()`.
+- `TestRun.status` is now `Optional[str]` because the newly-created run
+  document may not include it until the orchestrator has picked up the
+  job. Existing callers will not be affected.
+
 ## [0.1.1] - 2026-04-19
 
 ### Added
@@ -27,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Method-aware retry with exponential jitter and `Retry-After` honor.
 - Typed exception hierarchy.
 
-[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/nopaque/python-sdk/releases/tag/v0.1.2
 [0.1.1]: https://github.com/nopaque/python-sdk/releases/tag/v0.1.1
 [0.1.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.1.0

@@ -35,9 +35,12 @@ class _SyncConfigs:
             params["nextToken"] = next_token
 
         def fetch(p: dict) -> dict:
-            return self._transport.request(
+            # Server returns { configs: [...] } rather than { items, nextToken }.
+            # Normalize to the paginator's expected shape.
+            raw = self._transport.request(
                 "GET", "/testing/configs", params=p, request_options=request_options
             )
+            return {"items": raw.get("configs", raw.get("items", [])), "nextToken": None}
 
         return SyncPaginator(fetch_page=fetch, params=params, model_cls=TestConfig)
 
@@ -56,7 +59,7 @@ class _SyncConfigs:
         raw = self._transport.request(
             "GET", "/testing/configs", params=params, request_options=request_options
         )
-        items = [TestConfig.model_validate(i) for i in raw.get("items", [])]
+        items = [TestConfig.model_validate(i) for i in raw.get("configs", raw.get("items", []))]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
@@ -133,9 +136,11 @@ class _SyncJobs:
             params["nextToken"] = next_token
 
         def fetch(p: dict) -> dict:
-            return self._transport.request(
+            # Server returns { jobs: [...] } rather than { items, nextToken }.
+            raw = self._transport.request(
                 "GET", "/testing/jobs", params=p, request_options=request_options
             )
+            return {"items": raw.get("jobs", raw.get("items", [])), "nextToken": None}
 
         return SyncPaginator(fetch_page=fetch, params=params, model_cls=TestJob)
 
@@ -154,7 +159,7 @@ class _SyncJobs:
         raw = self._transport.request(
             "GET", "/testing/jobs", params=params, request_options=request_options
         )
-        items = [TestJob.model_validate(i) for i in raw.get("items", [])]
+        items = [TestJob.model_validate(i) for i in raw.get("jobs", raw.get("items", []))]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
@@ -206,9 +211,11 @@ class _SyncRuns:
             params["nextToken"] = next_token
 
         def fetch(p: dict) -> dict:
-            return self._transport.request(
+            # Server returns { runs: [...] } rather than { items, nextToken }.
+            raw = self._transport.request(
                 "GET", "/testing/runs", params=p, request_options=request_options
             )
+            return {"items": raw.get("runs", raw.get("items", [])), "nextToken": None}
 
         return SyncPaginator(fetch_page=fetch, params=params, model_cls=TestRun)
 
@@ -227,7 +234,7 @@ class _SyncRuns:
         raw = self._transport.request(
             "GET", "/testing/runs", params=params, request_options=request_options
         )
-        items = [TestRun.model_validate(i) for i in raw.get("items", [])]
+        items = [TestRun.model_validate(i) for i in raw.get("runs", raw.get("items", []))]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
@@ -253,14 +260,15 @@ class _SyncRuns:
             raise ValueError(
                 "Pass exactly one of job_id or test_config_id"
             )
-        body = {"jobId": job_id} if job_id else {"testConfigId": test_config_id}
+        body: dict = {"jobId": job_id} if job_id else {"testConfigId": test_config_id}
         raw = self._transport.request(
             "POST",
             "/testing/runs",
             json=body,
             request_options=request_options,
         )
-        return TestRun.model_validate(raw)
+        # POST returns { message, run } — unwrap the run object.
+        return TestRun.model_validate(raw.get("run", raw))
 
     def wait_for_run(
         self,
@@ -314,9 +322,10 @@ class _AsyncConfigs:
             params["nextToken"] = next_token
 
         async def fetch(p: dict) -> dict:
-            return await self._transport.request(
+            raw = await self._transport.request(
                 "GET", "/testing/configs", params=p, request_options=request_options
             )
+            return {"items": raw.get("configs", raw.get("items", [])), "nextToken": None}
 
         return AsyncPaginator(fetch_page=fetch, params=params, model_cls=TestConfig)
 
@@ -335,7 +344,7 @@ class _AsyncConfigs:
         raw = await self._transport.request(
             "GET", "/testing/configs", params=params, request_options=request_options
         )
-        items = [TestConfig.model_validate(i) for i in raw.get("items", [])]
+        items = [TestConfig.model_validate(i) for i in raw.get("configs", raw.get("items", []))]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
@@ -412,9 +421,10 @@ class _AsyncJobs:
             params["nextToken"] = next_token
 
         async def fetch(p: dict) -> dict:
-            return await self._transport.request(
+            raw = await self._transport.request(
                 "GET", "/testing/jobs", params=p, request_options=request_options
             )
+            return {"items": raw.get("jobs", raw.get("items", [])), "nextToken": None}
 
         return AsyncPaginator(fetch_page=fetch, params=params, model_cls=TestJob)
 
@@ -433,7 +443,7 @@ class _AsyncJobs:
         raw = await self._transport.request(
             "GET", "/testing/jobs", params=params, request_options=request_options
         )
-        items = [TestJob.model_validate(i) for i in raw.get("items", [])]
+        items = [TestJob.model_validate(i) for i in raw.get("jobs", raw.get("items", []))]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
@@ -485,9 +495,10 @@ class _AsyncRuns:
             params["nextToken"] = next_token
 
         async def fetch(p: dict) -> dict:
-            return await self._transport.request(
+            raw = await self._transport.request(
                 "GET", "/testing/runs", params=p, request_options=request_options
             )
+            return {"items": raw.get("runs", raw.get("items", [])), "nextToken": None}
 
         return AsyncPaginator(fetch_page=fetch, params=params, model_cls=TestRun)
 
@@ -506,7 +517,7 @@ class _AsyncRuns:
         raw = await self._transport.request(
             "GET", "/testing/runs", params=params, request_options=request_options
         )
-        items = [TestRun.model_validate(i) for i in raw.get("items", [])]
+        items = [TestRun.model_validate(i) for i in raw.get("runs", raw.get("items", []))]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
@@ -532,14 +543,15 @@ class _AsyncRuns:
             raise ValueError(
                 "Pass exactly one of job_id or test_config_id"
             )
-        body = {"jobId": job_id} if job_id else {"testConfigId": test_config_id}
+        body: dict = {"jobId": job_id} if job_id else {"testConfigId": test_config_id}
         raw = await self._transport.request(
             "POST",
             "/testing/runs",
             json=body,
             request_options=request_options,
         )
-        return TestRun.model_validate(raw)
+        # POST returns { message, run } — unwrap the run object.
+        return TestRun.model_validate(raw.get("run", raw))
 
     async def wait_for_run(
         self,

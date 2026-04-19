@@ -24,9 +24,10 @@ def test_configs_create(httpx_mock: HTTPXMock):
 
 
 def test_configs_list(httpx_mock: HTTPXMock):
+    # Server returns { configs: [...] } (not { items }) — SDK normalizes.
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/configs",
-        json={"items": [{"id": "cfg_1", "name": "T1"}], "nextToken": None},
+        json={"configs": [{"id": "cfg_1", "name": "T1"}]},
     )
     c = client()
     out = list(c.testing.configs.list())
@@ -83,9 +84,10 @@ def test_jobs_create(httpx_mock: HTTPXMock):
 
 
 def test_jobs_list(httpx_mock: HTTPXMock):
+    # Server returns { jobs: [...] } — SDK normalizes.
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/jobs",
-        json={"items": [{"id": "job_1", "status": "completed"}], "nextToken": None},
+        json={"jobs": [{"id": "job_1", "status": "completed"}]},
     )
     c = client()
     out = list(c.testing.jobs.list())
@@ -118,14 +120,16 @@ def test_jobs_delete(httpx_mock: HTTPXMock):
 # --- runs ---
 
 def test_runs_create_from_job(httpx_mock: HTTPXMock):
+    # Server wraps as { message, run } and uses `id` (not `runId`) on the entity.
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/runs",
         method="POST",
-        json={"runId": "r1", "jobId": "job_1", "status": "running"},
+        json={"message": "Test run started", "run": {"id": "r1", "jobId": "job_1", "status": "pending"}},
     )
     c = client()
     run = c.testing.runs.create(job_id="job_1")
-    assert run.run_id == "r1"
+    assert run.id == "r1"
+    assert run.status == "pending"
     # Verify we sent jobId, not testConfigId
     import json as _j
     assert _j.loads(httpx_mock.get_requests()[0].content) == {"jobId": "job_1"}
@@ -136,11 +140,12 @@ def test_runs_create_from_config(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/runs",
         method="POST",
-        json={"runId": "r2", "status": "running"},
+        json={"message": "Test run started", "run": {"id": "r2", "testConfigId": "cfg_1", "status": "pending"}},
     )
     c = client()
     run = c.testing.runs.create(test_config_id="cfg_1")
-    assert run.run_id == "r2"
+    assert run.id == "r2"
+    assert run.test_config_id == "cfg_1"
     import json as _j
     assert _j.loads(httpx_mock.get_requests()[0].content) == {"testConfigId": "cfg_1"}
     c.close()
@@ -157,20 +162,21 @@ def test_runs_create_requires_exactly_one_id():
 
 
 def test_runs_list(httpx_mock: HTTPXMock):
+    # Server returns { runs: [...] } — SDK normalizes.
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/runs",
-        json={"items": [{"runId": "r1", "status": "completed"}], "nextToken": None},
+        json={"runs": [{"id": "r1", "status": "completed"}]},
     )
     c = client()
     out = list(c.testing.runs.list())
-    assert out[0].run_id == "r1"
+    assert out[0].id == "r1"
     c.close()
 
 
 def test_runs_get(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/runs/r1",
-        json={"runId": "r1", "status": "completed", "result": "pass"},
+        json={"id": "r1", "status": "completed", "result": "pass"},
     )
     c = client()
     run = c.testing.runs.get("r1")
@@ -182,7 +188,7 @@ def test_wait_for_run(httpx_mock: HTTPXMock):
     for status in ("running", "completed"):
         httpx_mock.add_response(
             url="https://api.nopaque.co.uk/testing/runs/r1",
-            json={"runId": "r1", "status": status},
+            json={"id": "r1", "status": status},
         )
     c = client()
     run = c.testing.runs.wait_for_run("r1", timeout=5.0, poll_interval=0.01)
