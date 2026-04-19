@@ -1,7 +1,7 @@
 """Load testing resource - /testing/load-tests."""
 from __future__ import annotations
 
-from typing import Callable, Optional, Set
+from typing import Callable
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._polling import wait_for_async, wait_for_sync
@@ -14,16 +14,16 @@ from ..models.load_testing import (
     LoadTestStatus,
 )
 
-TERMINAL_STATUSES: Set[str] = {"completed", "aborted", "failed"}
+TERMINAL_STATUSES: set[str] = {"completed", "aborted", "failed"}
 
 
 class LoadTestingResource(SyncResource):
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[LoadTest]:
         params: dict = {}
         if limit is not None:
@@ -41,9 +41,9 @@ class LoadTestingResource(SyncResource):
     def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[LoadTest]:
         params: dict = {}
         if limit is not None:
@@ -57,7 +57,7 @@ class LoadTestingResource(SyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
-        self, load_test_id: str, *, request_options: Optional[RequestOptions] = None
+        self, load_test_id: str, *, request_options: RequestOptions | None = None
     ) -> LoadTest:
         raw = self._transport.request(
             "GET",
@@ -73,7 +73,7 @@ class LoadTestingResource(SyncResource):
         config_id: str,
         concurrency: int,
         total_calls: int,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> LoadTest:
         raw = self._transport.request(
             "POST",
@@ -92,10 +92,10 @@ class LoadTestingResource(SyncResource):
         self,
         load_test_id: str,
         *,
-        name: Optional[str] = None,
-        concurrency: Optional[int] = None,
-        total_calls: Optional[int] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        concurrency: int | None = None,
+        total_calls: int | None = None,
+        request_options: RequestOptions | None = None,
     ) -> LoadTest:
         body: dict = {}
         if name is not None:
@@ -113,7 +113,7 @@ class LoadTestingResource(SyncResource):
         return LoadTest.model_validate(raw)
 
     def delete(
-        self, load_test_id: str, *, request_options: Optional[RequestOptions] = None
+        self, load_test_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         self._transport.request(
             "DELETE",
@@ -127,7 +127,7 @@ class LoadTestingResource(SyncResource):
         config_id: str,
         concurrency: int,
         total_calls: int,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> LoadTestEstimate:
         raw = self._transport.request(
             "POST",
@@ -142,7 +142,7 @@ class LoadTestingResource(SyncResource):
         return LoadTestEstimate.model_validate(raw)
 
     def start(
-        self, load_test_id: str, *, request_options: Optional[RequestOptions] = None
+        self, load_test_id: str, *, request_options: RequestOptions | None = None
     ) -> LoadTest:
         raw = self._transport.request(
             "POST",
@@ -152,7 +152,7 @@ class LoadTestingResource(SyncResource):
         return LoadTest.model_validate(raw)
 
     def abort(
-        self, load_test_id: str, *, request_options: Optional[RequestOptions] = None
+        self, load_test_id: str, *, request_options: RequestOptions | None = None
     ) -> LoadTest:
         raw = self._transport.request(
             "POST",
@@ -162,7 +162,7 @@ class LoadTestingResource(SyncResource):
         return LoadTest.model_validate(raw)
 
     def status(
-        self, load_test_id: str, *, request_options: Optional[RequestOptions] = None
+        self, load_test_id: str, *, request_options: RequestOptions | None = None
     ) -> LoadTestStatus:
         raw = self._transport.request(
             "GET",
@@ -174,9 +174,9 @@ class LoadTestingResource(SyncResource):
     def list_runs(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[LoadTestRun]:
         params: dict = {}
         if limit is not None:
@@ -200,8 +200,8 @@ class LoadTestingResource(SyncResource):
         *,
         timeout: float = 600.0,
         poll_interval: float = 5.0,
-        on_update: Optional[Callable[[LoadTestStatus], None]] = None,
-        request_options: Optional[RequestOptions] = None,
+        on_update: Callable[[LoadTestStatus], None] | None = None,
+        request_options: RequestOptions | None = None,
     ) -> LoadTestStatus:
         def fetch() -> LoadTestStatus:
             return self.status(load_test_id, request_options=request_options)
@@ -219,9 +219,9 @@ class AsyncLoadTestingResource(AsyncResource):
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[LoadTest]:
         params: dict = {}
         if limit is not None:
@@ -239,9 +239,9 @@ class AsyncLoadTestingResource(AsyncResource):
     async def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[LoadTest]:
         params: dict = {}
         if limit is not None:
@@ -255,7 +255,7 @@ class AsyncLoadTestingResource(AsyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
-        self, load_test_id: str, *, request_options: Optional[RequestOptions] = None
+        self, load_test_id: str, *, request_options: RequestOptions | None = None
     ) -> LoadTest:
         raw = await self._transport.request(
             "GET",
@@ -271,7 +271,7 @@ class AsyncLoadTestingResource(AsyncResource):
         config_id: str,
         concurrency: int,
         total_calls: int,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> LoadTest:
         raw = await self._transport.request(
             "POST",
@@ -290,10 +290,10 @@ class AsyncLoadTestingResource(AsyncResource):
         self,
         load_test_id: str,
         *,
-        name: Optional[str] = None,
-        concurrency: Optional[int] = None,
-        total_calls: Optional[int] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        concurrency: int | None = None,
+        total_calls: int | None = None,
+        request_options: RequestOptions | None = None,
     ) -> LoadTest:
         body: dict = {}
         if name is not None:
@@ -311,7 +311,7 @@ class AsyncLoadTestingResource(AsyncResource):
         return LoadTest.model_validate(raw)
 
     async def delete(
-        self, load_test_id: str, *, request_options: Optional[RequestOptions] = None
+        self, load_test_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         await self._transport.request(
             "DELETE",
@@ -325,7 +325,7 @@ class AsyncLoadTestingResource(AsyncResource):
         config_id: str,
         concurrency: int,
         total_calls: int,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> LoadTestEstimate:
         raw = await self._transport.request(
             "POST",
@@ -340,7 +340,7 @@ class AsyncLoadTestingResource(AsyncResource):
         return LoadTestEstimate.model_validate(raw)
 
     async def start(
-        self, load_test_id: str, *, request_options: Optional[RequestOptions] = None
+        self, load_test_id: str, *, request_options: RequestOptions | None = None
     ) -> LoadTest:
         raw = await self._transport.request(
             "POST",
@@ -350,7 +350,7 @@ class AsyncLoadTestingResource(AsyncResource):
         return LoadTest.model_validate(raw)
 
     async def abort(
-        self, load_test_id: str, *, request_options: Optional[RequestOptions] = None
+        self, load_test_id: str, *, request_options: RequestOptions | None = None
     ) -> LoadTest:
         raw = await self._transport.request(
             "POST",
@@ -360,7 +360,7 @@ class AsyncLoadTestingResource(AsyncResource):
         return LoadTest.model_validate(raw)
 
     async def status(
-        self, load_test_id: str, *, request_options: Optional[RequestOptions] = None
+        self, load_test_id: str, *, request_options: RequestOptions | None = None
     ) -> LoadTestStatus:
         raw = await self._transport.request(
             "GET",
@@ -372,9 +372,9 @@ class AsyncLoadTestingResource(AsyncResource):
     def list_runs(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[LoadTestRun]:
         params: dict = {}
         if limit is not None:
@@ -398,8 +398,8 @@ class AsyncLoadTestingResource(AsyncResource):
         *,
         timeout: float = 600.0,
         poll_interval: float = 5.0,
-        on_update: Optional[Callable[[LoadTestStatus], None]] = None,
-        request_options: Optional[RequestOptions] = None,
+        on_update: Callable[[LoadTestStatus], None] | None = None,
+        request_options: RequestOptions | None = None,
     ) -> LoadTestStatus:
         async def fetch() -> LoadTestStatus:
             return await self.status(load_test_id, request_options=request_options)

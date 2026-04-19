@@ -1,7 +1,6 @@
-import pytest
 from pytest_httpx import HTTPXMock
+
 from nopaque import Nopaque
-from nopaque._errors import NopaqueTimeoutError
 
 
 def client():

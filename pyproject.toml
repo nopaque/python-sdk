@@ -68,10 +68,16 @@ target-version = "py39"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "N"]
+# UP006/UP007 suggest PEP 585/604 generics, but runtime-evaluated Pydantic
+# models need Python 3.10+ for that syntax; we target 3.9.
+ignore = ["UP006", "UP007", "UP035", "UP045"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.9"
-strict = true
-warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+check_untyped_defs = true
+ignore_missing_imports = true

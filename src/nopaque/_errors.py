@@ -1,7 +1,7 @@
 """Error hierarchy for the Nopaque SDK."""
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 
 class NopaqueError(Exception):
@@ -19,7 +19,7 @@ class NopaqueTimeoutError(NopaqueError):
 class APIConnectionError(NopaqueError):
     """Raised when the SDK cannot reach the API (DNS, TCP reset, etc.)."""
 
-    def __init__(self, message: str, *, cause: Optional[BaseException] = None) -> None:
+    def __init__(self, message: str, *, cause: BaseException | None = None) -> None:
         super().__init__(message)
         self.__cause__ = cause
 
@@ -39,10 +39,10 @@ class NopaqueAPIError(NopaqueError):
         self,
         *,
         status: int,
-        code: Optional[str],
+        code: str | None,
         message: str,
-        details: Optional[dict] = None,
-        request_id: Optional[str] = None,
+        details: dict | None = None,
+        request_id: str | None = None,
         response: Any = None,
     ) -> None:
         super().__init__(message)
@@ -81,12 +81,12 @@ class RateLimitError(NopaqueAPIError):
         self,
         *,
         status: int,
-        code: Optional[str],
+        code: str | None,
         message: str,
-        details: Optional[dict] = None,
-        request_id: Optional[str] = None,
+        details: dict | None = None,
+        request_id: str | None = None,
         response: Any = None,
-        retry_after: Optional[float] = None,
+        retry_after: float | None = None,
     ) -> None:
         super().__init__(
             status=status,
@@ -103,7 +103,7 @@ class ServerError(NopaqueAPIError):
     """5xx - server-side failure."""
 
 
-_STATUS_MAP: Dict[int, Type[NopaqueAPIError]] = {
+_STATUS_MAP: dict[int, type[NopaqueAPIError]] = {
     400: ValidationError,
     401: AuthenticationError,
     403: PermissionError,
@@ -113,7 +113,7 @@ _STATUS_MAP: Dict[int, Type[NopaqueAPIError]] = {
 }
 
 
-def classify_status(status: int) -> Type[NopaqueAPIError]:
+def classify_status(status: int) -> type[NopaqueAPIError]:
     """Return the most specific NopaqueAPIError subclass for a given HTTP status."""
     if status in _STATUS_MAP:
         return _STATUS_MAP[status]

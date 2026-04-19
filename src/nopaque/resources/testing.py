@@ -1,7 +1,8 @@
 """Testing resource - /testing/configs, /testing/jobs, /testing/runs."""
 from __future__ import annotations
 
-from typing import Any, Callable, List, Optional, Set
+import builtins
+from typing import Any, Callable
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._polling import wait_for_async, wait_for_sync
@@ -10,7 +11,7 @@ from .._resource import AsyncResource, SyncResource
 from .._transport import AsyncTransport, SyncTransport
 from ..models.testing import TestConfig, TestJob, TestRun
 
-RUN_TERMINAL_STATUSES: Set[str] = {"completed", "failed", "cancelled"}
+RUN_TERMINAL_STATUSES: set[str] = {"completed", "failed", "cancelled"}
 
 
 # ==== Sync sub-namespaces =====================================================
@@ -23,9 +24,9 @@ class _SyncConfigs:
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[TestConfig]:
         params: dict = {}
         if limit is not None:
@@ -43,9 +44,9 @@ class _SyncConfigs:
     def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[TestConfig]:
         params: dict = {}
         if limit is not None:
@@ -59,7 +60,7 @@ class _SyncConfigs:
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
-        self, config_id: str, *, request_options: Optional[RequestOptions] = None
+        self, config_id: str, *, request_options: RequestOptions | None = None
     ) -> TestConfig:
         raw = self._transport.request(
             "GET", f"/testing/configs/{config_id}", request_options=request_options
@@ -71,8 +72,8 @@ class _SyncConfigs:
         *,
         name: str,
         phone_number: str,
-        steps: List[Any],
-        request_options: Optional[RequestOptions] = None,
+        steps: builtins.list[Any],
+        request_options: RequestOptions | None = None,
     ) -> TestConfig:
         raw = self._transport.request(
             "POST",
@@ -86,10 +87,10 @@ class _SyncConfigs:
         self,
         config_id: str,
         *,
-        name: Optional[str] = None,
-        phone_number: Optional[str] = None,
-        steps: Optional[List[Any]] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        phone_number: str | None = None,
+        steps: builtins.list[Any] | None = None,
+        request_options: RequestOptions | None = None,
     ) -> TestConfig:
         body: dict = {}
         if name is not None:
@@ -107,7 +108,7 @@ class _SyncConfigs:
         return TestConfig.model_validate(raw)
 
     def delete(
-        self, config_id: str, *, request_options: Optional[RequestOptions] = None
+        self, config_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         self._transport.request(
             "DELETE", f"/testing/configs/{config_id}", request_options=request_options
@@ -121,9 +122,9 @@ class _SyncJobs:
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[TestJob]:
         params: dict = {}
         if limit is not None:
@@ -141,9 +142,9 @@ class _SyncJobs:
     def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[TestJob]:
         params: dict = {}
         if limit is not None:
@@ -157,7 +158,7 @@ class _SyncJobs:
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
-        self, job_id: str, *, request_options: Optional[RequestOptions] = None
+        self, job_id: str, *, request_options: RequestOptions | None = None
     ) -> TestJob:
         raw = self._transport.request(
             "GET", f"/testing/jobs/{job_id}", request_options=request_options
@@ -168,8 +169,8 @@ class _SyncJobs:
         self,
         *,
         config_id: str,
-        name: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> TestJob:
         body: dict = {"configId": config_id}
         if name is not None:
@@ -180,7 +181,7 @@ class _SyncJobs:
         return TestJob.model_validate(raw)
 
     def delete(
-        self, job_id: str, *, request_options: Optional[RequestOptions] = None
+        self, job_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         self._transport.request(
             "DELETE", f"/testing/jobs/{job_id}", request_options=request_options
@@ -194,9 +195,9 @@ class _SyncRuns:
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[TestRun]:
         params: dict = {}
         if limit is not None:
@@ -214,9 +215,9 @@ class _SyncRuns:
     def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[TestRun]:
         params: dict = {}
         if limit is not None:
@@ -230,7 +231,7 @@ class _SyncRuns:
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
-        self, run_id: str, *, request_options: Optional[RequestOptions] = None
+        self, run_id: str, *, request_options: RequestOptions | None = None
     ) -> TestRun:
         raw = self._transport.request(
             "GET", f"/testing/runs/{run_id}", request_options=request_options
@@ -241,7 +242,7 @@ class _SyncRuns:
         self,
         *,
         job_id: str,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> TestRun:
         raw = self._transport.request(
             "POST",
@@ -257,8 +258,8 @@ class _SyncRuns:
         *,
         timeout: float = 600.0,
         poll_interval: float = 5.0,
-        on_update: Optional[Callable[[TestRun], None]] = None,
-        request_options: Optional[RequestOptions] = None,
+        on_update: Callable[[TestRun], None] | None = None,
+        request_options: RequestOptions | None = None,
     ) -> TestRun:
         def fetch() -> TestRun:
             return self.get(run_id, request_options=request_options)
@@ -292,9 +293,9 @@ class _AsyncConfigs:
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[TestConfig]:
         params: dict = {}
         if limit is not None:
@@ -312,9 +313,9 @@ class _AsyncConfigs:
     async def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[TestConfig]:
         params: dict = {}
         if limit is not None:
@@ -328,7 +329,7 @@ class _AsyncConfigs:
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
-        self, config_id: str, *, request_options: Optional[RequestOptions] = None
+        self, config_id: str, *, request_options: RequestOptions | None = None
     ) -> TestConfig:
         raw = await self._transport.request(
             "GET", f"/testing/configs/{config_id}", request_options=request_options
@@ -340,8 +341,8 @@ class _AsyncConfigs:
         *,
         name: str,
         phone_number: str,
-        steps: List[Any],
-        request_options: Optional[RequestOptions] = None,
+        steps: builtins.list[Any],
+        request_options: RequestOptions | None = None,
     ) -> TestConfig:
         raw = await self._transport.request(
             "POST",
@@ -355,10 +356,10 @@ class _AsyncConfigs:
         self,
         config_id: str,
         *,
-        name: Optional[str] = None,
-        phone_number: Optional[str] = None,
-        steps: Optional[List[Any]] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        phone_number: str | None = None,
+        steps: builtins.list[Any] | None = None,
+        request_options: RequestOptions | None = None,
     ) -> TestConfig:
         body: dict = {}
         if name is not None:
@@ -376,7 +377,7 @@ class _AsyncConfigs:
         return TestConfig.model_validate(raw)
 
     async def delete(
-        self, config_id: str, *, request_options: Optional[RequestOptions] = None
+        self, config_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         await self._transport.request(
             "DELETE", f"/testing/configs/{config_id}", request_options=request_options
@@ -390,9 +391,9 @@ class _AsyncJobs:
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[TestJob]:
         params: dict = {}
         if limit is not None:
@@ -410,9 +411,9 @@ class _AsyncJobs:
     async def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[TestJob]:
         params: dict = {}
         if limit is not None:
@@ -426,7 +427,7 @@ class _AsyncJobs:
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
-        self, job_id: str, *, request_options: Optional[RequestOptions] = None
+        self, job_id: str, *, request_options: RequestOptions | None = None
     ) -> TestJob:
         raw = await self._transport.request(
             "GET", f"/testing/jobs/{job_id}", request_options=request_options
@@ -437,8 +438,8 @@ class _AsyncJobs:
         self,
         *,
         config_id: str,
-        name: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> TestJob:
         body: dict = {"configId": config_id}
         if name is not None:
@@ -449,7 +450,7 @@ class _AsyncJobs:
         return TestJob.model_validate(raw)
 
     async def delete(
-        self, job_id: str, *, request_options: Optional[RequestOptions] = None
+        self, job_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         await self._transport.request(
             "DELETE", f"/testing/jobs/{job_id}", request_options=request_options
@@ -463,9 +464,9 @@ class _AsyncRuns:
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[TestRun]:
         params: dict = {}
         if limit is not None:
@@ -483,9 +484,9 @@ class _AsyncRuns:
     async def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[TestRun]:
         params: dict = {}
         if limit is not None:
@@ -499,7 +500,7 @@ class _AsyncRuns:
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
-        self, run_id: str, *, request_options: Optional[RequestOptions] = None
+        self, run_id: str, *, request_options: RequestOptions | None = None
     ) -> TestRun:
         raw = await self._transport.request(
             "GET", f"/testing/runs/{run_id}", request_options=request_options
@@ -510,7 +511,7 @@ class _AsyncRuns:
         self,
         *,
         job_id: str,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> TestRun:
         raw = await self._transport.request(
             "POST",
@@ -526,8 +527,8 @@ class _AsyncRuns:
         *,
         timeout: float = 600.0,
         poll_interval: float = 5.0,
-        on_update: Optional[Callable[[TestRun], None]] = None,
-        request_options: Optional[RequestOptions] = None,
+        on_update: Callable[[TestRun], None] | None = None,
+        request_options: RequestOptions | None = None,
     ) -> TestRun:
         async def fetch() -> TestRun:
             return await self.get(run_id, request_options=request_options)

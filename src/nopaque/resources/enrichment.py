@@ -6,8 +6,6 @@ the functional grouping and leaves room to move the server routes later.
 """
 from __future__ import annotations
 
-from typing import Optional
-
 from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
 from ..models.enrichment import EnrichmentJob, EnrichmentResult, TokenUsage
@@ -20,7 +18,7 @@ class EnrichmentResource(SyncResource):
         run_id: str,
         type: str,
         *,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> EnrichmentResult:
         raw = self._transport.request(
             "GET",
@@ -34,7 +32,7 @@ class EnrichmentResource(SyncResource):
         job_id: str,
         run_id: str,
         *,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> TokenUsage:
         raw = self._transport.request(
             "GET",
@@ -48,7 +46,7 @@ class EnrichmentResource(SyncResource):
         job_id: str,
         run_id: str,
         *,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> EnrichmentJob:
         raw = self._transport.request(
             "POST",
@@ -65,7 +63,7 @@ class AsyncEnrichmentResource(AsyncResource):
         run_id: str,
         type: str,
         *,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> EnrichmentResult:
         raw = await self._transport.request(
             "GET",
@@ -79,7 +77,7 @@ class AsyncEnrichmentResource(AsyncResource):
         job_id: str,
         run_id: str,
         *,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> TokenUsage:
         raw = await self._transport.request(
             "GET",
@@ -93,7 +91,7 @@ class AsyncEnrichmentResource(AsyncResource):
         job_id: str,
         run_id: str,
         *,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> EnrichmentJob:
         raw = await self._transport.request(
             "POST",

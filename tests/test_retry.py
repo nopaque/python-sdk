@@ -1,20 +1,19 @@
 import random
 
-import pytest
-from nopaque._retry import (
-    compute_backoff,
-    should_retry,
-    RetryContext,
-)
 from nopaque._errors import (
     APIConnectionError,
     APITimeoutError,
-    RateLimitError,
-    ServerError,
+    AuthenticationError,
     ConflictError,
     NotFoundError,
+    RateLimitError,
+    ServerError,
     ValidationError,
-    AuthenticationError,
+)
+from nopaque._retry import (
+    RetryContext,
+    compute_backoff,
+    should_retry,
 )
 
 

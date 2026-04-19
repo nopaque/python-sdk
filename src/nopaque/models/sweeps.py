@@ -1,10 +1,7 @@
 """Models for /testing/sweeps endpoints."""
-from __future__ import annotations
-
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict
-
 
 _ALIAS_MAP = {
     "config_id": "configId",

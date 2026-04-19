@@ -1,10 +1,7 @@
 """Models for enrichment endpoints under /mapping/{jobId}/runs/{runId}/."""
-from __future__ import annotations
-
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict
-
 
 _ALIAS_MAP = {
     "job_id": "jobId",

@@ -1,7 +1,7 @@
 """Top-level Nopaque and AsyncNopaque clients."""
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 import httpx
 
@@ -24,14 +24,14 @@ class Nopaque:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         *,
-        base_url: Optional[str] = None,
+        base_url: str | None = None,
         timeout: float = 60.0,
         max_retries: int = 3,
-        default_headers: Optional[dict] = None,
-        on_retry: Optional[Callable[[int, Any, float], None]] = None,
-        http_client: Optional[httpx.Client] = None,
+        default_headers: dict | None = None,
+        on_retry: Callable[[int, Any, float], None] | None = None,
+        http_client: httpx.Client | None = None,
     ) -> None:
         self.config = NopaqueConfig(
             api_key=api_key or "",
@@ -56,7 +56,7 @@ class Nopaque:
     def close(self) -> None:
         self._transport.close()
 
-    def __enter__(self) -> "Nopaque":
+    def __enter__(self) -> Nopaque:
         return self
 
     def __exit__(self, *exc_info: Any) -> None:
@@ -68,14 +68,14 @@ class AsyncNopaque:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         *,
-        base_url: Optional[str] = None,
+        base_url: str | None = None,
         timeout: float = 60.0,
         max_retries: int = 3,
-        default_headers: Optional[dict] = None,
-        on_retry: Optional[Callable[[int, Any, float], None]] = None,
-        http_client: Optional[httpx.AsyncClient] = None,
+        default_headers: dict | None = None,
+        on_retry: Callable[[int, Any, float], None] | None = None,
+        http_client: httpx.AsyncClient | None = None,
     ) -> None:
         self.config = NopaqueConfig(
             api_key=api_key or "",
@@ -100,7 +100,7 @@ class AsyncNopaque:
     async def aclose(self) -> None:
         await self._transport.aclose()
 
-    async def __aenter__(self) -> "AsyncNopaque":
+    async def __aenter__(self) -> AsyncNopaque:
         return self
 
     async def __aexit__(self, *exc_info: Any) -> None:

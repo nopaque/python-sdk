@@ -1,7 +1,7 @@
 """Per-call request options."""
 from __future__ import annotations
 
-from typing import Optional, TypedDict
+from typing import TypedDict
 
 
 class RequestOptions(TypedDict, total=False):
@@ -19,8 +19,8 @@ class RequestOptions(TypedDict, total=False):
 
 
 def merge_options(
-    defaults: "Optional[RequestOptions]", overrides: "Optional[RequestOptions]"
-) -> "RequestOptions":
+    defaults: RequestOptions | None, overrides: RequestOptions | None
+) -> RequestOptions:
     base: RequestOptions = dict(defaults) if defaults else {}  # type: ignore[assignment]
     if overrides:
         headers = {**(base.get("headers") or {}), **(overrides.get("headers") or {})}

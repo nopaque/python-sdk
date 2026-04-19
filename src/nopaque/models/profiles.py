@@ -1,10 +1,7 @@
 """Models for /profiles endpoints."""
-from __future__ import annotations
-
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
-
 
 _ALIAS_MAP = {
     "profile_id": "profileId",

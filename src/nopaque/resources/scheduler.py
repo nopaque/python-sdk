@@ -1,8 +1,6 @@
 """Scheduler resource - /schedules endpoints."""
 from __future__ import annotations
 
-from typing import Optional
-
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
@@ -13,9 +11,9 @@ class SchedulerResource(SyncResource):
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[Schedule]:
         params: dict = {}
         if limit is not None:
@@ -33,9 +31,9 @@ class SchedulerResource(SyncResource):
     def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[Schedule]:
         params: dict = {}
         if limit is not None:
@@ -49,7 +47,7 @@ class SchedulerResource(SyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
-        self, schedule_id: str, *, request_options: Optional[RequestOptions] = None
+        self, schedule_id: str, *, request_options: RequestOptions | None = None
     ) -> Schedule:
         raw = self._transport.request(
             "GET", f"/schedules/{schedule_id}", request_options=request_options
@@ -62,8 +60,8 @@ class SchedulerResource(SyncResource):
         name: str,
         config_id: str,
         cron_expression: str,
-        timezone: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        timezone: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Schedule:
         body: dict = {
             "name": name,
@@ -81,10 +79,10 @@ class SchedulerResource(SyncResource):
         self,
         schedule_id: str,
         *,
-        name: Optional[str] = None,
-        cron_expression: Optional[str] = None,
-        timezone: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        cron_expression: str | None = None,
+        timezone: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Schedule:
         body: dict = {}
         if name is not None:
@@ -102,14 +100,14 @@ class SchedulerResource(SyncResource):
         return Schedule.model_validate(raw)
 
     def delete(
-        self, schedule_id: str, *, request_options: Optional[RequestOptions] = None
+        self, schedule_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         self._transport.request(
             "DELETE", f"/schedules/{schedule_id}", request_options=request_options
         )
 
     def pause(
-        self, schedule_id: str, *, request_options: Optional[RequestOptions] = None
+        self, schedule_id: str, *, request_options: RequestOptions | None = None
     ) -> Schedule:
         raw = self._transport.request(
             "POST",
@@ -119,7 +117,7 @@ class SchedulerResource(SyncResource):
         return Schedule.model_validate(raw)
 
     def resume(
-        self, schedule_id: str, *, request_options: Optional[RequestOptions] = None
+        self, schedule_id: str, *, request_options: RequestOptions | None = None
     ) -> Schedule:
         raw = self._transport.request(
             "POST",
@@ -133,9 +131,9 @@ class AsyncSchedulerResource(AsyncResource):
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[Schedule]:
         params: dict = {}
         if limit is not None:
@@ -153,9 +151,9 @@ class AsyncSchedulerResource(AsyncResource):
     async def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[Schedule]:
         params: dict = {}
         if limit is not None:
@@ -169,7 +167,7 @@ class AsyncSchedulerResource(AsyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
-        self, schedule_id: str, *, request_options: Optional[RequestOptions] = None
+        self, schedule_id: str, *, request_options: RequestOptions | None = None
     ) -> Schedule:
         raw = await self._transport.request(
             "GET", f"/schedules/{schedule_id}", request_options=request_options
@@ -182,8 +180,8 @@ class AsyncSchedulerResource(AsyncResource):
         name: str,
         config_id: str,
         cron_expression: str,
-        timezone: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        timezone: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Schedule:
         body: dict = {
             "name": name,
@@ -201,10 +199,10 @@ class AsyncSchedulerResource(AsyncResource):
         self,
         schedule_id: str,
         *,
-        name: Optional[str] = None,
-        cron_expression: Optional[str] = None,
-        timezone: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        cron_expression: str | None = None,
+        timezone: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Schedule:
         body: dict = {}
         if name is not None:
@@ -222,14 +220,14 @@ class AsyncSchedulerResource(AsyncResource):
         return Schedule.model_validate(raw)
 
     async def delete(
-        self, schedule_id: str, *, request_options: Optional[RequestOptions] = None
+        self, schedule_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         await self._transport.request(
             "DELETE", f"/schedules/{schedule_id}", request_options=request_options
         )
 
     async def pause(
-        self, schedule_id: str, *, request_options: Optional[RequestOptions] = None
+        self, schedule_id: str, *, request_options: RequestOptions | None = None
     ) -> Schedule:
         raw = await self._transport.request(
             "POST",
@@ -239,7 +237,7 @@ class AsyncSchedulerResource(AsyncResource):
         return Schedule.model_validate(raw)
 
     async def resume(
-        self, schedule_id: str, *, request_options: Optional[RequestOptions] = None
+        self, schedule_id: str, *, request_options: RequestOptions | None = None
     ) -> Schedule:
         raw = await self._transport.request(
             "POST",

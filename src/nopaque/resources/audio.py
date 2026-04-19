@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._request_options import RequestOptions
@@ -24,9 +24,9 @@ class AudioResource(SyncResource):
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[AudioFile]:
         params: dict = {}
         if limit is not None:
@@ -44,9 +44,9 @@ class AudioResource(SyncResource):
     def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[AudioFile]:
         params: dict = {}
         if limit is not None:
@@ -60,7 +60,7 @@ class AudioResource(SyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
-        self, audio_id: str, *, request_options: Optional[RequestOptions] = None
+        self, audio_id: str, *, request_options: RequestOptions | None = None
     ) -> AudioFile:
         raw = self._transport.request(
             "GET", f"/audio/{audio_id}", request_options=request_options
@@ -68,7 +68,7 @@ class AudioResource(SyncResource):
         return AudioFile.model_validate(raw)
 
     def delete(
-        self, audio_id: str, *, request_options: Optional[RequestOptions] = None
+        self, audio_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         self._transport.request(
             "DELETE", f"/audio/{audio_id}", request_options=request_options
@@ -79,7 +79,7 @@ class AudioResource(SyncResource):
         *,
         file_name: str,
         content_type: str,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> AudioUploadURL:
         raw = self._transport.request(
             "POST",
@@ -93,7 +93,7 @@ class AudioResource(SyncResource):
         self,
         audio_id: str,
         *,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> AudioDownloadURL:
         raw = self._transport.request(
             "GET",
@@ -109,9 +109,9 @@ class AudioResource(SyncResource):
         self,
         *,
         file: Any,
-        content_type: Optional[str] = None,
-        name: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        content_type: str | None = None,
+        name: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AudioFile:
         """Upload a local file or bytes to Nopaque in one call.
 
@@ -134,9 +134,9 @@ class AudioResource(SyncResource):
         self,
         audio_id: str,
         *,
-        to: Optional[Union[str, Path]] = None,
-        request_options: Optional[RequestOptions] = None,
-    ) -> Optional[bytes]:
+        to: str | Path | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> bytes | None:
         """Download an audio file. Returns bytes if `to` is None; otherwise
         writes to the given path and returns None.
         """
@@ -154,9 +154,9 @@ class AsyncAudioResource(AsyncResource):
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[AudioFile]:
         params: dict = {}
         if limit is not None:
@@ -174,9 +174,9 @@ class AsyncAudioResource(AsyncResource):
     async def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[AudioFile]:
         params: dict = {}
         if limit is not None:
@@ -190,7 +190,7 @@ class AsyncAudioResource(AsyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
-        self, audio_id: str, *, request_options: Optional[RequestOptions] = None
+        self, audio_id: str, *, request_options: RequestOptions | None = None
     ) -> AudioFile:
         raw = await self._transport.request(
             "GET", f"/audio/{audio_id}", request_options=request_options
@@ -198,7 +198,7 @@ class AsyncAudioResource(AsyncResource):
         return AudioFile.model_validate(raw)
 
     async def delete(
-        self, audio_id: str, *, request_options: Optional[RequestOptions] = None
+        self, audio_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         await self._transport.request(
             "DELETE", f"/audio/{audio_id}", request_options=request_options
@@ -209,7 +209,7 @@ class AsyncAudioResource(AsyncResource):
         *,
         file_name: str,
         content_type: str,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> AudioUploadURL:
         raw = await self._transport.request(
             "POST",
@@ -223,7 +223,7 @@ class AsyncAudioResource(AsyncResource):
         self,
         audio_id: str,
         *,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> AudioDownloadURL:
         raw = await self._transport.request(
             "GET",
@@ -239,9 +239,9 @@ class AsyncAudioResource(AsyncResource):
         self,
         *,
         file: Any,
-        content_type: Optional[str] = None,
-        name: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        content_type: str | None = None,
+        name: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AudioFile:
         """Async variant of AudioResource.upload."""
         data, inferred_name = _read_bytes(file)
@@ -260,9 +260,9 @@ class AsyncAudioResource(AsyncResource):
         self,
         audio_id: str,
         *,
-        to: Optional[Union[str, Path]] = None,
-        request_options: Optional[RequestOptions] = None,
-    ) -> Optional[bytes]:
+        to: str | Path | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> bytes | None:
         """Async variant of AudioResource.download."""
         presign = await self.create_download_url(
             audio_id, request_options=request_options

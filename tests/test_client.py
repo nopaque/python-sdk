@@ -1,6 +1,7 @@
 import pytest
 from pytest_httpx import HTTPXMock
-from nopaque import Nopaque, AsyncNopaque
+
+from nopaque import AsyncNopaque, Nopaque
 from nopaque._errors import NopaqueConfigError
 
 

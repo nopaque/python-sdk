@@ -1,7 +1,8 @@
 """Sweeps resource - /testing/sweeps and /testing/sweep-runs."""
 from __future__ import annotations
 
-from typing import Callable, Dict, List, Optional, Set
+import builtins
+from typing import Callable
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._polling import wait_for_async, wait_for_sync
@@ -9,16 +10,16 @@ from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
 from ..models.sweeps import Sweep, SweepRun
 
-RUN_TERMINAL_STATUSES: Set[str] = {"completed", "failed", "cancelled"}
+RUN_TERMINAL_STATUSES: set[str] = {"completed", "failed", "cancelled"}
 
 
 class SweepsResource(SyncResource):
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[Sweep]:
         params: dict = {}
         if limit is not None:
@@ -36,9 +37,9 @@ class SweepsResource(SyncResource):
     def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[Sweep]:
         params: dict = {}
         if limit is not None:
@@ -52,7 +53,7 @@ class SweepsResource(SyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
-        self, sweep_id: str, *, request_options: Optional[RequestOptions] = None
+        self, sweep_id: str, *, request_options: RequestOptions | None = None
     ) -> Sweep:
         raw = self._transport.request(
             "GET", f"/testing/sweeps/{sweep_id}", request_options=request_options
@@ -64,8 +65,8 @@ class SweepsResource(SyncResource):
         *,
         name: str,
         config_id: str,
-        parameters: Dict[str, List[str]],
-        request_options: Optional[RequestOptions] = None,
+        parameters: dict[str, builtins.list[str]],
+        request_options: RequestOptions | None = None,
     ) -> Sweep:
         raw = self._transport.request(
             "POST",
@@ -79,9 +80,9 @@ class SweepsResource(SyncResource):
         self,
         sweep_id: str,
         *,
-        name: Optional[str] = None,
-        parameters: Optional[Dict[str, List[str]]] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        parameters: dict[str, builtins.list[str]] | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Sweep:
         body: dict = {}
         if name is not None:
@@ -97,14 +98,14 @@ class SweepsResource(SyncResource):
         return Sweep.model_validate(raw)
 
     def delete(
-        self, sweep_id: str, *, request_options: Optional[RequestOptions] = None
+        self, sweep_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         self._transport.request(
             "DELETE", f"/testing/sweeps/{sweep_id}", request_options=request_options
         )
 
     def run(
-        self, sweep_id: str, *, request_options: Optional[RequestOptions] = None
+        self, sweep_id: str, *, request_options: RequestOptions | None = None
     ) -> SweepRun:
         raw = self._transport.request(
             "POST",
@@ -117,9 +118,9 @@ class SweepsResource(SyncResource):
         self,
         sweep_id: str,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[SweepRun]:
         params: dict = {}
         if limit is not None:
@@ -140,9 +141,9 @@ class SweepsResource(SyncResource):
     def list_runs(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[SweepRun]:
         params: dict = {}
         if limit is not None:
@@ -158,7 +159,7 @@ class SweepsResource(SyncResource):
         return SyncPaginator(fetch_page=fetch, params=params, model_cls=SweepRun)
 
     def get_run(
-        self, run_id: str, *, request_options: Optional[RequestOptions] = None
+        self, run_id: str, *, request_options: RequestOptions | None = None
     ) -> SweepRun:
         raw = self._transport.request(
             "GET", f"/testing/sweep-runs/{run_id}", request_options=request_options
@@ -171,8 +172,8 @@ class SweepsResource(SyncResource):
         *,
         timeout: float = 600.0,
         poll_interval: float = 5.0,
-        on_update: Optional[Callable[[SweepRun], None]] = None,
-        request_options: Optional[RequestOptions] = None,
+        on_update: Callable[[SweepRun], None] | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SweepRun:
         def fetch() -> SweepRun:
             return self.get_run(run_id, request_options=request_options)
@@ -190,9 +191,9 @@ class AsyncSweepsResource(AsyncResource):
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[Sweep]:
         params: dict = {}
         if limit is not None:
@@ -210,9 +211,9 @@ class AsyncSweepsResource(AsyncResource):
     async def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[Sweep]:
         params: dict = {}
         if limit is not None:
@@ -226,7 +227,7 @@ class AsyncSweepsResource(AsyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
-        self, sweep_id: str, *, request_options: Optional[RequestOptions] = None
+        self, sweep_id: str, *, request_options: RequestOptions | None = None
     ) -> Sweep:
         raw = await self._transport.request(
             "GET", f"/testing/sweeps/{sweep_id}", request_options=request_options
@@ -238,8 +239,8 @@ class AsyncSweepsResource(AsyncResource):
         *,
         name: str,
         config_id: str,
-        parameters: Dict[str, List[str]],
-        request_options: Optional[RequestOptions] = None,
+        parameters: dict[str, builtins.list[str]],
+        request_options: RequestOptions | None = None,
     ) -> Sweep:
         raw = await self._transport.request(
             "POST",
@@ -253,9 +254,9 @@ class AsyncSweepsResource(AsyncResource):
         self,
         sweep_id: str,
         *,
-        name: Optional[str] = None,
-        parameters: Optional[Dict[str, List[str]]] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        parameters: dict[str, builtins.list[str]] | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Sweep:
         body: dict = {}
         if name is not None:
@@ -271,14 +272,14 @@ class AsyncSweepsResource(AsyncResource):
         return Sweep.model_validate(raw)
 
     async def delete(
-        self, sweep_id: str, *, request_options: Optional[RequestOptions] = None
+        self, sweep_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         await self._transport.request(
             "DELETE", f"/testing/sweeps/{sweep_id}", request_options=request_options
         )
 
     async def run(
-        self, sweep_id: str, *, request_options: Optional[RequestOptions] = None
+        self, sweep_id: str, *, request_options: RequestOptions | None = None
     ) -> SweepRun:
         raw = await self._transport.request(
             "POST",
@@ -291,9 +292,9 @@ class AsyncSweepsResource(AsyncResource):
         self,
         sweep_id: str,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[SweepRun]:
         params: dict = {}
         if limit is not None:
@@ -314,9 +315,9 @@ class AsyncSweepsResource(AsyncResource):
     def list_runs(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[SweepRun]:
         params: dict = {}
         if limit is not None:
@@ -332,7 +333,7 @@ class AsyncSweepsResource(AsyncResource):
         return AsyncPaginator(fetch_page=fetch, params=params, model_cls=SweepRun)
 
     async def get_run(
-        self, run_id: str, *, request_options: Optional[RequestOptions] = None
+        self, run_id: str, *, request_options: RequestOptions | None = None
     ) -> SweepRun:
         raw = await self._transport.request(
             "GET", f"/testing/sweep-runs/{run_id}", request_options=request_options
@@ -345,8 +346,8 @@ class AsyncSweepsResource(AsyncResource):
         *,
         timeout: float = 600.0,
         poll_interval: float = 5.0,
-        on_update: Optional[Callable[[SweepRun], None]] = None,
-        request_options: Optional[RequestOptions] = None,
+        on_update: Callable[[SweepRun], None] | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SweepRun:
         async def fetch() -> SweepRun:
             return await self.get_run(run_id, request_options=request_options)

@@ -1,8 +1,6 @@
 """Datasets resource - /datasets endpoints."""
 from __future__ import annotations
 
-from typing import Optional
-
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
@@ -13,9 +11,9 @@ class DatasetsResource(SyncResource):
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[Dataset]:
         params: dict = {}
         if limit is not None:
@@ -33,9 +31,9 @@ class DatasetsResource(SyncResource):
     def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[Dataset]:
         params: dict = {}
         if limit is not None:
@@ -49,7 +47,7 @@ class DatasetsResource(SyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
-        self, dataset_id: str, *, request_options: Optional[RequestOptions] = None
+        self, dataset_id: str, *, request_options: RequestOptions | None = None
     ) -> Dataset:
         raw = self._transport.request(
             "GET", f"/datasets/{dataset_id}", request_options=request_options
@@ -60,8 +58,8 @@ class DatasetsResource(SyncResource):
         self,
         *,
         name: str,
-        description: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        description: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Dataset:
         body: dict = {"name": name}
         if description is not None:
@@ -75,9 +73,9 @@ class DatasetsResource(SyncResource):
         self,
         dataset_id: str,
         *,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        description: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Dataset:
         body: dict = {}
         if name is not None:
@@ -93,14 +91,14 @@ class DatasetsResource(SyncResource):
         return Dataset.model_validate(raw)
 
     def delete(
-        self, dataset_id: str, *, request_options: Optional[RequestOptions] = None
+        self, dataset_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         self._transport.request(
             "DELETE", f"/datasets/{dataset_id}", request_options=request_options
         )
 
     def resolve(
-        self, dataset_id: str, *, request_options: Optional[RequestOptions] = None
+        self, dataset_id: str, *, request_options: RequestOptions | None = None
     ) -> ResolvedDataset:
         raw = self._transport.request(
             "GET",
@@ -114,9 +112,9 @@ class AsyncDatasetsResource(AsyncResource):
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[Dataset]:
         params: dict = {}
         if limit is not None:
@@ -134,9 +132,9 @@ class AsyncDatasetsResource(AsyncResource):
     async def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[Dataset]:
         params: dict = {}
         if limit is not None:
@@ -150,7 +148,7 @@ class AsyncDatasetsResource(AsyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
-        self, dataset_id: str, *, request_options: Optional[RequestOptions] = None
+        self, dataset_id: str, *, request_options: RequestOptions | None = None
     ) -> Dataset:
         raw = await self._transport.request(
             "GET", f"/datasets/{dataset_id}", request_options=request_options
@@ -161,8 +159,8 @@ class AsyncDatasetsResource(AsyncResource):
         self,
         *,
         name: str,
-        description: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        description: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Dataset:
         body: dict = {"name": name}
         if description is not None:
@@ -176,9 +174,9 @@ class AsyncDatasetsResource(AsyncResource):
         self,
         dataset_id: str,
         *,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        description: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Dataset:
         body: dict = {}
         if name is not None:
@@ -194,14 +192,14 @@ class AsyncDatasetsResource(AsyncResource):
         return Dataset.model_validate(raw)
 
     async def delete(
-        self, dataset_id: str, *, request_options: Optional[RequestOptions] = None
+        self, dataset_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         await self._transport.request(
             "DELETE", f"/datasets/{dataset_id}", request_options=request_options
         )
 
     async def resolve(
-        self, dataset_id: str, *, request_options: Optional[RequestOptions] = None
+        self, dataset_id: str, *, request_options: RequestOptions | None = None
     ) -> ResolvedDataset:
         raw = await self._transport.request(
             "GET",

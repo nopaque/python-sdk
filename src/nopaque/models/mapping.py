@@ -1,10 +1,7 @@
 """Models for /mapping endpoints."""
-from __future__ import annotations
-
 from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
-
 
 _ALIAS_MAP = {
     "workspace_id": "workspaceId",

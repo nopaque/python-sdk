@@ -1,7 +1,7 @@
 """Mapping resource - all /mapping endpoints."""
 from __future__ import annotations
 
-from typing import Any, Callable, Literal, Optional, Set
+from typing import Any, Callable, Literal
 from urllib.parse import quote
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
@@ -17,7 +17,7 @@ from ..models.mapping import (
     MappingTree,
 )
 
-TERMINAL_STATUSES: Set[str] = {"completed", "failed", "limited", "cancelled"}
+TERMINAL_STATUSES: set[str] = {"completed", "failed", "limited", "cancelled"}
 TreeFormat = Literal["tree", "flat"]
 
 
@@ -31,10 +31,10 @@ class MappingResource(SyncResource):
     def list(
         self,
         *,
-        workspace_id: Optional[str] = None,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        workspace_id: str | None = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[MappingJob]:
         params: dict = {}
         if workspace_id:
@@ -54,10 +54,10 @@ class MappingResource(SyncResource):
     def list_page(
         self,
         *,
-        workspace_id: Optional[str] = None,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        workspace_id: str | None = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[MappingJob]:
         params: dict = {}
         if workspace_id:
@@ -73,7 +73,7 @@ class MappingResource(SyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
-        self, job_id: str, *, request_options: Optional[RequestOptions] = None
+        self, job_id: str, *, request_options: RequestOptions | None = None
     ) -> MappingJob:
         raw = self._transport.request(
             "GET", f"/mapping/{job_id}", request_options=request_options
@@ -86,9 +86,9 @@ class MappingResource(SyncResource):
         name: str,
         phone_number: str,
         mapping_mode: str,
-        profile_id: Optional[str] = None,
-        config: Optional[MappingJobConfig] = None,
-        request_options: Optional[RequestOptions] = None,
+        profile_id: str | None = None,
+        config: MappingJobConfig | None = None,
+        request_options: RequestOptions | None = None,
     ) -> MappingJob:
         body: dict = {
             "name": name,
@@ -108,11 +108,11 @@ class MappingResource(SyncResource):
         self,
         job_id: str,
         *,
-        name: Optional[str] = None,
-        phone_number: Optional[str] = None,
-        mapping_mode: Optional[str] = None,
-        config: Optional[MappingJobConfig] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        phone_number: str | None = None,
+        mapping_mode: str | None = None,
+        config: MappingJobConfig | None = None,
+        request_options: RequestOptions | None = None,
     ) -> MappingJob:
         body: dict = {}
         if name is not None:
@@ -129,14 +129,14 @@ class MappingResource(SyncResource):
         return MappingJob.model_validate(raw)
 
     def delete(
-        self, job_id: str, *, request_options: Optional[RequestOptions] = None
+        self, job_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         self._transport.request(
             "DELETE", f"/mapping/{job_id}", request_options=request_options
         )
 
     def start(
-        self, job_id: str, *, request_options: Optional[RequestOptions] = None
+        self, job_id: str, *, request_options: RequestOptions | None = None
     ) -> MappingJob:
         raw = self._transport.request(
             "POST", f"/mapping/{job_id}/start", request_options=request_options
@@ -144,7 +144,7 @@ class MappingResource(SyncResource):
         return MappingJob.model_validate(raw)
 
     def cancel(
-        self, job_id: str, *, request_options: Optional[RequestOptions] = None
+        self, job_id: str, *, request_options: RequestOptions | None = None
     ) -> MappingJob:
         raw = self._transport.request(
             "POST", f"/mapping/{job_id}/cancel", request_options=request_options
@@ -152,7 +152,7 @@ class MappingResource(SyncResource):
         return MappingJob.model_validate(raw)
 
     def attest(
-        self, job_id: str, *, request_options: Optional[RequestOptions] = None
+        self, job_id: str, *, request_options: RequestOptions | None = None
     ) -> dict:
         return self._transport.request(
             "POST",
@@ -165,9 +165,9 @@ class MappingResource(SyncResource):
         self,
         job_id: str,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[MappingStep]:
         params: dict = {}
         if limit is not None:
@@ -190,7 +190,7 @@ class MappingResource(SyncResource):
         job_id: str,
         *,
         format: TreeFormat = "tree",
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> MappingTree:
         raw = self._transport.request(
             "GET",
@@ -204,9 +204,9 @@ class MappingResource(SyncResource):
         self,
         job_id: str,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[MappingRun]:
         params: dict = {}
         if limit is not None:
@@ -228,9 +228,9 @@ class MappingResource(SyncResource):
         self,
         job_id: str,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[MappingPath]:
         params: dict = {}
         if limit is not None:
@@ -253,8 +253,8 @@ class MappingResource(SyncResource):
         job_id: str,
         path: str,
         *,
-        repeat_behavior: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        repeat_behavior: str | None = None,
+        request_options: RequestOptions | None = None,
         **extra: Any,
     ) -> MappingPath:
         body: dict = {**extra}
@@ -273,7 +273,7 @@ class MappingResource(SyncResource):
         job_id: str,
         path: str,
         *,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> None:
         self._transport.request(
             "DELETE",
@@ -286,7 +286,7 @@ class MappingResource(SyncResource):
         job_id: str,
         path: str,
         *,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> MappingJob:
         raw = self._transport.request(
             "POST",
@@ -301,8 +301,8 @@ class MappingResource(SyncResource):
         *,
         timeout: float = 600.0,
         poll_interval: float = 5.0,
-        on_update: Optional[Callable[[MappingJob], None]] = None,
-        request_options: Optional[RequestOptions] = None,
+        on_update: Callable[[MappingJob], None] | None = None,
+        request_options: RequestOptions | None = None,
     ) -> MappingJob:
         def fetch() -> MappingJob:
             return self.get(job_id, request_options=request_options)
@@ -322,10 +322,10 @@ class AsyncMappingResource(AsyncResource):
     def list(
         self,
         *,
-        workspace_id: Optional[str] = None,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        workspace_id: str | None = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[MappingJob]:
         params: dict = {}
         if workspace_id:
@@ -345,10 +345,10 @@ class AsyncMappingResource(AsyncResource):
     async def list_page(
         self,
         *,
-        workspace_id: Optional[str] = None,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        workspace_id: str | None = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[MappingJob]:
         params: dict = {}
         if workspace_id:
@@ -364,7 +364,7 @@ class AsyncMappingResource(AsyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
-        self, job_id: str, *, request_options: Optional[RequestOptions] = None
+        self, job_id: str, *, request_options: RequestOptions | None = None
     ) -> MappingJob:
         raw = await self._transport.request(
             "GET", f"/mapping/{job_id}", request_options=request_options
@@ -377,9 +377,9 @@ class AsyncMappingResource(AsyncResource):
         name: str,
         phone_number: str,
         mapping_mode: str,
-        profile_id: Optional[str] = None,
-        config: Optional[MappingJobConfig] = None,
-        request_options: Optional[RequestOptions] = None,
+        profile_id: str | None = None,
+        config: MappingJobConfig | None = None,
+        request_options: RequestOptions | None = None,
     ) -> MappingJob:
         body: dict = {
             "name": name,
@@ -399,11 +399,11 @@ class AsyncMappingResource(AsyncResource):
         self,
         job_id: str,
         *,
-        name: Optional[str] = None,
-        phone_number: Optional[str] = None,
-        mapping_mode: Optional[str] = None,
-        config: Optional[MappingJobConfig] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        phone_number: str | None = None,
+        mapping_mode: str | None = None,
+        config: MappingJobConfig | None = None,
+        request_options: RequestOptions | None = None,
     ) -> MappingJob:
         body: dict = {}
         if name is not None:
@@ -420,14 +420,14 @@ class AsyncMappingResource(AsyncResource):
         return MappingJob.model_validate(raw)
 
     async def delete(
-        self, job_id: str, *, request_options: Optional[RequestOptions] = None
+        self, job_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         await self._transport.request(
             "DELETE", f"/mapping/{job_id}", request_options=request_options
         )
 
     async def start(
-        self, job_id: str, *, request_options: Optional[RequestOptions] = None
+        self, job_id: str, *, request_options: RequestOptions | None = None
     ) -> MappingJob:
         raw = await self._transport.request(
             "POST", f"/mapping/{job_id}/start", request_options=request_options
@@ -435,7 +435,7 @@ class AsyncMappingResource(AsyncResource):
         return MappingJob.model_validate(raw)
 
     async def cancel(
-        self, job_id: str, *, request_options: Optional[RequestOptions] = None
+        self, job_id: str, *, request_options: RequestOptions | None = None
     ) -> MappingJob:
         raw = await self._transport.request(
             "POST", f"/mapping/{job_id}/cancel", request_options=request_options
@@ -443,7 +443,7 @@ class AsyncMappingResource(AsyncResource):
         return MappingJob.model_validate(raw)
 
     async def attest(
-        self, job_id: str, *, request_options: Optional[RequestOptions] = None
+        self, job_id: str, *, request_options: RequestOptions | None = None
     ) -> dict:
         return await self._transport.request(
             "POST",
@@ -456,9 +456,9 @@ class AsyncMappingResource(AsyncResource):
         self,
         job_id: str,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[MappingStep]:
         params: dict = {}
         if limit is not None:
@@ -481,7 +481,7 @@ class AsyncMappingResource(AsyncResource):
         job_id: str,
         *,
         format: TreeFormat = "tree",
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> MappingTree:
         raw = await self._transport.request(
             "GET",
@@ -495,9 +495,9 @@ class AsyncMappingResource(AsyncResource):
         self,
         job_id: str,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[MappingRun]:
         params: dict = {}
         if limit is not None:
@@ -519,9 +519,9 @@ class AsyncMappingResource(AsyncResource):
         self,
         job_id: str,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[MappingPath]:
         params: dict = {}
         if limit is not None:
@@ -544,8 +544,8 @@ class AsyncMappingResource(AsyncResource):
         job_id: str,
         path: str,
         *,
-        repeat_behavior: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        repeat_behavior: str | None = None,
+        request_options: RequestOptions | None = None,
         **extra: Any,
     ) -> MappingPath:
         body: dict = {**extra}
@@ -564,7 +564,7 @@ class AsyncMappingResource(AsyncResource):
         job_id: str,
         path: str,
         *,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> None:
         await self._transport.request(
             "DELETE",
@@ -577,7 +577,7 @@ class AsyncMappingResource(AsyncResource):
         job_id: str,
         path: str,
         *,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> MappingJob:
         raw = await self._transport.request(
             "POST",
@@ -592,8 +592,8 @@ class AsyncMappingResource(AsyncResource):
         *,
         timeout: float = 600.0,
         poll_interval: float = 5.0,
-        on_update: Optional[Callable[[MappingJob], None]] = None,
-        request_options: Optional[RequestOptions] = None,
+        on_update: Callable[[MappingJob], None] | None = None,
+        request_options: RequestOptions | None = None,
     ) -> MappingJob:
         async def fetch() -> MappingJob:
             return await self.get(job_id, request_options=request_options)

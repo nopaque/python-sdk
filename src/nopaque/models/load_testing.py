@@ -1,10 +1,7 @@
 """Models for /testing/load-tests endpoints."""
-from __future__ import annotations
-
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
-
 
 _ALIAS_MAP = {
     "config_id": "configId",

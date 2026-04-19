@@ -1,8 +1,7 @@
-import asyncio
-import time
 import pytest
-from nopaque._polling import wait_for_sync, wait_for_async, poll_interval_curve
+
 from nopaque._errors import NopaqueTimeoutError
+from nopaque._polling import poll_interval_curve, wait_for_async, wait_for_sync
 
 
 def test_poll_interval_curve_starts_at_base_and_softens():

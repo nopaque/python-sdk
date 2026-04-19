@@ -1,5 +1,5 @@
-import os
 import pytest
+
 from nopaque._config import NopaqueConfig
 from nopaque._errors import NopaqueConfigError
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 import mimetypes
 import os
 from pathlib import Path
-from typing import Any, BinaryIO, Optional, Tuple, Union
+from typing import Any, BinaryIO, Union
 
 import httpx
 
@@ -18,7 +18,7 @@ from ._errors import APIConnectionError
 FileSource = Union[str, Path, bytes, BinaryIO]
 
 
-def _read_bytes(source: Any) -> Tuple[bytes, Optional[str]]:
+def _read_bytes(source: Any) -> tuple[bytes, str | None]:
     """Return (bytes, inferred_name) from any supported source type."""
     if isinstance(source, (str, Path)):
         path = Path(source)
@@ -36,7 +36,7 @@ def _read_bytes(source: Any) -> Tuple[bytes, Optional[str]]:
 
 
 def sniff_content_type(
-    name: Optional[str], fallback: str = "application/octet-stream"
+    name: str | None, fallback: str = "application/octet-stream"
 ) -> str:
     if not name:
         return fallback

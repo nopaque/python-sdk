@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Any, Awaitable, Callable, Optional, TypeVar
+from collections.abc import Awaitable
+from typing import Callable, TypeVar
 
 from ._errors import NopaqueTimeoutError
 
@@ -42,7 +43,7 @@ def wait_for_sync(
     timeout: float = DEFAULT_TIMEOUT,
     initial_interval: float = DEFAULT_INITIAL_INTERVAL,
     interval_cap: float = DEFAULT_INTERVAL_CAP,
-    on_update: Optional[Callable[[T], None]] = None,
+    on_update: Callable[[T], None] | None = None,
 ) -> T:
     """Poll `fetch` until `is_terminal` returns True or the deadline is exceeded."""
     deadline = time.monotonic() + timeout
@@ -77,7 +78,7 @@ async def wait_for_async(
     timeout: float = DEFAULT_TIMEOUT,
     initial_interval: float = DEFAULT_INITIAL_INTERVAL,
     interval_cap: float = DEFAULT_INTERVAL_CAP,
-    on_update: Optional[Callable[[T], None]] = None,
+    on_update: Callable[[T], None] | None = None,
 ) -> T:
     """Async variant of wait_for_sync."""
     loop = asyncio.get_event_loop()

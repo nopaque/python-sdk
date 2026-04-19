@@ -1,7 +1,7 @@
 """Batches resource - /testing/batches and /testing/batch-runs."""
 from __future__ import annotations
 
-from typing import Callable, Optional, Set
+from typing import Callable
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._polling import wait_for_async, wait_for_sync
@@ -9,16 +9,16 @@ from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
 from ..models.batches import Batch, BatchRun
 
-RUN_TERMINAL_STATUSES: Set[str] = {"completed", "failed", "cancelled"}
+RUN_TERMINAL_STATUSES: set[str] = {"completed", "failed", "cancelled"}
 
 
 class BatchesResource(SyncResource):
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[Batch]:
         params: dict = {}
         if limit is not None:
@@ -36,9 +36,9 @@ class BatchesResource(SyncResource):
     def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[Batch]:
         params: dict = {}
         if limit is not None:
@@ -52,7 +52,7 @@ class BatchesResource(SyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
-        self, batch_id: str, *, request_options: Optional[RequestOptions] = None
+        self, batch_id: str, *, request_options: RequestOptions | None = None
     ) -> Batch:
         raw = self._transport.request(
             "GET", f"/testing/batches/{batch_id}", request_options=request_options
@@ -65,7 +65,7 @@ class BatchesResource(SyncResource):
         name: str,
         config_id: str,
         dataset_id: str,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> Batch:
         raw = self._transport.request(
             "POST",
@@ -79,9 +79,9 @@ class BatchesResource(SyncResource):
         self,
         batch_id: str,
         *,
-        name: Optional[str] = None,
-        dataset_id: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        dataset_id: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Batch:
         body: dict = {}
         if name is not None:
@@ -97,14 +97,14 @@ class BatchesResource(SyncResource):
         return Batch.model_validate(raw)
 
     def delete(
-        self, batch_id: str, *, request_options: Optional[RequestOptions] = None
+        self, batch_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         self._transport.request(
             "DELETE", f"/testing/batches/{batch_id}", request_options=request_options
         )
 
     def run(
-        self, batch_id: str, *, request_options: Optional[RequestOptions] = None
+        self, batch_id: str, *, request_options: RequestOptions | None = None
     ) -> BatchRun:
         raw = self._transport.request(
             "POST",
@@ -117,9 +117,9 @@ class BatchesResource(SyncResource):
         self,
         batch_id: str,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[BatchRun]:
         params: dict = {}
         if limit is not None:
@@ -140,9 +140,9 @@ class BatchesResource(SyncResource):
     def list_runs(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[BatchRun]:
         params: dict = {}
         if limit is not None:
@@ -158,7 +158,7 @@ class BatchesResource(SyncResource):
         return SyncPaginator(fetch_page=fetch, params=params, model_cls=BatchRun)
 
     def get_run(
-        self, run_id: str, *, request_options: Optional[RequestOptions] = None
+        self, run_id: str, *, request_options: RequestOptions | None = None
     ) -> BatchRun:
         raw = self._transport.request(
             "GET", f"/testing/batch-runs/{run_id}", request_options=request_options
@@ -171,8 +171,8 @@ class BatchesResource(SyncResource):
         *,
         timeout: float = 600.0,
         poll_interval: float = 5.0,
-        on_update: Optional[Callable[[BatchRun], None]] = None,
-        request_options: Optional[RequestOptions] = None,
+        on_update: Callable[[BatchRun], None] | None = None,
+        request_options: RequestOptions | None = None,
     ) -> BatchRun:
         def fetch() -> BatchRun:
             return self.get_run(run_id, request_options=request_options)
@@ -190,9 +190,9 @@ class AsyncBatchesResource(AsyncResource):
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[Batch]:
         params: dict = {}
         if limit is not None:
@@ -210,9 +210,9 @@ class AsyncBatchesResource(AsyncResource):
     async def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[Batch]:
         params: dict = {}
         if limit is not None:
@@ -226,7 +226,7 @@ class AsyncBatchesResource(AsyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
-        self, batch_id: str, *, request_options: Optional[RequestOptions] = None
+        self, batch_id: str, *, request_options: RequestOptions | None = None
     ) -> Batch:
         raw = await self._transport.request(
             "GET", f"/testing/batches/{batch_id}", request_options=request_options
@@ -239,7 +239,7 @@ class AsyncBatchesResource(AsyncResource):
         name: str,
         config_id: str,
         dataset_id: str,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> Batch:
         raw = await self._transport.request(
             "POST",
@@ -253,9 +253,9 @@ class AsyncBatchesResource(AsyncResource):
         self,
         batch_id: str,
         *,
-        name: Optional[str] = None,
-        dataset_id: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        dataset_id: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Batch:
         body: dict = {}
         if name is not None:
@@ -271,14 +271,14 @@ class AsyncBatchesResource(AsyncResource):
         return Batch.model_validate(raw)
 
     async def delete(
-        self, batch_id: str, *, request_options: Optional[RequestOptions] = None
+        self, batch_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         await self._transport.request(
             "DELETE", f"/testing/batches/{batch_id}", request_options=request_options
         )
 
     async def run(
-        self, batch_id: str, *, request_options: Optional[RequestOptions] = None
+        self, batch_id: str, *, request_options: RequestOptions | None = None
     ) -> BatchRun:
         raw = await self._transport.request(
             "POST",
@@ -291,9 +291,9 @@ class AsyncBatchesResource(AsyncResource):
         self,
         batch_id: str,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[BatchRun]:
         params: dict = {}
         if limit is not None:
@@ -314,9 +314,9 @@ class AsyncBatchesResource(AsyncResource):
     def list_runs(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[BatchRun]:
         params: dict = {}
         if limit is not None:
@@ -332,7 +332,7 @@ class AsyncBatchesResource(AsyncResource):
         return AsyncPaginator(fetch_page=fetch, params=params, model_cls=BatchRun)
 
     async def get_run(
-        self, run_id: str, *, request_options: Optional[RequestOptions] = None
+        self, run_id: str, *, request_options: RequestOptions | None = None
     ) -> BatchRun:
         raw = await self._transport.request(
             "GET", f"/testing/batch-runs/{run_id}", request_options=request_options
@@ -345,8 +345,8 @@ class AsyncBatchesResource(AsyncResource):
         *,
         timeout: float = 600.0,
         poll_interval: float = 5.0,
-        on_update: Optional[Callable[[BatchRun], None]] = None,
-        request_options: Optional[RequestOptions] = None,
+        on_update: Callable[[BatchRun], None] | None = None,
+        request_options: RequestOptions | None = None,
     ) -> BatchRun:
         async def fetch() -> BatchRun:
             return await self.get_run(run_id, request_options=request_options)

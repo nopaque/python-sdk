@@ -1,5 +1,6 @@
 import pytest
-from nopaque._pagination import SyncPaginator, AsyncPaginator, Page
+
+from nopaque._pagination import AsyncPaginator, Page, SyncPaginator
 
 
 def test_page_holds_items_and_next_token():

@@ -1,18 +1,19 @@
 import pytest
+
 from nopaque._errors import (
-    NopaqueError,
-    NopaqueAPIError,
-    AuthenticationError,
-    PermissionError,
-    NotFoundError,
-    ValidationError,
-    ConflictError,
-    RateLimitError,
-    ServerError,
     APIConnectionError,
     APITimeoutError,
+    AuthenticationError,
+    ConflictError,
+    NopaqueAPIError,
     NopaqueConfigError,
+    NopaqueError,
     NopaqueTimeoutError,
+    NotFoundError,
+    PermissionError,
+    RateLimitError,
+    ServerError,
+    ValidationError,
     classify_status,
 )
 

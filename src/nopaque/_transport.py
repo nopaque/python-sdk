@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import json as jsonlib
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 
@@ -27,9 +27,9 @@ from ._user_agent import compose_user_agent
 
 
 def _merge_headers(
-    config: NopaqueConfig, options: Optional[RequestOptions]
-) -> Dict[str, str]:
-    headers: Dict[str, str] = {
+    config: NopaqueConfig, options: RequestOptions | None
+) -> dict[str, str]:
+    headers: dict[str, str] = {
         "x-api-key": config.api_key,
         "user-agent": compose_user_agent(),
         "accept": "application/json",
@@ -63,7 +63,7 @@ def _raise_for_status(response: httpx.Response) -> None:
     cls = classify_status(response.status_code)
     if cls is RateLimitError:
         retry_after_raw = response.headers.get("retry-after")
-        retry_after: Optional[float] = None
+        retry_after: float | None = None
         if retry_after_raw is not None:
             try:
                 retry_after = float(retry_after_raw)
@@ -89,7 +89,7 @@ def _raise_for_status(response: httpx.Response) -> None:
 
 
 def _effective_max_retries(
-    config: NopaqueConfig, options: Optional[RequestOptions]
+    config: NopaqueConfig, options: RequestOptions | None
 ) -> int:
     if options and "max_retries" in options:
         return int(options["max_retries"])
@@ -112,7 +112,7 @@ class SyncTransport:
     """Synchronous HTTP transport."""
 
     def __init__(
-        self, config: NopaqueConfig, *, http_client: Optional[httpx.Client] = None
+        self, config: NopaqueConfig, *, http_client: httpx.Client | None = None
     ) -> None:
         self._config = config
         self._client = http_client or httpx.Client(timeout=config.timeout)
@@ -122,9 +122,9 @@ class SyncTransport:
         method: str,
         path: str,
         *,
-        params: Optional[dict] = None,
+        params: dict | None = None,
         json: Any = None,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> Any:
         headers = _merge_headers(self._config, request_options)
         url = _build_url(self._config, path)
@@ -136,7 +136,7 @@ class SyncTransport:
 
         while True:
             before_send = True
-            err: Optional[NopaqueError] = None
+            err: NopaqueError | None = None
             try:
                 response = self._client.request(
                     method,
@@ -172,7 +172,7 @@ class SyncTransport:
     def close(self) -> None:
         self._client.close()
 
-    def __enter__(self) -> "SyncTransport":
+    def __enter__(self) -> SyncTransport:
         return self
 
     def __exit__(self, *exc_info: Any) -> None:
@@ -186,7 +186,7 @@ class AsyncTransport:
         self,
         config: NopaqueConfig,
         *,
-        http_client: Optional[httpx.AsyncClient] = None,
+        http_client: httpx.AsyncClient | None = None,
     ) -> None:
         self._config = config
         self._client = http_client or httpx.AsyncClient(timeout=config.timeout)
@@ -196,9 +196,9 @@ class AsyncTransport:
         method: str,
         path: str,
         *,
-        params: Optional[dict] = None,
+        params: dict | None = None,
         json: Any = None,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> Any:
         headers = _merge_headers(self._config, request_options)
         url = _build_url(self._config, path)
@@ -210,7 +210,7 @@ class AsyncTransport:
 
         while True:
             before_send = True
-            err: Optional[NopaqueError] = None
+            err: NopaqueError | None = None
             try:
                 response = await self._client.request(
                     method,
@@ -246,7 +246,7 @@ class AsyncTransport:
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    async def __aenter__(self) -> "AsyncTransport":
+    async def __aenter__(self) -> AsyncTransport:
         return self
 
     async def __aexit__(self, *exc_info: Any) -> None:

@@ -6,16 +6,12 @@ a caller-supplied `nextToken` in params is used as the starting page.
 """
 from __future__ import annotations
 
+from collections.abc import AsyncIterator, Awaitable, Iterator
 from dataclasses import dataclass
 from typing import (
     Any,
-    AsyncIterator,
-    Awaitable,
     Callable,
     Generic,
-    Iterator,
-    List,
-    Optional,
     TypeVar,
 )
 
@@ -26,8 +22,8 @@ T = TypeVar("T")
 class Page(Generic[T]):
     """A single page of list results."""
 
-    items: List[T]
-    next_token: Optional[str]
+    items: list[T]
+    next_token: str | None
 
 
 class SyncPaginator(Generic[T]):
@@ -38,12 +34,12 @@ class SyncPaginator(Generic[T]):
         *,
         fetch_page: Callable[[dict], dict],
         params: dict,
-        model_cls: Optional[type] = None,
+        model_cls: type | None = None,
     ) -> None:
         self._fetch_page = fetch_page
         self._params = dict(params)
         self._model_cls = model_cls
-        self._requested_limit: Optional[int] = params.get("limit")
+        self._requested_limit: int | None = params.get("limit")
 
     def __iter__(self) -> Iterator[T]:
         yielded = 0
@@ -75,12 +71,12 @@ class AsyncPaginator(Generic[T]):
         *,
         fetch_page: Callable[[dict], Awaitable[dict]],
         params: dict,
-        model_cls: Optional[type] = None,
+        model_cls: type | None = None,
     ) -> None:
         self._fetch_page = fetch_page
         self._params = dict(params)
         self._model_cls = model_cls
-        self._requested_limit: Optional[int] = params.get("limit")
+        self._requested_limit: int | None = params.get("limit")
 
     async def __aiter__(self) -> AsyncIterator[T]:
         yielded = 0

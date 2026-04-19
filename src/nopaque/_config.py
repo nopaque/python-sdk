@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from ._errors import NopaqueConfigError
 
@@ -27,7 +27,7 @@ class NopaqueConfig:
     timeout: float = DEFAULT_TIMEOUT
     max_retries: int = DEFAULT_MAX_RETRIES
     default_headers: dict = field(default_factory=dict)
-    on_retry: Optional[Callable[[int, Any, float], None]] = None
+    on_retry: Callable[[int, Any, float], None] | None = None
 
     def __post_init__(self) -> None:
         resolved_key = self.api_key or os.environ.get("NOPAQUE_API_KEY", "")

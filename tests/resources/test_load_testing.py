@@ -1,5 +1,5 @@
-import pytest
 from pytest_httpx import HTTPXMock
+
 from nopaque import Nopaque
 
 

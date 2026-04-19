@@ -1,7 +1,7 @@
 """Profiles resource - /profiles endpoints."""
 from __future__ import annotations
 
-from typing import List, Optional
+import builtins
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._request_options import RequestOptions
@@ -15,9 +15,9 @@ class ProfilesResource(SyncResource):
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> SyncPaginator[Profile]:
         params: dict = {}
         if limit is not None:
@@ -35,9 +35,9 @@ class ProfilesResource(SyncResource):
     def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[Profile]:
         params: dict = {}
         if limit is not None:
@@ -51,7 +51,7 @@ class ProfilesResource(SyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
-        self, profile_id: str, *, request_options: Optional[RequestOptions] = None
+        self, profile_id: str, *, request_options: RequestOptions | None = None
     ) -> Profile:
         raw = self._transport.request(
             "GET", f"/profiles/{profile_id}", request_options=request_options
@@ -62,8 +62,8 @@ class ProfilesResource(SyncResource):
         self,
         *,
         name: str,
-        description: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        description: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Profile:
         body: dict = {"name": name}
         if description is not None:
@@ -77,9 +77,9 @@ class ProfilesResource(SyncResource):
         self,
         profile_id: str,
         *,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        description: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Profile:
         body: dict = {}
         if name is not None:
@@ -92,7 +92,7 @@ class ProfilesResource(SyncResource):
         return Profile.model_validate(raw)
 
     def delete(
-        self, profile_id: str, *, request_options: Optional[RequestOptions] = None
+        self, profile_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         self._transport.request(
             "DELETE", f"/profiles/{profile_id}", request_options=request_options
@@ -104,7 +104,7 @@ class ProfilesResource(SyncResource):
         *,
         label: str,
         value: str,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> ProfileItem:
         raw = self._transport.request(
             "POST",
@@ -119,9 +119,9 @@ class ProfilesResource(SyncResource):
         profile_id: str,
         item_id: str,
         *,
-        label: Optional[str] = None,
-        value: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        label: str | None = None,
+        value: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> ProfileItem:
         body: dict = {}
         if label is not None:
@@ -141,7 +141,7 @@ class ProfilesResource(SyncResource):
         profile_id: str,
         item_id: str,
         *,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> None:
         self._transport.request(
             "DELETE",
@@ -150,7 +150,7 @@ class ProfilesResource(SyncResource):
         )
 
     def list_parameters(
-        self, *, request_options: Optional[RequestOptions] = None
+        self, *, request_options: RequestOptions | None = None
     ) -> ProfileParameters:
         raw = self._transport.request(
             "GET", "/profiles/parameters", request_options=request_options
@@ -160,9 +160,9 @@ class ProfilesResource(SyncResource):
     def find_by_parameters(
         self,
         *,
-        labels: List[str],
-        request_options: Optional[RequestOptions] = None,
-    ) -> List[Profile]:
+        labels: builtins.list[str],
+        request_options: RequestOptions | None = None,
+    ) -> builtins.list[Profile]:
         raw = self._transport.request(
             "GET",
             "/profiles/by-parameters",
@@ -178,9 +178,9 @@ class AsyncProfilesResource(AsyncResource):
     def list(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[Profile]:
         params: dict = {}
         if limit is not None:
@@ -198,9 +198,9 @@ class AsyncProfilesResource(AsyncResource):
     async def list_page(
         self,
         *,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        limit: int | None = None,
+        next_token: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Page[Profile]:
         params: dict = {}
         if limit is not None:
@@ -214,7 +214,7 @@ class AsyncProfilesResource(AsyncResource):
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
-        self, profile_id: str, *, request_options: Optional[RequestOptions] = None
+        self, profile_id: str, *, request_options: RequestOptions | None = None
     ) -> Profile:
         raw = await self._transport.request(
             "GET", f"/profiles/{profile_id}", request_options=request_options
@@ -225,8 +225,8 @@ class AsyncProfilesResource(AsyncResource):
         self,
         *,
         name: str,
-        description: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        description: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Profile:
         body: dict = {"name": name}
         if description is not None:
@@ -240,9 +240,9 @@ class AsyncProfilesResource(AsyncResource):
         self,
         profile_id: str,
         *,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        name: str | None = None,
+        description: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> Profile:
         body: dict = {}
         if name is not None:
@@ -255,7 +255,7 @@ class AsyncProfilesResource(AsyncResource):
         return Profile.model_validate(raw)
 
     async def delete(
-        self, profile_id: str, *, request_options: Optional[RequestOptions] = None
+        self, profile_id: str, *, request_options: RequestOptions | None = None
     ) -> None:
         await self._transport.request(
             "DELETE", f"/profiles/{profile_id}", request_options=request_options
@@ -267,7 +267,7 @@ class AsyncProfilesResource(AsyncResource):
         *,
         label: str,
         value: str,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> ProfileItem:
         raw = await self._transport.request(
             "POST",
@@ -282,9 +282,9 @@ class AsyncProfilesResource(AsyncResource):
         profile_id: str,
         item_id: str,
         *,
-        label: Optional[str] = None,
-        value: Optional[str] = None,
-        request_options: Optional[RequestOptions] = None,
+        label: str | None = None,
+        value: str | None = None,
+        request_options: RequestOptions | None = None,
     ) -> ProfileItem:
         body: dict = {}
         if label is not None:
@@ -304,7 +304,7 @@ class AsyncProfilesResource(AsyncResource):
         profile_id: str,
         item_id: str,
         *,
-        request_options: Optional[RequestOptions] = None,
+        request_options: RequestOptions | None = None,
     ) -> None:
         await self._transport.request(
             "DELETE",
@@ -313,7 +313,7 @@ class AsyncProfilesResource(AsyncResource):
         )
 
     async def list_parameters(
-        self, *, request_options: Optional[RequestOptions] = None
+        self, *, request_options: RequestOptions | None = None
     ) -> ProfileParameters:
         raw = await self._transport.request(
             "GET", "/profiles/parameters", request_options=request_options
@@ -323,9 +323,9 @@ class AsyncProfilesResource(AsyncResource):
     async def find_by_parameters(
         self,
         *,
-        labels: List[str],
-        request_options: Optional[RequestOptions] = None,
-    ) -> List[Profile]:
+        labels: builtins.list[str],
+        request_options: RequestOptions | None = None,
+    ) -> builtins.list[Profile]:
         raw = await self._transport.request(
             "GET",
             "/profiles/by-parameters",

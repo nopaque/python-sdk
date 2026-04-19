@@ -3,16 +3,14 @@ import pytest
 from pytest_httpx import HTTPXMock
 
 from nopaque._config import NopaqueConfig
-from nopaque._transport import SyncTransport, AsyncTransport
 from nopaque._errors import (
-    NotFoundError,
-    ValidationError,
-    AuthenticationError,
-    RateLimitError,
-    ServerError,
     APIConnectionError,
     APITimeoutError,
+    NotFoundError,
+    RateLimitError,
+    ServerError,
 )
+from nopaque._transport import AsyncTransport, SyncTransport
 
 
 def make_config(**kw):
