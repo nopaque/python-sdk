@@ -6,6 +6,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-04-19
+
+### Fixed
+- Cross-resource response envelope audit. The server uses resource-named
+  keys for most list endpoints; the SDK previously assumed a standard
+  `{items: [...]}` shape everywhere, so several list endpoints silently
+  returned empty results. The following are now aligned with the server:
+  - `client.mapping.runs(job_id)` — reads `runs` (was: `items`).
+  - `client.mapping.paths(job_id)` — reads `rules` (was: `items`).
+  - `client.batches.list()` / `list_page()` — reads `batches`.
+  - `client.batches.runs(batch_id)` — reads `runs`.
+  - `client.batches.list_runs()` — reads `runs`.
+  - `client.sweeps.list()` / `list_page()` — reads `sweeps`.
+  - `client.sweeps.runs(sweep_id)` — reads `runs`.
+  - `client.sweeps.list_runs()` — reads `runs`.
+  - `client.datasets.list()` / `list_page()` — reads `datasets`.
+  - `client.load_testing.list()` / `list_page()` — reads `configs`.
+  - `client.load_testing.list_runs()` — reads `runs`.
+  - `client.scheduler.list()` / `list_page()` — reads `schedules`.
+  - `client.audio.list()` / `list_page()` — reads `audioFiles`.
+  - `client.profiles.list()` / `list_page()` — reads `profiles`.
+  - `client.profiles.find_by_parameters()` — reads `profiles`.
+- `client.load_testing.create()` and `client.load_testing.update()` now
+  unwrap the server's `{config: {...}}` envelope. Previously, Pydantic
+  validation failed when callers tried to read `.id` on the returned
+  `LoadTest` because the SDK parsed the envelope itself as the entity.
+
+### Changed (non-breaking)
+- `SyncPaginator` / `AsyncPaginator` accept an `items_key: str = "items"`
+  option so each resource can declare the key its list endpoint uses.
+  Each paginator falls back to `"items"` if the declared key is missing,
+  preserving forward-compatibility if the server ever standardizes.
+
 ## [0.1.2] - 2026-04-19
 
 ### Fixed
@@ -51,7 +84,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Method-aware retry with exponential jitter and `Retry-After` honor.
 - Typed exception hierarchy.
 
-[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/nopaque/python-sdk/releases/tag/v0.1.3
 [0.1.2]: https://github.com/nopaque/python-sdk/releases/tag/v0.1.2
 [0.1.1]: https://github.com/nopaque/python-sdk/releases/tag/v0.1.1
 [0.1.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.1.0

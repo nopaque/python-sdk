@@ -11,7 +11,7 @@ def test_create(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/load-tests",
         method="POST",
-        json={"id": "lt1", "name": "Peak", "concurrency": 10, "totalCalls": 100},
+        json={"config": {"id": "lt1", "name": "Peak", "concurrency": 10, "totalCalls": 100}},
     )
     c = client()
     out = c.load_testing.create(name="Peak", config_id="c1", concurrency=10, total_calls=100)
@@ -22,7 +22,7 @@ def test_create(httpx_mock: HTTPXMock):
 def test_list(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/load-tests",
-        json={"items": [{"id": "lt1", "name": "Peak"}], "nextToken": None},
+        json={"configs": [{"id": "lt1", "name": "Peak"}]},
     )
     c = client()
     out = list(c.load_testing.list())
@@ -33,7 +33,7 @@ def test_list(httpx_mock: HTTPXMock):
 def test_get(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/load-tests/lt1",
-        json={"id": "lt1", "name": "Peak"},
+        json={"id": "lt1", "name": "Peak", "testConfig": {"id": "c1"}},
     )
     c = client()
     out = c.load_testing.get("lt1")
@@ -45,7 +45,7 @@ def test_update(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/load-tests/lt1",
         method="PUT",
-        json={"id": "lt1", "name": "Peak", "concurrency": 20},
+        json={"config": {"id": "lt1", "name": "Peak", "concurrency": 20}},
     )
     c = client()
     out = c.load_testing.update("lt1", concurrency=20)
@@ -119,11 +119,11 @@ def test_status(httpx_mock: HTTPXMock):
 def test_list_runs(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/load-tests/runs",
-        json={"items": [{"runId": "r1", "loadTestId": "lt1", "status": "completed"}], "nextToken": None},
+        json={"runs": [{"id": "r1", "loadTestId": "lt1", "status": "completed"}]},
     )
     c = client()
     out = list(c.load_testing.list_runs())
-    assert out[0].run_id == "r1"
+    assert out[0].id == "r1"
     c.close()
 
 

@@ -30,7 +30,9 @@ class ProfilesResource(SyncResource):
                 "GET", "/profiles", params=p, request_options=request_options
             )
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=Profile)
+        return SyncPaginator(
+            fetch_page=fetch, params=params, model_cls=Profile, items_key="profiles"
+        )
 
     def list_page(
         self,
@@ -47,7 +49,8 @@ class ProfilesResource(SyncResource):
         raw = self._transport.request(
             "GET", "/profiles", params=params, request_options=request_options
         )
-        items = [Profile.model_validate(i) for i in raw.get("items", [])]
+        raw_items = raw.get("profiles", raw.get("items", []))
+        items = [Profile.model_validate(i) for i in raw_items]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
@@ -169,7 +172,10 @@ class ProfilesResource(SyncResource):
             params={"labels": ",".join(labels)},
             request_options=request_options,
         )
-        return [Profile.model_validate(i) for i in raw.get("items", [])]
+        return [
+            Profile.model_validate(i)
+            for i in raw.get("profiles", raw.get("items", []))
+        ]
 
 
 class AsyncProfilesResource(AsyncResource):
@@ -193,7 +199,9 @@ class AsyncProfilesResource(AsyncResource):
                 "GET", "/profiles", params=p, request_options=request_options
             )
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=Profile)
+        return AsyncPaginator(
+            fetch_page=fetch, params=params, model_cls=Profile, items_key="profiles"
+        )
 
     async def list_page(
         self,
@@ -210,7 +218,8 @@ class AsyncProfilesResource(AsyncResource):
         raw = await self._transport.request(
             "GET", "/profiles", params=params, request_options=request_options
         )
-        items = [Profile.model_validate(i) for i in raw.get("items", [])]
+        raw_items = raw.get("profiles", raw.get("items", []))
+        items = [Profile.model_validate(i) for i in raw_items]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
@@ -332,4 +341,7 @@ class AsyncProfilesResource(AsyncResource):
             params={"labels": ",".join(labels)},
             request_options=request_options,
         )
-        return [Profile.model_validate(i) for i in raw.get("items", [])]
+        return [
+            Profile.model_validate(i)
+            for i in raw.get("profiles", raw.get("items", []))
+        ]

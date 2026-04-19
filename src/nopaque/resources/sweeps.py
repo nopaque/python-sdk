@@ -32,7 +32,9 @@ class SweepsResource(SyncResource):
                 "GET", "/testing/sweeps", params=p, request_options=request_options
             )
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=Sweep)
+        return SyncPaginator(
+            fetch_page=fetch, params=params, model_cls=Sweep, items_key="sweeps"
+        )
 
     def list_page(
         self,
@@ -49,7 +51,8 @@ class SweepsResource(SyncResource):
         raw = self._transport.request(
             "GET", "/testing/sweeps", params=params, request_options=request_options
         )
-        items = [Sweep.model_validate(i) for i in raw.get("items", [])]
+        raw_items = raw.get("sweeps", raw.get("items", []))
+        items = [Sweep.model_validate(i) for i in raw_items]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
@@ -136,7 +139,9 @@ class SweepsResource(SyncResource):
                 request_options=request_options,
             )
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=SweepRun)
+        return SyncPaginator(
+            fetch_page=fetch, params=params, model_cls=SweepRun, items_key="runs"
+        )
 
     def list_runs(
         self,
@@ -156,7 +161,9 @@ class SweepsResource(SyncResource):
                 "GET", "/testing/sweep-runs", params=p, request_options=request_options
             )
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=SweepRun)
+        return SyncPaginator(
+            fetch_page=fetch, params=params, model_cls=SweepRun, items_key="runs"
+        )
 
     def get_run(
         self, run_id: str, *, request_options: RequestOptions | None = None
@@ -206,7 +213,9 @@ class AsyncSweepsResource(AsyncResource):
                 "GET", "/testing/sweeps", params=p, request_options=request_options
             )
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=Sweep)
+        return AsyncPaginator(
+            fetch_page=fetch, params=params, model_cls=Sweep, items_key="sweeps"
+        )
 
     async def list_page(
         self,
@@ -223,7 +232,8 @@ class AsyncSweepsResource(AsyncResource):
         raw = await self._transport.request(
             "GET", "/testing/sweeps", params=params, request_options=request_options
         )
-        items = [Sweep.model_validate(i) for i in raw.get("items", [])]
+        raw_items = raw.get("sweeps", raw.get("items", []))
+        items = [Sweep.model_validate(i) for i in raw_items]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
@@ -310,7 +320,9 @@ class AsyncSweepsResource(AsyncResource):
                 request_options=request_options,
             )
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=SweepRun)
+        return AsyncPaginator(
+            fetch_page=fetch, params=params, model_cls=SweepRun, items_key="runs"
+        )
 
     def list_runs(
         self,
@@ -330,7 +342,9 @@ class AsyncSweepsResource(AsyncResource):
                 "GET", "/testing/sweep-runs", params=p, request_options=request_options
             )
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=SweepRun)
+        return AsyncPaginator(
+            fetch_page=fetch, params=params, model_cls=SweepRun, items_key="runs"
+        )
 
     async def get_run(
         self, run_id: str, *, request_options: RequestOptions | None = None

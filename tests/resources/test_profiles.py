@@ -24,7 +24,7 @@ def test_create_profile(httpx_mock: HTTPXMock):
 def test_list_profiles(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/profiles",
-        json={"items": [{"id": "p1", "name": "A"}], "nextToken": None},
+        json={"profiles": [{"id": "p1", "name": "A"}], "count": 1},
     )
     c = client()
     out = list(c.profiles.list())
@@ -128,7 +128,7 @@ def test_list_parameters(httpx_mock: HTTPXMock):
 def test_find_by_parameters(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/profiles/by-parameters?labels=account_number%2Cpostcode",
-        json={"items": [{"id": "p1", "name": "A", "matchedLabels": ["account_number", "postcode"]}]},
+        json={"profiles": [{"id": "p1", "name": "A", "matchedLabels": ["account_number", "postcode"]}], "count": 1},
     )
     c = client()
     matches = c.profiles.find_by_parameters(labels=["account_number", "postcode"])

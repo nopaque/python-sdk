@@ -222,7 +222,9 @@ class MappingResource(SyncResource):
                 request_options=request_options,
             )
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=MappingRun)
+        return SyncPaginator(
+            fetch_page=fetch, params=params, model_cls=MappingRun, items_key="runs"
+        )
 
     def paths(
         self,
@@ -246,7 +248,9 @@ class MappingResource(SyncResource):
                 request_options=request_options,
             )
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=MappingPath)
+        return SyncPaginator(
+            fetch_page=fetch, params=params, model_cls=MappingPath, items_key="rules"
+        )
 
     def update_path(
         self,
@@ -528,7 +532,9 @@ class AsyncMappingResource(AsyncResource):
                 request_options=request_options,
             )
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=MappingRun)
+        return AsyncPaginator(
+            fetch_page=fetch, params=params, model_cls=MappingRun, items_key="runs"
+        )
 
     def paths(
         self,
@@ -552,7 +558,9 @@ class AsyncMappingResource(AsyncResource):
                 request_options=request_options,
             )
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=MappingPath)
+        return AsyncPaginator(
+            fetch_page=fetch, params=params, model_cls=MappingPath, items_key="rules"
+        )
 
     async def update_path(
         self,

@@ -36,7 +36,9 @@ class LoadTestingResource(SyncResource):
                 "GET", "/testing/load-tests", params=p, request_options=request_options
             )
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=LoadTest)
+        return SyncPaginator(
+            fetch_page=fetch, params=params, model_cls=LoadTest, items_key="configs"
+        )
 
     def list_page(
         self,
@@ -53,7 +55,8 @@ class LoadTestingResource(SyncResource):
         raw = self._transport.request(
             "GET", "/testing/load-tests", params=params, request_options=request_options
         )
-        items = [LoadTest.model_validate(i) for i in raw.get("items", [])]
+        raw_items = raw.get("configs", raw.get("items", []))
+        items = [LoadTest.model_validate(i) for i in raw_items]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
@@ -64,6 +67,8 @@ class LoadTestingResource(SyncResource):
             f"/testing/load-tests/{load_test_id}",
             request_options=request_options,
         )
+        # GET /testing/load-tests/{id} returns the config fields flat with a
+        # `testConfig` sibling — not wrapped in `{config: ...}`.
         return LoadTest.model_validate(raw)
 
     def create(
@@ -86,7 +91,8 @@ class LoadTestingResource(SyncResource):
             },
             request_options=request_options,
         )
-        return LoadTest.model_validate(raw)
+        # POST returns {config: {...}} — unwrap.
+        return LoadTest.model_validate(raw.get("config", raw))
 
     def update(
         self,
@@ -110,7 +116,8 @@ class LoadTestingResource(SyncResource):
             json=body,
             request_options=request_options,
         )
-        return LoadTest.model_validate(raw)
+        # PUT returns {config: updated} — unwrap.
+        return LoadTest.model_validate(raw.get("config", raw))
 
     def delete(
         self, load_test_id: str, *, request_options: RequestOptions | None = None
@@ -192,7 +199,9 @@ class LoadTestingResource(SyncResource):
                 request_options=request_options,
             )
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=LoadTestRun)
+        return SyncPaginator(
+            fetch_page=fetch, params=params, model_cls=LoadTestRun, items_key="runs"
+        )
 
     def wait_for_complete(
         self,
@@ -234,7 +243,9 @@ class AsyncLoadTestingResource(AsyncResource):
                 "GET", "/testing/load-tests", params=p, request_options=request_options
             )
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=LoadTest)
+        return AsyncPaginator(
+            fetch_page=fetch, params=params, model_cls=LoadTest, items_key="configs"
+        )
 
     async def list_page(
         self,
@@ -251,7 +262,8 @@ class AsyncLoadTestingResource(AsyncResource):
         raw = await self._transport.request(
             "GET", "/testing/load-tests", params=params, request_options=request_options
         )
-        items = [LoadTest.model_validate(i) for i in raw.get("items", [])]
+        raw_items = raw.get("configs", raw.get("items", []))
+        items = [LoadTest.model_validate(i) for i in raw_items]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
@@ -262,6 +274,8 @@ class AsyncLoadTestingResource(AsyncResource):
             f"/testing/load-tests/{load_test_id}",
             request_options=request_options,
         )
+        # GET /testing/load-tests/{id} returns the config fields flat with a
+        # `testConfig` sibling — not wrapped in `{config: ...}`.
         return LoadTest.model_validate(raw)
 
     async def create(
@@ -284,7 +298,8 @@ class AsyncLoadTestingResource(AsyncResource):
             },
             request_options=request_options,
         )
-        return LoadTest.model_validate(raw)
+        # POST returns {config: {...}} — unwrap.
+        return LoadTest.model_validate(raw.get("config", raw))
 
     async def update(
         self,
@@ -308,7 +323,8 @@ class AsyncLoadTestingResource(AsyncResource):
             json=body,
             request_options=request_options,
         )
-        return LoadTest.model_validate(raw)
+        # PUT returns {config: updated} — unwrap.
+        return LoadTest.model_validate(raw.get("config", raw))
 
     async def delete(
         self, load_test_id: str, *, request_options: RequestOptions | None = None
@@ -390,7 +406,9 @@ class AsyncLoadTestingResource(AsyncResource):
                 request_options=request_options,
             )
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=LoadTestRun)
+        return AsyncPaginator(
+            fetch_page=fetch, params=params, model_cls=LoadTestRun, items_key="runs"
+        )
 
     async def wait_for_complete(
         self,

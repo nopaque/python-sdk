@@ -26,7 +26,9 @@ class DatasetsResource(SyncResource):
                 "GET", "/datasets", params=p, request_options=request_options
             )
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=Dataset)
+        return SyncPaginator(
+            fetch_page=fetch, params=params, model_cls=Dataset, items_key="datasets"
+        )
 
     def list_page(
         self,
@@ -43,7 +45,8 @@ class DatasetsResource(SyncResource):
         raw = self._transport.request(
             "GET", "/datasets", params=params, request_options=request_options
         )
-        items = [Dataset.model_validate(i) for i in raw.get("items", [])]
+        raw_items = raw.get("datasets", raw.get("items", []))
+        items = [Dataset.model_validate(i) for i in raw_items]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
@@ -127,7 +130,9 @@ class AsyncDatasetsResource(AsyncResource):
                 "GET", "/datasets", params=p, request_options=request_options
             )
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=Dataset)
+        return AsyncPaginator(
+            fetch_page=fetch, params=params, model_cls=Dataset, items_key="datasets"
+        )
 
     async def list_page(
         self,
@@ -144,7 +149,8 @@ class AsyncDatasetsResource(AsyncResource):
         raw = await self._transport.request(
             "GET", "/datasets", params=params, request_options=request_options
         )
-        items = [Dataset.model_validate(i) for i in raw.get("items", [])]
+        raw_items = raw.get("datasets", raw.get("items", []))
+        items = [Dataset.model_validate(i) for i in raw_items]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(

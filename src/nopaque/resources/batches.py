@@ -31,7 +31,9 @@ class BatchesResource(SyncResource):
                 "GET", "/testing/batches", params=p, request_options=request_options
             )
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=Batch)
+        return SyncPaginator(
+            fetch_page=fetch, params=params, model_cls=Batch, items_key="batches"
+        )
 
     def list_page(
         self,
@@ -48,7 +50,8 @@ class BatchesResource(SyncResource):
         raw = self._transport.request(
             "GET", "/testing/batches", params=params, request_options=request_options
         )
-        items = [Batch.model_validate(i) for i in raw.get("items", [])]
+        raw_items = raw.get("batches", raw.get("items", []))
+        items = [Batch.model_validate(i) for i in raw_items]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
@@ -135,7 +138,9 @@ class BatchesResource(SyncResource):
                 request_options=request_options,
             )
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=BatchRun)
+        return SyncPaginator(
+            fetch_page=fetch, params=params, model_cls=BatchRun, items_key="runs"
+        )
 
     def list_runs(
         self,
@@ -155,7 +160,9 @@ class BatchesResource(SyncResource):
                 "GET", "/testing/batch-runs", params=p, request_options=request_options
             )
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=BatchRun)
+        return SyncPaginator(
+            fetch_page=fetch, params=params, model_cls=BatchRun, items_key="runs"
+        )
 
     def get_run(
         self, run_id: str, *, request_options: RequestOptions | None = None
@@ -205,7 +212,9 @@ class AsyncBatchesResource(AsyncResource):
                 "GET", "/testing/batches", params=p, request_options=request_options
             )
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=Batch)
+        return AsyncPaginator(
+            fetch_page=fetch, params=params, model_cls=Batch, items_key="batches"
+        )
 
     async def list_page(
         self,
@@ -222,7 +231,8 @@ class AsyncBatchesResource(AsyncResource):
         raw = await self._transport.request(
             "GET", "/testing/batches", params=params, request_options=request_options
         )
-        items = [Batch.model_validate(i) for i in raw.get("items", [])]
+        raw_items = raw.get("batches", raw.get("items", []))
+        items = [Batch.model_validate(i) for i in raw_items]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(
@@ -309,7 +319,9 @@ class AsyncBatchesResource(AsyncResource):
                 request_options=request_options,
             )
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=BatchRun)
+        return AsyncPaginator(
+            fetch_page=fetch, params=params, model_cls=BatchRun, items_key="runs"
+        )
 
     def list_runs(
         self,
@@ -329,7 +341,9 @@ class AsyncBatchesResource(AsyncResource):
                 "GET", "/testing/batch-runs", params=p, request_options=request_options
             )
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=BatchRun)
+        return AsyncPaginator(
+            fetch_page=fetch, params=params, model_cls=BatchRun, items_key="runs"
+        )
 
     async def get_run(
         self, run_id: str, *, request_options: RequestOptions | None = None

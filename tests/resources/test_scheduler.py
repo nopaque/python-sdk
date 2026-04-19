@@ -22,7 +22,7 @@ def test_create(httpx_mock: HTTPXMock):
 def test_list(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/schedules",
-        json={"items": [{"id": "s1", "name": "Daily"}], "nextToken": None},
+        json={"schedules": [{"id": "s1", "name": "Daily"}], "count": 1},
     )
     c = client()
     out = list(c.scheduler.list())

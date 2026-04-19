@@ -26,7 +26,9 @@ class SchedulerResource(SyncResource):
                 "GET", "/schedules", params=p, request_options=request_options
             )
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=Schedule)
+        return SyncPaginator(
+            fetch_page=fetch, params=params, model_cls=Schedule, items_key="schedules"
+        )
 
     def list_page(
         self,
@@ -43,7 +45,8 @@ class SchedulerResource(SyncResource):
         raw = self._transport.request(
             "GET", "/schedules", params=params, request_options=request_options
         )
-        items = [Schedule.model_validate(i) for i in raw.get("items", [])]
+        raw_items = raw.get("schedules", raw.get("items", []))
+        items = [Schedule.model_validate(i) for i in raw_items]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
@@ -146,7 +149,9 @@ class AsyncSchedulerResource(AsyncResource):
                 "GET", "/schedules", params=p, request_options=request_options
             )
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=Schedule)
+        return AsyncPaginator(
+            fetch_page=fetch, params=params, model_cls=Schedule, items_key="schedules"
+        )
 
     async def list_page(
         self,
@@ -163,7 +168,8 @@ class AsyncSchedulerResource(AsyncResource):
         raw = await self._transport.request(
             "GET", "/schedules", params=params, request_options=request_options
         )
-        items = [Schedule.model_validate(i) for i in raw.get("items", [])]
+        raw_items = raw.get("schedules", raw.get("items", []))
+        items = [Schedule.model_validate(i) for i in raw_items]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(

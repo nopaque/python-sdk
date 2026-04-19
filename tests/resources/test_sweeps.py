@@ -22,7 +22,7 @@ def test_create(httpx_mock: HTTPXMock):
 def test_list(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/sweeps",
-        json={"items": [{"id": "s1", "name": "X"}], "nextToken": None},
+        json={"sweeps": [{"id": "s1", "name": "X"}]},
     )
     c = client()
     out = list(c.sweeps.list())
@@ -68,40 +68,40 @@ def test_run(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/sweeps/s1/run",
         method="POST",
-        json={"sweepId": "s1", "runId": "r1", "status": "running"},
+        json={"sweepId": "s1", "id": "r1", "status": "running"},
     )
     c = client()
     r = c.sweeps.run("s1")
-    assert r.run_id == "r1"
+    assert r.id == "r1"
     c.close()
 
 
 def test_runs(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/sweeps/s1/runs",
-        json={"items": [{"runId": "r1", "status": "completed"}], "nextToken": None},
+        json={"runs": [{"id": "r1", "status": "completed"}]},
     )
     c = client()
     out = list(c.sweeps.runs("s1"))
-    assert out[0].run_id == "r1"
+    assert out[0].id == "r1"
     c.close()
 
 
 def test_list_runs(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/sweep-runs",
-        json={"items": [{"runId": "r1", "sweepId": "s1", "status": "completed"}], "nextToken": None},
+        json={"runs": [{"id": "r1", "sweepId": "s1", "status": "completed"}]},
     )
     c = client()
     out = list(c.sweeps.list_runs())
-    assert out[0].run_id == "r1"
+    assert out[0].id == "r1"
     c.close()
 
 
 def test_get_run(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/sweep-runs/r1",
-        json={"runId": "r1", "status": "completed", "passRate": 0.5},
+        json={"id": "r1", "status": "completed", "passRate": 0.5},
     )
     c = client()
     r = c.sweeps.get_run("r1")
@@ -113,7 +113,7 @@ def test_wait_for_run(httpx_mock: HTTPXMock):
     for status in ("running", "completed"):
         httpx_mock.add_response(
             url="https://api.nopaque.co.uk/testing/sweep-runs/r1",
-            json={"runId": "r1", "status": status},
+            json={"id": "r1", "status": status},
         )
     c = client()
     run = c.sweeps.wait_for_run("r1", timeout=5.0, poll_interval=0.01)

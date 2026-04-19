@@ -39,7 +39,9 @@ class AudioResource(SyncResource):
                 "GET", "/audio", params=p, request_options=request_options
             )
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=AudioFile)
+        return SyncPaginator(
+            fetch_page=fetch, params=params, model_cls=AudioFile, items_key="audioFiles"
+        )
 
     def list_page(
         self,
@@ -56,7 +58,8 @@ class AudioResource(SyncResource):
         raw = self._transport.request(
             "GET", "/audio", params=params, request_options=request_options
         )
-        items = [AudioFile.model_validate(i) for i in raw.get("items", [])]
+        raw_items = raw.get("audioFiles", raw.get("items", []))
+        items = [AudioFile.model_validate(i) for i in raw_items]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     def get(
@@ -169,7 +172,9 @@ class AsyncAudioResource(AsyncResource):
                 "GET", "/audio", params=p, request_options=request_options
             )
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=AudioFile)
+        return AsyncPaginator(
+            fetch_page=fetch, params=params, model_cls=AudioFile, items_key="audioFiles"
+        )
 
     async def list_page(
         self,
@@ -186,7 +191,8 @@ class AsyncAudioResource(AsyncResource):
         raw = await self._transport.request(
             "GET", "/audio", params=params, request_options=request_options
         )
-        items = [AudioFile.model_validate(i) for i in raw.get("items", [])]
+        raw_items = raw.get("audioFiles", raw.get("items", []))
+        items = [AudioFile.model_validate(i) for i in raw_items]
         return Page(items=items, next_token=raw.get("nextToken"))
 
     async def get(

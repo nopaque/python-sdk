@@ -22,7 +22,7 @@ def test_create_dataset(httpx_mock: HTTPXMock):
 def test_list_datasets(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/datasets",
-        json={"items": [{"id": "ds_1", "name": "UK"}], "nextToken": None},
+        json={"datasets": [{"id": "ds_1", "name": "UK"}]},
     )
     c = client()
     out = list(c.datasets.list())

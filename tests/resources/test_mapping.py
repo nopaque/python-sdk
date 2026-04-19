@@ -164,7 +164,7 @@ def test_tree_default_format(httpx_mock: HTTPXMock):
 def test_runs_paginates(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/mapping/map_1/runs",
-        json={"items": [{"id": "r1", "jobId": "map_1", "status": "completed"}], "nextToken": None},
+        json={"jobId": "map_1", "runs": [{"id": "r1", "jobId": "map_1", "status": "completed"}], "totalRuns": 1},
     )
     c = client()
     runs = list(c.mapping.runs("map_1"))
@@ -175,7 +175,7 @@ def test_runs_paginates(httpx_mock: HTTPXMock):
 def test_paths_and_update_and_delete(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/mapping/map_1/paths",
-        json={"items": [{"jobId": "map_1", "path": "1>2", "status": "completed"}], "nextToken": None},
+        json={"jobId": "map_1", "rules": [{"jobId": "map_1", "path": "1>2", "status": "completed"}], "totalRules": 1},
     )
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/mapping/map_1/paths/1%3E2",

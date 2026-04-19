@@ -1,8 +1,11 @@
 """Sync + async pagination helpers.
 
-List endpoints respond with {items: [...], nextToken?: str}. Paginators
-transparently follow nextToken. A caller-supplied `limit` caps total items;
-a caller-supplied `nextToken` in params is used as the starting page.
+The API's list endpoints are inconsistent about the array key: some use
+`items`, others use the resource name (`configs`, `runs`, `jobs`, etc.).
+Paginators accept an `items_key` so each resource can declare what its
+server actually returns. A caller-supplied `limit` caps total items;
+a caller-supplied `nextToken` in params is used as the starting page
+(where the endpoint supports pagination — many do not).
 """
 from __future__ import annotations
 
@@ -35,10 +38,12 @@ class SyncPaginator(Generic[T]):
         fetch_page: Callable[[dict], dict],
         params: dict,
         model_cls: type | None = None,
+        items_key: str = "items",
     ) -> None:
         self._fetch_page = fetch_page
         self._params = dict(params)
         self._model_cls = model_cls
+        self._items_key = items_key
         self._requested_limit: int | None = params.get("limit")
 
     def __iter__(self) -> Iterator[T]:
@@ -46,7 +51,9 @@ class SyncPaginator(Generic[T]):
         params = dict(self._params)
         while True:
             result = self._fetch_page(params)
-            items = result.get("items", [])
+            # Prefer the declared items_key; fall back to "items" for forward
+            # compat if the server ever starts returning the standard shape.
+            items = result.get(self._items_key, result.get("items", []))
             for raw in items:
                 item: Any
                 if self._model_cls:
@@ -72,10 +79,12 @@ class AsyncPaginator(Generic[T]):
         fetch_page: Callable[[dict], Awaitable[dict]],
         params: dict,
         model_cls: type | None = None,
+        items_key: str = "items",
     ) -> None:
         self._fetch_page = fetch_page
         self._params = dict(params)
         self._model_cls = model_cls
+        self._items_key = items_key
         self._requested_limit: int | None = params.get("limit")
 
     async def __aiter__(self) -> AsyncIterator[T]:
@@ -83,7 +92,7 @@ class AsyncPaginator(Generic[T]):
         params = dict(self._params)
         while True:
             result = await self._fetch_page(params)
-            items = result.get("items", [])
+            items = result.get(self._items_key, result.get("items", []))
             for raw in items:
                 item: Any
                 if self._model_cls:

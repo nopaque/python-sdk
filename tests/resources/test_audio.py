@@ -13,11 +13,11 @@ def test_list_audio(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/audio",
         json={
-            "items": [
+            "audioFiles": [
                 {"id": "aud_1", "fileName": "a.wav", "contentType": "audio/wav"},
                 {"id": "aud_2", "fileName": "b.wav", "contentType": "audio/wav"},
             ],
-            "nextToken": None,
+            "count": 2,
         },
     )
     c = client()
@@ -32,14 +32,14 @@ def test_list_audio_paginates(httpx_mock: HTTPXMock):
         url="https://api.nopaque.co.uk/audio",
         match_json=None,
         json={
-            "items": [{"id": "aud_1", "fileName": "a", "contentType": "audio/wav"}],
+            "audioFiles": [{"id": "aud_1", "fileName": "a", "contentType": "audio/wav"}],
             "nextToken": "t1",
         },
     )
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/audio?nextToken=t1",
         json={
-            "items": [{"id": "aud_2", "fileName": "b", "contentType": "audio/wav"}],
+            "audioFiles": [{"id": "aud_2", "fileName": "b", "contentType": "audio/wav"}],
             "nextToken": None,
         },
     )
