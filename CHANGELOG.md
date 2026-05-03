@@ -6,6 +6,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-05-03
+
+### Fixed
+- `mapping_mode` placement on `mapping.create()` and `mapping.update()`
+  (sync and async). The field is moved into `MappingJobConfig` to match
+  what the live API actually accepts (the API reads
+  `body.config.mappingMode`, not `body.mappingMode`). Calls in 0.1.3
+  passing `mapping_mode=` at the top level were silently being rejected
+  by the API as "mappingMode is required".
+- `MappingJob` response model also drops the top-level `mapping_mode`
+  field for consistency. Read the value from `job.config.mapping_mode`.
+
+### Migration
+
+```python
+from nopaque import Nopaque
+from nopaque.models.mapping import MappingJobConfig
+
+# Before (0.1.3) — sent the value at the top level; API rejected it.
+client.mapping.create(
+    name="Main",
+    phone_number="+44...",
+    mapping_mode="dtmf",
+)
+
+# After (0.1.4) — nested under config; API accepts.
+client.mapping.create(
+    name="Main",
+    phone_number="+44...",
+    config=MappingJobConfig(mapping_mode="dtmf"),
+)
+```
+
+`config` is now required on `mapping.create()` because `mapping_mode`
+moved into it and the API requires the mode.
+
 ## [0.1.3] - 2026-04-19
 
 ### Fixed

@@ -2,6 +2,7 @@
 import os
 
 from nopaque import Nopaque
+from nopaque.models.mapping import MappingJobConfig
 
 PHONE_NUMBER = os.environ["TARGET_PHONE_NUMBER"]   # e.g. +441234567890
 
@@ -9,7 +10,7 @@ with Nopaque() as client:
     job = client.mapping.create(
         name="Demo mapping",
         phone_number=PHONE_NUMBER,
-        mapping_mode="dtmf",
+        config=MappingJobConfig(mapping_mode="dtmf"),
     )
     print(f"Created job {job.id}")
 
