@@ -85,20 +85,17 @@ class MappingResource(SyncResource):
         *,
         name: str,
         phone_number: str,
-        mapping_mode: str,
+        config: MappingJobConfig,
         profile_id: str | None = None,
-        config: MappingJobConfig | None = None,
         request_options: RequestOptions | None = None,
     ) -> MappingJob:
         body: dict = {
             "name": name,
             "phoneNumber": phone_number,
-            "mappingMode": mapping_mode,
+            "config": config.model_dump(by_alias=True, exclude_none=True),
         }
         if profile_id:
             body["profileId"] = profile_id
-        if config:
-            body["config"] = config.model_dump(by_alias=True, exclude_none=True)
         raw = self._transport.request(
             "POST", "/mapping", json=body, request_options=request_options
         )
@@ -110,7 +107,6 @@ class MappingResource(SyncResource):
         *,
         name: str | None = None,
         phone_number: str | None = None,
-        mapping_mode: str | None = None,
         config: MappingJobConfig | None = None,
         request_options: RequestOptions | None = None,
     ) -> MappingJob:
@@ -119,8 +115,6 @@ class MappingResource(SyncResource):
             body["name"] = name
         if phone_number is not None:
             body["phoneNumber"] = phone_number
-        if mapping_mode is not None:
-            body["mappingMode"] = mapping_mode
         if config is not None:
             body["config"] = config.model_dump(by_alias=True, exclude_none=True)
         raw = self._transport.request(
@@ -395,20 +389,17 @@ class AsyncMappingResource(AsyncResource):
         *,
         name: str,
         phone_number: str,
-        mapping_mode: str,
+        config: MappingJobConfig,
         profile_id: str | None = None,
-        config: MappingJobConfig | None = None,
         request_options: RequestOptions | None = None,
     ) -> MappingJob:
         body: dict = {
             "name": name,
             "phoneNumber": phone_number,
-            "mappingMode": mapping_mode,
+            "config": config.model_dump(by_alias=True, exclude_none=True),
         }
         if profile_id:
             body["profileId"] = profile_id
-        if config:
-            body["config"] = config.model_dump(by_alias=True, exclude_none=True)
         raw = await self._transport.request(
             "POST", "/mapping", json=body, request_options=request_options
         )
@@ -420,7 +411,6 @@ class AsyncMappingResource(AsyncResource):
         *,
         name: str | None = None,
         phone_number: str | None = None,
-        mapping_mode: str | None = None,
         config: MappingJobConfig | None = None,
         request_options: RequestOptions | None = None,
     ) -> MappingJob:
@@ -429,8 +419,6 @@ class AsyncMappingResource(AsyncResource):
             body["name"] = name
         if phone_number is not None:
             body["phoneNumber"] = phone_number
-        if mapping_mode is not None:
-            body["mappingMode"] = mapping_mode
         if config is not None:
             body["config"] = config.model_dump(by_alias=True, exclude_none=True)
         raw = await self._transport.request(

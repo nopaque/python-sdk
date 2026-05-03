@@ -97,6 +97,7 @@ class MappingJobConfig(_MappingBase):
     voice_profile_id: Optional[str] = None
     data_profile_id: Optional[str] = None
     retry_config: Optional[RetryConfig] = None
+    mapping_mode: Optional[MappingMode] = None
 
 
 class MappingJob(_MappingBase):
@@ -105,7 +106,6 @@ class MappingJob(_MappingBase):
     user_id: Optional[str] = None
     name: str
     phone_number: Optional[str] = None
-    mapping_mode: Optional[str] = None
     profile_id: Optional[str] = None
     status: str
     run_id: Optional[str] = None

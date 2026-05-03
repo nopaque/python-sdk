@@ -12,6 +12,7 @@ pip install nopaque
 
 ```python
 from nopaque import Nopaque
+from nopaque.models.mapping import MappingJobConfig
 
 client = Nopaque(api_key="nop_live_...")   # or set NOPAQUE_API_KEY
 
@@ -19,7 +20,7 @@ client = Nopaque(api_key="nop_live_...")   # or set NOPAQUE_API_KEY
 job = client.mapping.create(
     name="Main IVR",
     phone_number="+441234567890",
-    mapping_mode="dtmf",
+    config=MappingJobConfig(mapping_mode="dtmf"),
 )
 client.mapping.start(job.id)
 final = client.mapping.wait_for_complete(job.id)

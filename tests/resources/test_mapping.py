@@ -10,6 +10,8 @@ def client():
 
 
 def test_create_mapping_sends_expected_body(httpx_mock: HTTPXMock):
+    from nopaque.models.mapping import MappingJobConfig
+
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/mapping",
         method="POST",
@@ -17,7 +19,7 @@ def test_create_mapping_sends_expected_body(httpx_mock: HTTPXMock):
             "id": "map_1",
             "name": "Main IVR",
             "phoneNumber": "+441234567890",
-            "mappingMode": "dtmf",
+            "config": {"mappingMode": "dtmf"},
             "status": "idle",
         },
     )
@@ -25,7 +27,7 @@ def test_create_mapping_sends_expected_body(httpx_mock: HTTPXMock):
     job = c.mapping.create(
         name="Main IVR",
         phone_number="+441234567890",
-        mapping_mode="dtmf",
+        config=MappingJobConfig(mapping_mode="dtmf"),
     )
     assert job.id == "map_1"
     assert job.name == "Main IVR"
@@ -34,7 +36,7 @@ def test_create_mapping_sends_expected_body(httpx_mock: HTTPXMock):
     assert _j.loads(req.content) == {
         "name": "Main IVR",
         "phoneNumber": "+441234567890",
-        "mappingMode": "dtmf",
+        "config": {"mappingMode": "dtmf"},
     }
     c.close()
 
