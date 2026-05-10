@@ -13,6 +13,10 @@ from .resources.datasets import AsyncDatasetsResource, DatasetsResource
 from .resources.enrichment import AsyncEnrichmentResource, EnrichmentResource
 from .resources.load_testing import AsyncLoadTestingResource, LoadTestingResource
 from .resources.mapping import AsyncMappingResource, MappingResource
+from .resources.mission_test_configs import (
+    AsyncMissionTestConfigsResource,
+    MissionTestConfigsResource,
+)
 from .resources.mission_tests import AsyncMissionTestsResource, MissionTestsResource
 from .resources.profiles import AsyncProfilesResource, ProfilesResource
 from .resources.scheduler import AsyncSchedulerResource, SchedulerResource
@@ -54,6 +58,7 @@ class Nopaque:
         self.scheduler = SchedulerResource(self._transport)
         self.enrichment = EnrichmentResource(self._transport)
         self.mission_tests = MissionTestsResource(self._transport)
+        self.mission_test_configs = MissionTestConfigsResource(self._transport)
 
     def close(self) -> None:
         self._transport.close()
@@ -99,6 +104,7 @@ class AsyncNopaque:
         self.scheduler = AsyncSchedulerResource(self._transport)
         self.enrichment = AsyncEnrichmentResource(self._transport)
         self.mission_tests = AsyncMissionTestsResource(self._transport)
+        self.mission_test_configs = AsyncMissionTestConfigsResource(self._transport)
 
     async def aclose(self) -> None:
         await self._transport.aclose()
