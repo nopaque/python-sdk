@@ -209,15 +209,19 @@ def test_remap(httpx_mock: HTTPXMock):
     c.close()
 
 
-def test_probe(httpx_mock: HTTPXMock):
+def test_probe_returns_queue_summary(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/mapping/map_1/runs/r_1/probe",
         method="POST",
-        json={"probed": True},
+        json={"message": "Queued 3 security probe steps", "probeCount": 3},
     )
     c = client()
-    out = c.mapping.probe("map_1", "r_1", payload={"foo": "bar"})
-    assert out == {"probed": True}
+    result = c.mapping.probe("map_1", "r_1")
+    assert result.probe_count == 3
+    assert "Queued" in result.message
+    req = httpx_mock.get_requests()[0]
+    assert req.url.path == "/mapping/map_1/runs/r_1/probe"
+    assert req.method == "POST"
     c.close()
 
 

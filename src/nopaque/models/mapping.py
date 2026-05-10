@@ -44,6 +44,7 @@ _ALIAS_MAP = {
     "run_id": "runId",
     "repeat_behavior": "repeatBehavior",
     "remap_path": "remapPath",
+    "probe_count": "probeCount",
 }
 
 
@@ -206,3 +207,15 @@ class MappingRun(_MappingBase):
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     stats: Optional[MappingJobStats] = None
+
+
+class ProbeResult(_MappingBase):
+    """Result of POST /mapping/{jobId}/runs/{runId}/probe.
+
+    Triggers on-demand security-probe analysis on a completed mapping run.
+    The body is the queue summary; poll the run / steps afterwards to see
+    classified results land.
+    """
+
+    message: str
+    probe_count: int
