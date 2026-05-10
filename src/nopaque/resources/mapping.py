@@ -15,6 +15,7 @@ from ..models.mapping import (
     MappingRun,
     MappingStep,
     MappingTree,
+    ProbeResult,
 )
 
 TERMINAL_STATUSES: set[str] = {"completed", "failed", "limited", "cancelled"}
@@ -298,15 +299,19 @@ class MappingResource(SyncResource):
         job_id: str,
         run_id: str,
         *,
-        payload: dict | None = None,
         request_options: RequestOptions | None = None,
-    ) -> dict:
-        return self._transport.request(
+    ) -> ProbeResult:
+        """Trigger on-demand security-probe analysis on a completed run.
+
+        Returns the queue summary ``{ message, probe_count }``; poll the run
+        / steps afterwards to see classified results land.
+        """
+        raw = self._transport.request(
             "POST",
             f"/mapping/{job_id}/runs/{run_id}/probe",
-            json=payload or {},
             request_options=request_options,
         )
+        return ProbeResult.model_validate(raw)
 
     def wait_for_complete(
         self,
@@ -602,15 +607,19 @@ class AsyncMappingResource(AsyncResource):
         job_id: str,
         run_id: str,
         *,
-        payload: dict | None = None,
         request_options: RequestOptions | None = None,
-    ) -> dict:
-        return await self._transport.request(
+    ) -> ProbeResult:
+        """Trigger on-demand security-probe analysis on a completed run.
+
+        Returns the queue summary ``{ message, probe_count }``; poll the run
+        / steps afterwards to see classified results land.
+        """
+        raw = await self._transport.request(
             "POST",
             f"/mapping/{job_id}/runs/{run_id}/probe",
-            json=payload or {},
             request_options=request_options,
         )
+        return ProbeResult.model_validate(raw)
 
     async def wait_for_complete(
         self,

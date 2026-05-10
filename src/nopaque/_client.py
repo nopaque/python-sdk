@@ -9,10 +9,16 @@ from ._config import NopaqueConfig
 from ._transport import AsyncTransport, SyncTransport
 from .resources.audio import AsyncAudioResource, AudioResource
 from .resources.batches import AsyncBatchesResource, BatchesResource
+from .resources.compliance import AsyncComplianceResource, ComplianceResource
 from .resources.datasets import AsyncDatasetsResource, DatasetsResource
 from .resources.enrichment import AsyncEnrichmentResource, EnrichmentResource
 from .resources.load_testing import AsyncLoadTestingResource, LoadTestingResource
 from .resources.mapping import AsyncMappingResource, MappingResource
+from .resources.mission_test_configs import (
+    AsyncMissionTestConfigsResource,
+    MissionTestConfigsResource,
+)
+from .resources.mission_tests import AsyncMissionTestsResource, MissionTestsResource
 from .resources.profiles import AsyncProfilesResource, ProfilesResource
 from .resources.scheduler import AsyncSchedulerResource, SchedulerResource
 from .resources.sweeps import AsyncSweepsResource, SweepsResource
@@ -52,6 +58,9 @@ class Nopaque:
         self.load_testing = LoadTestingResource(self._transport)
         self.scheduler = SchedulerResource(self._transport)
         self.enrichment = EnrichmentResource(self._transport)
+        self.mission_tests = MissionTestsResource(self._transport)
+        self.mission_test_configs = MissionTestConfigsResource(self._transport)
+        self.compliance = ComplianceResource(self._transport)
 
     def close(self) -> None:
         self._transport.close()
@@ -96,6 +105,9 @@ class AsyncNopaque:
         self.load_testing = AsyncLoadTestingResource(self._transport)
         self.scheduler = AsyncSchedulerResource(self._transport)
         self.enrichment = AsyncEnrichmentResource(self._transport)
+        self.mission_tests = AsyncMissionTestsResource(self._transport)
+        self.mission_test_configs = AsyncMissionTestConfigsResource(self._transport)
+        self.compliance = AsyncComplianceResource(self._transport)
 
     async def aclose(self) -> None:
         await self._transport.aclose()
