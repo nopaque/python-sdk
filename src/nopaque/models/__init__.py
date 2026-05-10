@@ -1,6 +1,24 @@
 """Pydantic models for requests and responses."""
 from .audio import AudioDownloadURL, AudioFile, AudioUploadURL
 from .batches import Batch, BatchRun
+from .compliance import (
+    ComplianceCatalogue,
+    ComplianceCatalogueResponse,
+    ComplianceRegulation,
+    ComplianceRegulationSection,
+    ComplianceReport,
+    ComplianceReportListItem,
+    ComplianceReportSummary,
+    ComplianceSeverity,
+    ComplianceTest,
+    ComplianceTestEvidence,
+    ComplianceTestVerdict,
+    ComplianceVerdict,
+    CreateComplianceBatchRequest,
+    CreateComplianceBatchResponse,
+    GeneratePdfRequest,
+    GeneratePdfResponse,
+)
 from .datasets import Dataset, ResolvedDataset, ResolvedEntry
 from .enrichment import (
     EnrichmentJob,
@@ -31,6 +49,18 @@ from .mapping import (
     StepStatus,
     TreeNode,
 )
+from .mission_test_configs import (
+    CreateMissionTestConfigRequest,
+    MissionTestConfig,
+)
+from .mission_tests import (
+    CreateMissionTestRequest,
+    MissionTestDefaults,
+    MissionTestKind,
+    MissionTestProfile,
+    MissionTestRun,
+    MissionTestStatus,
+)
 from .profiles import Profile, ProfileItem, ProfileParameters
 from .scheduler import Schedule
 from .sweeps import Sweep, SweepRun
@@ -44,6 +74,23 @@ __all__ = [
     # batches
     "Batch",
     "BatchRun",
+    # compliance
+    "ComplianceCatalogue",
+    "ComplianceCatalogueResponse",
+    "ComplianceRegulation",
+    "ComplianceRegulationSection",
+    "ComplianceReport",
+    "ComplianceReportListItem",
+    "ComplianceReportSummary",
+    "ComplianceSeverity",
+    "ComplianceTest",
+    "ComplianceTestEvidence",
+    "ComplianceTestVerdict",
+    "ComplianceVerdict",
+    "CreateComplianceBatchRequest",
+    "CreateComplianceBatchResponse",
+    "GeneratePdfRequest",
+    "GeneratePdfResponse",
     # datasets
     "Dataset",
     "ResolvedDataset",
@@ -74,6 +121,16 @@ __all__ = [
     "StepResult",
     "StepStatus",
     "TreeNode",
+    # mission_test_configs
+    "CreateMissionTestConfigRequest",
+    "MissionTestConfig",
+    # mission_tests
+    "CreateMissionTestRequest",
+    "MissionTestDefaults",
+    "MissionTestKind",
+    "MissionTestProfile",
+    "MissionTestRun",
+    "MissionTestStatus",
     # profiles
     "Profile",
     "ProfileItem",
