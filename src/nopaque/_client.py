@@ -9,6 +9,7 @@ from ._config import NopaqueConfig
 from ._transport import AsyncTransport, SyncTransport
 from .resources.audio import AsyncAudioResource, AudioResource
 from .resources.batches import AsyncBatchesResource, BatchesResource
+from .resources.compliance import AsyncComplianceResource, ComplianceResource
 from .resources.datasets import AsyncDatasetsResource, DatasetsResource
 from .resources.enrichment import AsyncEnrichmentResource, EnrichmentResource
 from .resources.load_testing import AsyncLoadTestingResource, LoadTestingResource
@@ -59,6 +60,7 @@ class Nopaque:
         self.enrichment = EnrichmentResource(self._transport)
         self.mission_tests = MissionTestsResource(self._transport)
         self.mission_test_configs = MissionTestConfigsResource(self._transport)
+        self.compliance = ComplianceResource(self._transport)
 
     def close(self) -> None:
         self._transport.close()
@@ -105,6 +107,7 @@ class AsyncNopaque:
         self.enrichment = AsyncEnrichmentResource(self._transport)
         self.mission_tests = AsyncMissionTestsResource(self._transport)
         self.mission_test_configs = AsyncMissionTestConfigsResource(self._transport)
+        self.compliance = AsyncComplianceResource(self._transport)
 
     async def aclose(self) -> None:
         await self._transport.aclose()
