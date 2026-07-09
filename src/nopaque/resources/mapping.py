@@ -1,7 +1,7 @@
 """Mapping resource - all /mapping endpoints."""
 from __future__ import annotations
 
-from typing import Any, Callable, Literal
+from typing import Any, Callable, List, Literal
 from urllib.parse import quote
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
@@ -11,6 +11,7 @@ from .._resource import AsyncResource, SyncResource
 from ..models.mapping import (
     MappingJob,
     MappingJobConfig,
+    MappingJobListItem,
     MappingPath,
     MappingRun,
     MappingStep,
@@ -20,10 +21,80 @@ from ..models.mapping import (
 
 TERMINAL_STATUSES: set[str] = {"completed", "failed", "limited", "cancelled"}
 TreeFormat = Literal["tree", "flat"]
+MappingListStatus = Literal["idle", "running", "completed", "failed", "limited"]
+MappingSort = Literal["createdAt"]
+SortDir = Literal["asc", "desc"]
 
 
 def _encode(v: str) -> str:
     return quote(v, safe="")
+
+
+def _build_mapping_list_params(
+    *,
+    workspace_id: str | None,
+    phone_number: str | None,
+    name: str | None,
+    profile_id: str | None,
+    tag: str | None,
+    status: str | None,
+    created_after: str | None,
+    created_before: str | None,
+    sort: str | None,
+    sort_dir: str | None,
+    limit: int | None,
+    cursor: str | None,
+    next_token: str | None,
+) -> dict:
+    params: dict = {}
+    if workspace_id:
+        params["workspaceId"] = workspace_id
+    if phone_number is not None:
+        params["phoneNumber"] = phone_number
+    if name is not None:
+        params["name"] = name
+    if profile_id is not None:
+        params["profileId"] = profile_id
+    if tag is not None:
+        params["tag"] = tag
+    if status is not None:
+        params["status"] = status
+    if created_after is not None:
+        params["createdAfter"] = created_after
+    if created_before is not None:
+        params["createdBefore"] = created_before
+    if sort is not None:
+        params["sort"] = sort
+    if sort_dir is not None:
+        params["sortDir"] = sort_dir
+    if limit is not None:
+        params["limit"] = limit
+    # `cursor` is the spec param; `next_token` kept as a back-compat alias.
+    if cursor is not None:
+        params["cursor"] = cursor
+    elif next_token is not None:
+        params["cursor"] = next_token
+    return params
+
+
+def _normalize_cursor_page(raw: dict, items_key: str = "items") -> dict:
+    """Normalize a `{ items, nextCursor?, nextToken? }` body for the paginator.
+
+    Reads `nextCursor` first, falling back to `nextToken`, and exposes it under
+    the paginator's expected `nextToken` key.
+    """
+    return {
+        "items": raw.get(items_key, raw.get("items", [])),
+        "nextToken": raw.get("nextCursor", raw.get("nextToken")),
+    }
+
+
+def _apply_cursor(params: dict) -> dict:
+    """Translate the paginator's injected `nextToken` into the spec `cursor` param."""
+    p = dict(params)
+    if "nextToken" in p:
+        p["cursor"] = p.pop("nextToken")
+    return p
 
 
 class MappingResource(SyncResource):
@@ -33,45 +104,82 @@ class MappingResource(SyncResource):
         self,
         *,
         workspace_id: str | None = None,
+        phone_number: str | None = None,
+        name: str | None = None,
+        profile_id: str | None = None,
+        tag: str | None = None,
+        status: MappingListStatus | None = None,
+        created_after: str | None = None,
+        created_before: str | None = None,
+        sort: MappingSort | None = None,
+        sort_dir: SortDir | None = None,
         limit: int | None = None,
+        cursor: str | None = None,
         next_token: str | None = None,
         request_options: RequestOptions | None = None,
-    ) -> SyncPaginator[MappingJob]:
-        params: dict = {}
-        if workspace_id:
-            params["workspaceId"] = workspace_id
-        if limit is not None:
-            params["limit"] = limit
-        if next_token is not None:
-            params["nextToken"] = next_token
+    ) -> SyncPaginator[MappingJobListItem]:
+        params = _build_mapping_list_params(
+            workspace_id=workspace_id,
+            phone_number=phone_number,
+            name=name,
+            profile_id=profile_id,
+            tag=tag,
+            status=status,
+            created_after=created_after,
+            created_before=created_before,
+            sort=sort,
+            sort_dir=sort_dir,
+            limit=limit,
+            cursor=cursor,
+            next_token=next_token,
+        )
 
         def fetch(p: dict) -> dict:
-            return self._transport.request(
-                "GET", "/mapping", params=p, request_options=request_options
+            raw = self._transport.request(
+                "GET", "/mapping", params=_apply_cursor(p), request_options=request_options
             )
+            return _normalize_cursor_page(raw)
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=MappingJob)
+        return SyncPaginator(fetch_page=fetch, params=params, model_cls=MappingJobListItem)
 
     def list_page(
         self,
         *,
         workspace_id: str | None = None,
+        phone_number: str | None = None,
+        name: str | None = None,
+        profile_id: str | None = None,
+        tag: str | None = None,
+        status: MappingListStatus | None = None,
+        created_after: str | None = None,
+        created_before: str | None = None,
+        sort: MappingSort | None = None,
+        sort_dir: SortDir | None = None,
         limit: int | None = None,
+        cursor: str | None = None,
         next_token: str | None = None,
         request_options: RequestOptions | None = None,
-    ) -> Page[MappingJob]:
-        params: dict = {}
-        if workspace_id:
-            params["workspaceId"] = workspace_id
-        if limit is not None:
-            params["limit"] = limit
-        if next_token is not None:
-            params["nextToken"] = next_token
+    ) -> Page[MappingJobListItem]:
+        params = _build_mapping_list_params(
+            workspace_id=workspace_id,
+            phone_number=phone_number,
+            name=name,
+            profile_id=profile_id,
+            tag=tag,
+            status=status,
+            created_after=created_after,
+            created_before=created_before,
+            sort=sort,
+            sort_dir=sort_dir,
+            limit=limit,
+            cursor=cursor,
+            next_token=next_token,
+        )
         raw = self._transport.request(
             "GET", "/mapping", params=params, request_options=request_options
         )
-        items = [MappingJob.model_validate(i) for i in raw.get("items", [])]
-        return Page(items=items, next_token=raw.get("nextToken"))
+        items = [MappingJobListItem.model_validate(i) for i in raw.get("items", [])]
+        return Page(items=items, next_token=raw.get("nextCursor", raw.get("nextToken")))
 
     def get(
         self, job_id: str, *, request_options: RequestOptions | None = None
@@ -88,6 +196,7 @@ class MappingResource(SyncResource):
         phone_number: str,
         config: MappingJobConfig,
         profile_id: str | None = None,
+        tags: List[str] | None = None,
         request_options: RequestOptions | None = None,
     ) -> MappingJob:
         body: dict = {
@@ -97,6 +206,8 @@ class MappingResource(SyncResource):
         }
         if profile_id:
             body["profileId"] = profile_id
+        if tags is not None:
+            body["tags"] = tags
         raw = self._transport.request(
             "POST", "/mapping", json=body, request_options=request_options
         )
@@ -109,6 +220,7 @@ class MappingResource(SyncResource):
         name: str | None = None,
         phone_number: str | None = None,
         config: MappingJobConfig | None = None,
+        tags: List[str] | None = None,
         request_options: RequestOptions | None = None,
     ) -> MappingJob:
         body: dict = {}
@@ -118,6 +230,8 @@ class MappingResource(SyncResource):
             body["phoneNumber"] = phone_number
         if config is not None:
             body["config"] = config.model_dump(by_alias=True, exclude_none=True)
+        if tags is not None:
+            body["tags"] = tags
         raw = self._transport.request(
             "PATCH", f"/mapping/{job_id}", json=body, request_options=request_options
         )
@@ -341,45 +455,82 @@ class AsyncMappingResource(AsyncResource):
         self,
         *,
         workspace_id: str | None = None,
+        phone_number: str | None = None,
+        name: str | None = None,
+        profile_id: str | None = None,
+        tag: str | None = None,
+        status: MappingListStatus | None = None,
+        created_after: str | None = None,
+        created_before: str | None = None,
+        sort: MappingSort | None = None,
+        sort_dir: SortDir | None = None,
         limit: int | None = None,
+        cursor: str | None = None,
         next_token: str | None = None,
         request_options: RequestOptions | None = None,
-    ) -> AsyncPaginator[MappingJob]:
-        params: dict = {}
-        if workspace_id:
-            params["workspaceId"] = workspace_id
-        if limit is not None:
-            params["limit"] = limit
-        if next_token is not None:
-            params["nextToken"] = next_token
+    ) -> AsyncPaginator[MappingJobListItem]:
+        params = _build_mapping_list_params(
+            workspace_id=workspace_id,
+            phone_number=phone_number,
+            name=name,
+            profile_id=profile_id,
+            tag=tag,
+            status=status,
+            created_after=created_after,
+            created_before=created_before,
+            sort=sort,
+            sort_dir=sort_dir,
+            limit=limit,
+            cursor=cursor,
+            next_token=next_token,
+        )
 
         async def fetch(p: dict) -> dict:
-            return await self._transport.request(
-                "GET", "/mapping", params=p, request_options=request_options
+            raw = await self._transport.request(
+                "GET", "/mapping", params=_apply_cursor(p), request_options=request_options
             )
+            return _normalize_cursor_page(raw)
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=MappingJob)
+        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=MappingJobListItem)
 
     async def list_page(
         self,
         *,
         workspace_id: str | None = None,
+        phone_number: str | None = None,
+        name: str | None = None,
+        profile_id: str | None = None,
+        tag: str | None = None,
+        status: MappingListStatus | None = None,
+        created_after: str | None = None,
+        created_before: str | None = None,
+        sort: MappingSort | None = None,
+        sort_dir: SortDir | None = None,
         limit: int | None = None,
+        cursor: str | None = None,
         next_token: str | None = None,
         request_options: RequestOptions | None = None,
-    ) -> Page[MappingJob]:
-        params: dict = {}
-        if workspace_id:
-            params["workspaceId"] = workspace_id
-        if limit is not None:
-            params["limit"] = limit
-        if next_token is not None:
-            params["nextToken"] = next_token
+    ) -> Page[MappingJobListItem]:
+        params = _build_mapping_list_params(
+            workspace_id=workspace_id,
+            phone_number=phone_number,
+            name=name,
+            profile_id=profile_id,
+            tag=tag,
+            status=status,
+            created_after=created_after,
+            created_before=created_before,
+            sort=sort,
+            sort_dir=sort_dir,
+            limit=limit,
+            cursor=cursor,
+            next_token=next_token,
+        )
         raw = await self._transport.request(
             "GET", "/mapping", params=params, request_options=request_options
         )
-        items = [MappingJob.model_validate(i) for i in raw.get("items", [])]
-        return Page(items=items, next_token=raw.get("nextToken"))
+        items = [MappingJobListItem.model_validate(i) for i in raw.get("items", [])]
+        return Page(items=items, next_token=raw.get("nextCursor", raw.get("nextToken")))
 
     async def get(
         self, job_id: str, *, request_options: RequestOptions | None = None
@@ -396,6 +547,7 @@ class AsyncMappingResource(AsyncResource):
         phone_number: str,
         config: MappingJobConfig,
         profile_id: str | None = None,
+        tags: List[str] | None = None,
         request_options: RequestOptions | None = None,
     ) -> MappingJob:
         body: dict = {
@@ -405,6 +557,8 @@ class AsyncMappingResource(AsyncResource):
         }
         if profile_id:
             body["profileId"] = profile_id
+        if tags is not None:
+            body["tags"] = tags
         raw = await self._transport.request(
             "POST", "/mapping", json=body, request_options=request_options
         )
@@ -417,6 +571,7 @@ class AsyncMappingResource(AsyncResource):
         name: str | None = None,
         phone_number: str | None = None,
         config: MappingJobConfig | None = None,
+        tags: List[str] | None = None,
         request_options: RequestOptions | None = None,
     ) -> MappingJob:
         body: dict = {}
@@ -426,6 +581,8 @@ class AsyncMappingResource(AsyncResource):
             body["phoneNumber"] = phone_number
         if config is not None:
             body["config"] = config.model_dump(by_alias=True, exclude_none=True)
+        if tags is not None:
+            body["tags"] = tags
         raw = await self._transport.request(
             "PATCH", f"/mapping/{job_id}", json=body, request_options=request_options
         )

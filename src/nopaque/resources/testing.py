@@ -9,9 +9,70 @@ from .._polling import wait_for_async, wait_for_sync
 from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
 from .._transport import AsyncTransport, SyncTransport
-from ..models.testing import TestConfig, TestJob, TestRun
+from ..models.testing import (
+    MissionTestRunResponse,
+    TestConfig,
+    TestJob,
+    TestRun,
+    TestRunAggregateResponse,
+    TestRunListItem,
+)
 
 RUN_TERMINAL_STATUSES: set[str] = {"completed", "failed", "cancelled"}
+
+
+def _build_run_list_params(
+    *,
+    job_id: str | None,
+    run_type: str | None,
+    outcome: str | None,
+    phone_number: str | None,
+    config_id: str | None,
+    catalogue_test_id: str | None,
+    started_after: str | None,
+    started_before: str | None,
+    sort_by: str | None,
+    sort_dir: str | None,
+    limit: int | None,
+    cursor: str | None,
+    next_token: str | None,
+) -> dict:
+    params: dict = {}
+    if job_id is not None:
+        params["jobId"] = job_id
+    if run_type is not None:
+        params["runType"] = run_type
+    if outcome is not None:
+        params["outcome"] = outcome
+    if phone_number is not None:
+        params["phoneNumber"] = phone_number
+    if config_id is not None:
+        params["configId"] = config_id
+    if catalogue_test_id is not None:
+        params["catalogueTestId"] = catalogue_test_id
+    if started_after is not None:
+        params["startedAfter"] = started_after
+    if started_before is not None:
+        params["startedBefore"] = started_before
+    if sort_by is not None:
+        params["sortBy"] = sort_by
+    if sort_dir is not None:
+        params["sortDir"] = sort_dir
+    if limit is not None:
+        params["limit"] = limit
+    if cursor is not None:
+        params["cursor"] = cursor
+    elif next_token is not None:
+        params["cursor"] = next_token
+    return params
+
+
+def _apply_cursor(params: dict) -> dict:
+    """Translate the paginator's injected `nextToken` into the spec `cursor` param."""
+    p = dict(params)
+    if "nextToken" in p:
+        p["cursor"] = p.pop("nextToken")
+    return p
 
 
 # ==== Sync sub-namespaces =====================================================
@@ -200,42 +261,89 @@ class _SyncRuns:
     def list(
         self,
         *,
+        job_id: str | None = None,
+        run_type: str | None = None,
+        outcome: str | None = None,
+        phone_number: str | None = None,
+        config_id: str | None = None,
+        catalogue_test_id: str | None = None,
+        started_after: str | None = None,
+        started_before: str | None = None,
+        sort_by: str | None = None,
+        sort_dir: str | None = None,
         limit: int | None = None,
+        cursor: str | None = None,
         next_token: str | None = None,
         request_options: RequestOptions | None = None,
-    ) -> SyncPaginator[TestRun]:
-        params: dict = {}
-        if limit is not None:
-            params["limit"] = limit
-        if next_token is not None:
-            params["nextToken"] = next_token
+    ) -> SyncPaginator[TestRunListItem]:
+        params = _build_run_list_params(
+            job_id=job_id,
+            run_type=run_type,
+            outcome=outcome,
+            phone_number=phone_number,
+            config_id=config_id,
+            catalogue_test_id=catalogue_test_id,
+            started_after=started_after,
+            started_before=started_before,
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+            limit=limit,
+            cursor=cursor,
+            next_token=next_token,
+        )
 
         def fetch(p: dict) -> dict:
-            # Server returns { runs: [...] } rather than { items, nextToken }.
+            # Server returns { runs: [...], nextCursor? } — normalize.
             raw = self._transport.request(
-                "GET", "/testing/runs", params=p, request_options=request_options
+                "GET", "/testing/runs", params=_apply_cursor(p), request_options=request_options
             )
-            return {"items": raw.get("runs", raw.get("items", [])), "nextToken": None}
+            return {
+                "items": raw.get("runs", raw.get("items", [])),
+                "nextToken": raw.get("nextCursor", raw.get("nextToken")),
+            }
 
-        return SyncPaginator(fetch_page=fetch, params=params, model_cls=TestRun)
+        return SyncPaginator(fetch_page=fetch, params=params, model_cls=TestRunListItem)
 
     def list_page(
         self,
         *,
+        job_id: str | None = None,
+        run_type: str | None = None,
+        outcome: str | None = None,
+        phone_number: str | None = None,
+        config_id: str | None = None,
+        catalogue_test_id: str | None = None,
+        started_after: str | None = None,
+        started_before: str | None = None,
+        sort_by: str | None = None,
+        sort_dir: str | None = None,
         limit: int | None = None,
+        cursor: str | None = None,
         next_token: str | None = None,
         request_options: RequestOptions | None = None,
-    ) -> Page[TestRun]:
-        params: dict = {}
-        if limit is not None:
-            params["limit"] = limit
-        if next_token is not None:
-            params["nextToken"] = next_token
+    ) -> Page[TestRunListItem]:
+        params = _build_run_list_params(
+            job_id=job_id,
+            run_type=run_type,
+            outcome=outcome,
+            phone_number=phone_number,
+            config_id=config_id,
+            catalogue_test_id=catalogue_test_id,
+            started_after=started_after,
+            started_before=started_before,
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+            limit=limit,
+            cursor=cursor,
+            next_token=next_token,
+        )
         raw = self._transport.request(
             "GET", "/testing/runs", params=params, request_options=request_options
         )
-        items = [TestRun.model_validate(i) for i in raw.get("runs", raw.get("items", []))]
-        return Page(items=items, next_token=raw.get("nextToken"))
+        items = [
+            TestRunListItem.model_validate(i) for i in raw.get("runs", raw.get("items", []))
+        ]
+        return Page(items=items, next_token=raw.get("nextCursor", raw.get("nextToken")))
 
     def get(
         self, run_id: str, *, request_options: RequestOptions | None = None
@@ -299,6 +407,62 @@ class TestingResource(SyncResource):
         self.configs = _SyncConfigs(transport)
         self.jobs = _SyncJobs(transport)
         self.runs = _SyncRuns(transport)
+
+    def aggregate_runs(
+        self,
+        *,
+        group_by: str,
+        run_type: str | None = None,
+        outcome: str | None = None,
+        phone_number: str | None = None,
+        config_id: str | None = None,
+        catalogue_test_id: str | None = None,
+        started_after: str | None = None,
+        started_before: str | None = None,
+        time_bucket: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> TestRunAggregateResponse:
+        """Aggregate test runs — GET /testing/runs/aggregate.
+
+        ``group_by`` is required (one of ``outcome``, ``runType``, ``configId``,
+        ``catalogueTestId``, ``phoneNumber``). Pass ``time_bucket`` (``day`` |
+        ``week`` | ``month``) to get time-bucketed groups instead of flat groups.
+        """
+        params: dict = {"groupBy": group_by}
+        if run_type is not None:
+            params["runType"] = run_type
+        if outcome is not None:
+            params["outcome"] = outcome
+        if phone_number is not None:
+            params["phoneNumber"] = phone_number
+        if config_id is not None:
+            params["configId"] = config_id
+        if catalogue_test_id is not None:
+            params["catalogueTestId"] = catalogue_test_id
+        if started_after is not None:
+            params["startedAfter"] = started_after
+        if started_before is not None:
+            params["startedBefore"] = started_before
+        if time_bucket is not None:
+            params["timeBucket"] = time_bucket
+        raw = self._transport.request(
+            "GET", "/testing/runs/aggregate", params=params, request_options=request_options
+        )
+        return TestRunAggregateResponse.model_validate(raw)
+
+    def get_mission_test_run(
+        self, run_id: str, *, request_options: RequestOptions | None = None
+    ) -> MissionTestRunResponse:
+        """Get a mission test run — GET /testing/mission-test-runs/{id}.
+
+        Mission-strict shape (no ``stepResults`` — mission tests have no steps).
+        """
+        raw = self._transport.request(
+            "GET",
+            f"/testing/mission-test-runs/{run_id}",
+            request_options=request_options,
+        )
+        return MissionTestRunResponse.model_validate(raw)
 
 
 # ==== Async sub-namespaces ====================================================
@@ -484,41 +648,88 @@ class _AsyncRuns:
     def list(
         self,
         *,
+        job_id: str | None = None,
+        run_type: str | None = None,
+        outcome: str | None = None,
+        phone_number: str | None = None,
+        config_id: str | None = None,
+        catalogue_test_id: str | None = None,
+        started_after: str | None = None,
+        started_before: str | None = None,
+        sort_by: str | None = None,
+        sort_dir: str | None = None,
         limit: int | None = None,
+        cursor: str | None = None,
         next_token: str | None = None,
         request_options: RequestOptions | None = None,
-    ) -> AsyncPaginator[TestRun]:
-        params: dict = {}
-        if limit is not None:
-            params["limit"] = limit
-        if next_token is not None:
-            params["nextToken"] = next_token
+    ) -> AsyncPaginator[TestRunListItem]:
+        params = _build_run_list_params(
+            job_id=job_id,
+            run_type=run_type,
+            outcome=outcome,
+            phone_number=phone_number,
+            config_id=config_id,
+            catalogue_test_id=catalogue_test_id,
+            started_after=started_after,
+            started_before=started_before,
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+            limit=limit,
+            cursor=cursor,
+            next_token=next_token,
+        )
 
         async def fetch(p: dict) -> dict:
             raw = await self._transport.request(
-                "GET", "/testing/runs", params=p, request_options=request_options
+                "GET", "/testing/runs", params=_apply_cursor(p), request_options=request_options
             )
-            return {"items": raw.get("runs", raw.get("items", [])), "nextToken": None}
+            return {
+                "items": raw.get("runs", raw.get("items", [])),
+                "nextToken": raw.get("nextCursor", raw.get("nextToken")),
+            }
 
-        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=TestRun)
+        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=TestRunListItem)
 
     async def list_page(
         self,
         *,
+        job_id: str | None = None,
+        run_type: str | None = None,
+        outcome: str | None = None,
+        phone_number: str | None = None,
+        config_id: str | None = None,
+        catalogue_test_id: str | None = None,
+        started_after: str | None = None,
+        started_before: str | None = None,
+        sort_by: str | None = None,
+        sort_dir: str | None = None,
         limit: int | None = None,
+        cursor: str | None = None,
         next_token: str | None = None,
         request_options: RequestOptions | None = None,
-    ) -> Page[TestRun]:
-        params: dict = {}
-        if limit is not None:
-            params["limit"] = limit
-        if next_token is not None:
-            params["nextToken"] = next_token
+    ) -> Page[TestRunListItem]:
+        params = _build_run_list_params(
+            job_id=job_id,
+            run_type=run_type,
+            outcome=outcome,
+            phone_number=phone_number,
+            config_id=config_id,
+            catalogue_test_id=catalogue_test_id,
+            started_after=started_after,
+            started_before=started_before,
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+            limit=limit,
+            cursor=cursor,
+            next_token=next_token,
+        )
         raw = await self._transport.request(
             "GET", "/testing/runs", params=params, request_options=request_options
         )
-        items = [TestRun.model_validate(i) for i in raw.get("runs", raw.get("items", []))]
-        return Page(items=items, next_token=raw.get("nextToken"))
+        items = [
+            TestRunListItem.model_validate(i) for i in raw.get("runs", raw.get("items", []))
+        ]
+        return Page(items=items, next_token=raw.get("nextCursor", raw.get("nextToken")))
 
     async def get(
         self, run_id: str, *, request_options: RequestOptions | None = None
@@ -582,3 +793,59 @@ class AsyncTestingResource(AsyncResource):
         self.configs = _AsyncConfigs(transport)
         self.jobs = _AsyncJobs(transport)
         self.runs = _AsyncRuns(transport)
+
+    async def aggregate_runs(
+        self,
+        *,
+        group_by: str,
+        run_type: str | None = None,
+        outcome: str | None = None,
+        phone_number: str | None = None,
+        config_id: str | None = None,
+        catalogue_test_id: str | None = None,
+        started_after: str | None = None,
+        started_before: str | None = None,
+        time_bucket: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> TestRunAggregateResponse:
+        """Aggregate test runs — GET /testing/runs/aggregate.
+
+        ``group_by`` is required (one of ``outcome``, ``runType``, ``configId``,
+        ``catalogueTestId``, ``phoneNumber``). Pass ``time_bucket`` (``day`` |
+        ``week`` | ``month``) to get time-bucketed groups instead of flat groups.
+        """
+        params: dict = {"groupBy": group_by}
+        if run_type is not None:
+            params["runType"] = run_type
+        if outcome is not None:
+            params["outcome"] = outcome
+        if phone_number is not None:
+            params["phoneNumber"] = phone_number
+        if config_id is not None:
+            params["configId"] = config_id
+        if catalogue_test_id is not None:
+            params["catalogueTestId"] = catalogue_test_id
+        if started_after is not None:
+            params["startedAfter"] = started_after
+        if started_before is not None:
+            params["startedBefore"] = started_before
+        if time_bucket is not None:
+            params["timeBucket"] = time_bucket
+        raw = await self._transport.request(
+            "GET", "/testing/runs/aggregate", params=params, request_options=request_options
+        )
+        return TestRunAggregateResponse.model_validate(raw)
+
+    async def get_mission_test_run(
+        self, run_id: str, *, request_options: RequestOptions | None = None
+    ) -> MissionTestRunResponse:
+        """Get a mission test run — GET /testing/mission-test-runs/{id}.
+
+        Mission-strict shape (no ``stepResults`` — mission tests have no steps).
+        """
+        raw = await self._transport.request(
+            "GET",
+            f"/testing/mission-test-runs/{run_id}",
+            request_options=request_options,
+        )
+        return MissionTestRunResponse.model_validate(raw)

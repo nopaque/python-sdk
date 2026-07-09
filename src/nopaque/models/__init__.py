@@ -34,10 +34,14 @@ from .load_testing import (
     LoadTestStatus,
 )
 from .mapping import (
+    CallTelemetry,
+    CurrentRun,
     DTMFOption,
+    InputRequired,
     JobStatus,
     MappingJob,
     MappingJobConfig,
+    MappingJobListItem,
     MappingJobStats,
     MappingMode,
     MappingPath,
@@ -49,10 +53,12 @@ from .mapping import (
     StepResult,
     StepStatus,
     TreeNode,
+    TurnTelemetry,
 )
 from .mission_test_configs import (
     CreateMissionTestConfigRequest,
     MissionTestConfig,
+    MissionTestConfigListItem,
 )
 from .mission_tests import (
     CreateMissionTestRequest,
@@ -65,7 +71,16 @@ from .mission_tests import (
 from .profiles import Profile, ProfileItem, ProfileParameters
 from .scheduler import Schedule
 from .sweeps import Sweep, SweepRun
-from .testing import TestConfig, TestJob, TestRun
+from .testing import (
+    AggregateBucket,
+    AggregateGroup,
+    MissionTestRunResponse,
+    TestConfig,
+    TestJob,
+    TestRun,
+    TestRunAggregateResponse,
+    TestRunListItem,
+)
 
 __all__ = [
     # audio
@@ -108,10 +123,14 @@ __all__ = [
     "LoadTestRun",
     "LoadTestStatus",
     # mapping
+    "CallTelemetry",
+    "CurrentRun",
     "DTMFOption",
+    "InputRequired",
     "JobStatus",
     "MappingJob",
     "MappingJobConfig",
+    "MappingJobListItem",
     "MappingJobStats",
     "MappingMode",
     "MappingPath",
@@ -123,9 +142,11 @@ __all__ = [
     "StepResult",
     "StepStatus",
     "TreeNode",
+    "TurnTelemetry",
     # mission_test_configs
     "CreateMissionTestConfigRequest",
     "MissionTestConfig",
+    "MissionTestConfigListItem",
     # mission_tests
     "CreateMissionTestRequest",
     "MissionTestDefaults",
@@ -143,7 +164,12 @@ __all__ = [
     "Sweep",
     "SweepRun",
     # testing
+    "AggregateBucket",
+    "AggregateGroup",
+    "MissionTestRunResponse",
     "TestConfig",
     "TestJob",
     "TestRun",
+    "TestRunAggregateResponse",
+    "TestRunListItem",
 ]
