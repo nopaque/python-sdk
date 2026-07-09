@@ -6,6 +6,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-09
+
+### Added
+
+- Mapping tags. `mapping.create()` and `mapping.update()` accept an optional
+  `tags=` list, and `MappingJob` / the new `MappingJobListItem` expose `tags`.
+- Filtered, paginated `mapping.list()` / `list_page()`. New optional params:
+  `phone_number`, `name`, `profile_id`, `tag`, `status`, `created_after`,
+  `created_before`, `sort`, `sort_dir`, `limit`, `cursor`. Returns slim
+  `MappingJobListItem` records and paginates on the server's `nextCursor`
+  (falling back to `nextToken`).
+- `MappingJob` gains `run_number` and a nested `current_run` (`CurrentRun`)
+  surfaced by `GET /mapping/{id}`.
+- Mapping tree enrichment. `TreeNode` gains `step_type`, `voice_prompt`,
+  `menu_label`, `spoken_response`, `probe_category`, `probe_classification`,
+  `probe_rationale`, `audio_url`, `duration`, and `input_required`
+  (`InputRequired`). `MappingTree` gains `run_number`, `steps` (flat format),
+  and the empty-state envelope fields `reason` + `message` with `tree: null` —
+  branch on `tree is None`.
+- Permissive `CallTelemetry` / `TurnTelemetry` models (all fields optional,
+  unknown fields tolerated) for the additive telemetry payloads.
+- Filtered, paginated `testing.runs.list()` / `list_page()`. New optional
+  params: `run_type`, `outcome`, `phone_number`, `config_id`,
+  `catalogue_test_id`, `started_after`, `started_before`, `sort_by`,
+  `sort_dir`, `limit`, `cursor`. Returns slim `TestRunListItem` records and
+  paginates on `nextCursor`.
+- `testing.aggregate_runs(group_by=..., ...)` for `GET /testing/runs/aggregate`,
+  returning `TestRunAggregateResponse` (flat `groups` or time-bucketed
+  `buckets`).
+- `testing.get_mission_test_run(id)` for `GET /testing/mission-test-runs/{id}`,
+  returning `MissionTestRunResponse`.
+- Mission-test-config tags + partial update. `mission_test_configs.create()`
+  accepts optional `tags=`, `description=`, `phone_number=`; new
+  `mission_test_configs.update(id, ...)` (PATCH) with `description=None` /
+  `tags=None` to clear those attributes.
+- Filtered, paginated `mission_test_configs.list()` / `list_page()`. New
+  optional params: `name`, `phone_number`, `sector`, `profile_id`, `tag`,
+  `created_after`, `created_before`, `sort`, `sort_dir`, `limit`, `cursor`.
+  Returns slim `MissionTestConfigListItem` records.
+
+All changes are additive and backward-compatible — existing method signatures
+continue to work unchanged. Both the sync (`Nopaque`) and async
+(`AsyncNopaque`) clients are updated.
+
 ## [0.1.4] - 2026-05-03
 
 ### Fixed
@@ -120,7 +164,8 @@ moved into it and the API requires the mode.
 - Method-aware retry with exponential jitter and `Retry-After` honor.
 - Typed exception hierarchy.
 
-[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.3.0
 [0.1.3]: https://github.com/nopaque/python-sdk/releases/tag/v0.1.3
 [0.1.2]: https://github.com/nopaque/python-sdk/releases/tag/v0.1.2
 [0.1.1]: https://github.com/nopaque/python-sdk/releases/tag/v0.1.1

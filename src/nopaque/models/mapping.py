@@ -45,6 +45,25 @@ _ALIAS_MAP = {
     "repeat_behavior": "repeatBehavior",
     "remap_path": "remapPath",
     "probe_count": "probeCount",
+    # v0.3.0 additive
+    "run_number": "runNumber",
+    "current_run": "currentRun",
+    "next_cursor": "nextCursor",
+    "step_type": "stepType",
+    "voice_prompt": "voicePrompt",
+    "menu_label": "menuLabel",
+    "spoken_response": "spokenResponse",
+    "probe_category": "probeCategory",
+    "probe_classification": "probeClassification",
+    "probe_rationale": "probeRationale",
+    "input_required": "inputRequired",
+    "format_hint": "formatHint",
+    "start_time_ms": "startTimeMs",
+    "call_telemetry": "callTelemetry",
+    "turn_telemetry": "turnTelemetry",
+    "schema_version": "schemaVersion",
+    "llm_extraction": "llmExtraction",
+    "conversation_turn": "conversationTurn",
 }
 
 
@@ -101,6 +120,24 @@ class MappingJobConfig(_MappingBase):
     mapping_mode: Optional[MappingMode] = None
 
 
+class CurrentRun(_MappingBase):
+    """Nested run summary surfaced on the single-job ``GET /mapping/{id}`` response.
+
+    Unlike job-level ``status`` (which cycles idle/running and never reaches
+    ``completed``), ``CurrentRun.status`` CAN reach a terminal value. Present
+    when a run exists; omitted (never ``null``) when the job has no runs yet.
+    """
+
+    id: Optional[str] = None
+    status: Optional[str] = None
+    run_number: Optional[int] = None
+    stats: Optional[MappingJobStats] = None
+    in_flight_count: Optional[int] = None
+    limit_reason: Optional[str] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+
+
 class MappingJob(_MappingBase):
     id: str
     workspace_id: Optional[str] = None
@@ -110,18 +147,44 @@ class MappingJob(_MappingBase):
     profile_id: Optional[str] = None
     status: str
     run_id: Optional[str] = None
+    run_number: Optional[int] = None
     config: Optional[MappingJobConfig] = None
     stats: Optional[MappingJobStats] = None
     in_flight_count: Optional[int] = None
     pending_paths: Optional[List[str]] = None
     current_run_id: Optional[str] = None
+    current_run: Optional[CurrentRun] = None
     limit_reason: Optional[str] = None
     error: Optional[str] = None
+    tags: Optional[List[str]] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     cancelled_at: Optional[str] = None
+
+
+class MappingJobListItem(_MappingBase):
+    """Slim projection returned by ``GET /mapping`` (list).
+
+    NOTE: ``status`` here is the LATEST-RUN status (post-merged from
+    ``currentRun.status``), not the job-level idle/running cycle. For the
+    full job shape and run detail, call ``mapping.get(id)``.
+    """
+
+    id: str
+    workspace_id: Optional[str] = None
+    user_id: Optional[str] = None
+    name: str
+    phone_number: Optional[str] = None
+    profile_id: Optional[str] = None
+    status: str
+    config: Optional[MappingJobConfig] = None
+    tags: Optional[List[str]] = None
+    error: Optional[str] = None
+    run_number: Optional[int] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
 
 class DTMFOption(_MappingBase):
@@ -158,6 +221,16 @@ class MappingStep(_MappingBase):
     completed_at: Optional[str] = None
 
 
+class InputRequired(_MappingBase):
+    """Per-step UX hint for prompts that require user input (e.g. PIN/account)."""
+
+    type: Optional[str] = None
+    description: Optional[str] = None
+    format_hint: Optional[str] = None
+    terminator: Optional[str] = None
+    start_time_ms: Optional[int] = None
+
+
 class TreeNode(_MappingBase):
     step_id: Optional[str] = None
     path: Optional[str] = None
@@ -171,6 +244,15 @@ class TreeNode(_MappingBase):
     children: List["TreeNode"] = []
     duration: Optional[float] = None
     audio_url: Optional[str] = None
+    # v0.3.0 enrichment fields (optional, omitted when absent)
+    step_type: Optional[Literal["dtmf", "voice"]] = None
+    voice_prompt: Optional[str] = None
+    menu_label: Optional[str] = None
+    spoken_response: Optional[str] = None
+    probe_category: Optional[str] = None
+    probe_classification: Optional[str] = None
+    probe_rationale: Optional[str] = None
+    input_required: Optional[InputRequired] = None
 
 
 TreeNode.model_rebuild()
@@ -179,10 +261,16 @@ TreeNode.model_rebuild()
 class MappingTree(_MappingBase):
     job_id: Optional[str] = None
     run_id: Optional[str] = None
+    run_number: Optional[int] = None
     status: Optional[str] = None
     stats: Optional[MappingJobStats] = None
     tree: Optional[TreeNode] = None
     root: Optional[TreeNode] = None
+    # Flat format returns a `steps` array instead of a nested `tree`.
+    steps: Optional[List[TreeNode]] = None
+    # Empty-state envelope (200 OK): when the tree is empty, `tree` is null and
+    # `reason` explains why. Branch on `tree is None`.
+    reason: Optional[Literal["no_runs", "no_steps", "in_progress"]] = None
     message: Optional[str] = None
 
 
@@ -219,3 +307,35 @@ class ProbeResult(_MappingBase):
 
     message: str
     probe_count: int
+
+
+# ============================================================================
+# Telemetry (v0.3.0) — permissive, all-optional. The wire contract carries
+# `schemaVersion: 1` plus nested optional groups; emitters may ship ahead of
+# consumers, so every model tolerates unknown fields (extra="allow" via the
+# shared base). Nested groups are left as free-form dicts intentionally.
+# ============================================================================
+
+
+class TurnTelemetry(_MappingBase):
+    """Per-step / per-turn telemetry (optional). All fields optional."""
+
+    schema_version: Optional[int] = None
+    timing: Optional[dict] = None
+    transcript: Optional[dict] = None
+    dtmf: Optional[dict] = None
+    llm_extraction: Optional[dict] = None
+    conversation_turn: Optional[dict] = None
+
+
+class CallTelemetry(_MappingBase):
+    """Call-level telemetry (optional). All fields optional."""
+
+    schema_version: Optional[int] = None
+    telephony: Optional[dict] = None
+    quality: Optional[dict] = None
+    audio: Optional[dict] = None
+    cost: Optional[dict] = None
+    timing: Optional[dict] = None
+    mode: Optional[dict] = None
+    turns: Optional[List[TurnTelemetry]] = None
