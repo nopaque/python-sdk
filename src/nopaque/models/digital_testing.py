@@ -142,6 +142,12 @@ class SendChatStep(ChatStepBase):
 
     Supply EXACTLY ONE of ``text`` or ``profile_item_id`` — both, or neither, is
     a 400. ``profile_item_id`` is a key into ``profile.dataItems``.
+
+    The check below mirrors the server rule exactly, which is a TRUTHINESS test
+    (``Boolean(text) !== Boolean(profileItemId)``) and not a null test. An empty
+    string therefore does not count as a supplied source, so a body carrying
+    ``text: ""`` alongside a ``profileItemId`` is accepted here just as the
+    server accepts it.
     """
 
     type: Literal["send"] = "send"
@@ -150,7 +156,7 @@ class SendChatStep(ChatStepBase):
 
     @model_validator(mode="after")
     def _exactly_one_source(self) -> "SendChatStep":
-        if (self.text is None) == (self.profile_item_id is None):
+        if bool(self.text) == bool(self.profile_item_id):
             raise ValueError("send step needs exactly one of text or profile_item_id")
         return self
 

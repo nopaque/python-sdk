@@ -132,6 +132,25 @@ def test_send_step_rejects_neither():
         SendChatStep.model_validate({"type": "send"})
 
 
+def test_send_step_accepts_empty_text_alongside_profile_item_id():
+    # The server rule is `Boolean(text) !== Boolean(profileItemId)`, so an empty
+    # string is not a supplied source and this body IS accepted upstream.
+    s = SendChatStep.model_validate({"type": "send", "text": "", "profileItemId": "acct"})
+    assert s.profile_item_id == "acct"
+    assert s.text == ""
+
+
+def test_send_step_rejects_empty_text_alone():
+    # Empty text supplies no source at all, so this is the "neither" case.
+    with pytest.raises(ValidationError):
+        SendChatStep.model_validate({"type": "send", "text": ""})
+
+
+def test_send_step_rejects_empty_profile_item_id_alone():
+    with pytest.raises(ValidationError):
+        SendChatStep.model_validate({"type": "send", "profileItemId": ""})
+
+
 def test_chat_step_discriminates_on_type():
     steps = [
         {"type": "send", "text": "hello"},
