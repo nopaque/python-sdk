@@ -1,5 +1,5 @@
 """Models for /testing endpoints."""
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -31,6 +31,10 @@ _ALIAS_MAP = {
     "call_control_id": "callControlId",
     "audio_id": "audioId",
     "error_message": "errorMessage",
+    # voices (GET /testing/voices)
+    "voice_id": "voiceId",
+    "is_default": "isDefault",
+    "default_voice_id": "defaultVoiceId",
 }
 
 
@@ -159,3 +163,30 @@ class TestRunAggregateResponse(_TestingBase):
     buckets: Optional[List[AggregateBucket]] = None
     truncated: Optional[bool] = None
     total_groups: Optional[int] = None
+
+
+class Voice(_TestingBase):
+    """An operator-enabled Telnyx text-to-speech voice.
+
+    Customers choose from this curated set rather than the full Telnyx
+    catalogue. ``GET /testing/voices``.
+    """
+
+    voice_id: str
+    name: str
+    language: Optional[str] = None
+    accent: Optional[str] = None
+    gender: Optional[Literal["male", "female", "neutral"]] = None
+    provider: Optional[str] = None
+    label: Optional[str] = None
+    is_default: Optional[bool] = None
+
+
+class ListVoicesResponse(_TestingBase):
+    """Response for ``GET /testing/voices``.
+
+    ``default_voice_id`` is absent only if no voice is flagged default.
+    """
+
+    voices: List[Voice]
+    default_voice_id: Optional[str] = None
