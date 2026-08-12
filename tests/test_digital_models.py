@@ -14,6 +14,7 @@ from nopaque.models import (
     CreateDigitalTestConfigRequest,
     CreateDigitalTestRunRequest,
     CreateDigitalTestRunResponse,
+    DigitalComplianceAuditSummary,
     DigitalProfile,
     DigitalTarget,
     DigitalTestConfig,
@@ -22,7 +23,6 @@ from nopaque.models import (
     ExpectChatStep,
     HttpJsonTarget,
     LaunchDigitalTestConfigRequest,
-    ListDigitalComplianceAuditsResponse,
     ListDigitalTestConfigsResponse,
     ListDigitalTestRunsResponse,
     ListVoicesResponse,
@@ -563,20 +563,15 @@ def test_list_configs_response():
     assert res.next_cursor == "eyJrIjoyfQ=="
 
 
-def test_compliance_audits_response():
-    res = ListDigitalComplianceAuditsResponse.model_validate(
+def test_compliance_audit_summary():
+    audit = DigitalComplianceAuditSummary.model_validate(
         {
-            "audits": [
-                {
-                    "targetRef": "acme/billing-bot",
-                    "lastRunAt": "2026-08-12T00:00:00Z",
-                    "runCount": 4,
-                    "catalogueTestIds": ["M-001", "M-002"],
-                }
-            ]
+            "targetRef": "acme/billing-bot",
+            "lastRunAt": "2026-08-12T00:00:00Z",
+            "runCount": 4,
+            "catalogueTestIds": ["M-001", "M-002"],
         }
     )
-    audit = res.audits[0]
     assert audit.target_ref == "acme/billing-bot"
     assert audit.last_run_at == "2026-08-12T00:00:00Z"
     assert audit.run_count == 4
@@ -585,9 +580,7 @@ def test_compliance_audits_response():
 
 def test_compliance_audit_summary_requires_all_four_fields():
     with pytest.raises(ValidationError):
-        ListDigitalComplianceAuditsResponse.model_validate(
-            {"audits": [{"targetRef": "acme/billing-bot"}]}
-        )
+        DigitalComplianceAuditSummary.model_validate({"targetRef": "acme/billing-bot"})
 
 
 # ---------------------------------------------------------------------------

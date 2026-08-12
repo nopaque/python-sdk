@@ -437,10 +437,3 @@ class DigitalComplianceAuditSummary(_DigitalBase):
     last_run_at: str
     run_count: int
     catalogue_test_ids: List[str]
-
-
-class ListDigitalComplianceAuditsResponse(_DigitalBase):
-    """Response for ``GET /digital-testing/compliance-audits`` (inline in the
-    document; named here)."""
-
-    audits: List[DigitalComplianceAuditSummary]
