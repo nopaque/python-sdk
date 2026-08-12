@@ -15,6 +15,7 @@ from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
 from ..models.digital_testing import (
     CreateDigitalTestConfigRequest,
+    CreateDigitalTestRunResponse,
     DigitalTestConfig,
     DigitalTestKind,
     DigitalTestRun,
@@ -378,7 +379,7 @@ class DigitalTestConfigsResource(SyncResource):
             json=body,
             request_options=request_options,
         )
-        return DigitalTestRun.model_validate(raw["run"])
+        return CreateDigitalTestRunResponse.model_validate(raw).run
 
 
 class AsyncDigitalTestConfigsResource(AsyncResource):
@@ -631,4 +632,4 @@ class AsyncDigitalTestConfigsResource(AsyncResource):
             json=body,
             request_options=request_options,
         )
-        return DigitalTestRun.model_validate(raw["run"])
+        return CreateDigitalTestRunResponse.model_validate(raw).run

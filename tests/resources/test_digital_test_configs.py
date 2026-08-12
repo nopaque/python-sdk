@@ -158,6 +158,7 @@ async def test_launch_async(httpx_mock: HTTPXMock):
         url=f"{BASE}/digital-testing/configs/c1/runs",
         method="POST",
         json={
+            "message": "Digital test queued",
             "run": {
                 "id": "r9",
                 "workspaceId": "w1",
