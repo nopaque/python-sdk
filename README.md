@@ -74,6 +74,18 @@ Reusable configs live under `client.digital_test_configs`
 `client.digital_compliance` lists compliance audits and fetches a per-target
 report.
 
+## Voices
+
+List the operator-enabled voices a mission test may use, and which one is the
+default.
+
+```python
+voices = client.testing.list_voices()
+for voice in voices.voices:
+    print(voice.voice_id, voice.name)
+print("default:", voices.default_voice_id)
+```
+
 ## Features
 
 - Full coverage of the Nopaque REST API via API-key auth
