@@ -10,6 +10,7 @@ from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
 from .._transport import AsyncTransport, SyncTransport
 from ..models.testing import (
+    ListVoicesResponse,
     MissionTestRunResponse,
     TestConfig,
     TestJob,
@@ -464,6 +465,17 @@ class TestingResource(SyncResource):
         )
         return MissionTestRunResponse.model_validate(raw)
 
+    def list_voices(
+        self,
+        *,
+        request_options: RequestOptions | None = None,
+    ) -> ListVoicesResponse:
+        """Operator-enabled voices a mission test may use, and which is default."""
+        raw = self._transport.request(
+            "GET", "/testing/voices", request_options=request_options
+        )
+        return ListVoicesResponse.model_validate(raw)
+
 
 # ==== Async sub-namespaces ====================================================
 
@@ -849,3 +861,14 @@ class AsyncTestingResource(AsyncResource):
             request_options=request_options,
         )
         return MissionTestRunResponse.model_validate(raw)
+
+    async def list_voices(
+        self,
+        *,
+        request_options: RequestOptions | None = None,
+    ) -> ListVoicesResponse:
+        """Operator-enabled voices a mission test may use, and which is default."""
+        raw = await self._transport.request(
+            "GET", "/testing/voices", request_options=request_options
+        )
+        return ListVoicesResponse.model_validate(raw)

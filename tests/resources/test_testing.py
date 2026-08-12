@@ -322,3 +322,36 @@ async def test_async_aggregate_and_mission_run(httpx_mock: HTTPXMock):
     run = await c.testing.get_mission_test_run("mtr_9")
     assert run.id == "mtr_9"
     await c.aclose()
+
+
+# --- voices ---
+
+def test_list_voices(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/voices",
+        json={
+            "voices": [
+                {
+                    "voiceId": "Telnyx.Ultra.c8f7835e-28a3-4f0c-80d7-c1302ac62aae",
+                    "name": "Ultra",
+                }
+            ],
+            "defaultVoiceId": "Telnyx.Ultra.c8f7835e-28a3-4f0c-80d7-c1302ac62aae",
+        },
+    )
+    c = client()
+    r = c.testing.list_voices()
+    assert r.voices[0].voice_id.startswith("Telnyx.")
+    assert r.default_voice_id == r.voices[0].voice_id
+    c.close()
+
+
+async def test_list_voices_async(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/voices",
+        json={"voices": [{"voiceId": "v1", "name": "Ultra"}]},
+    )
+    c = AsyncNopaque(api_key="k", max_retries=0)
+    r = await c.testing.list_voices()
+    assert r.voices[0].voice_id == "v1"
+    await c.aclose()
