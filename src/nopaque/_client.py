@@ -11,6 +11,10 @@ from .resources.audio import AsyncAudioResource, AudioResource
 from .resources.batches import AsyncBatchesResource, BatchesResource
 from .resources.compliance import AsyncComplianceResource, ComplianceResource
 from .resources.datasets import AsyncDatasetsResource, DatasetsResource
+from .resources.digital_test_configs import (
+    AsyncDigitalTestConfigsResource,
+    DigitalTestConfigsResource,
+)
 from .resources.digital_testing import (
     AsyncDigitalTestingResource,
     DigitalTestingResource,
@@ -66,6 +70,7 @@ class Nopaque:
         self.mission_test_configs = MissionTestConfigsResource(self._transport)
         self.compliance = ComplianceResource(self._transport)
         self.digital_testing = DigitalTestingResource(self._transport)
+        self.digital_test_configs = DigitalTestConfigsResource(self._transport)
 
     def close(self) -> None:
         self._transport.close()
@@ -114,6 +119,7 @@ class AsyncNopaque:
         self.mission_test_configs = AsyncMissionTestConfigsResource(self._transport)
         self.compliance = AsyncComplianceResource(self._transport)
         self.digital_testing = AsyncDigitalTestingResource(self._transport)
+        self.digital_test_configs = AsyncDigitalTestConfigsResource(self._transport)
 
     async def aclose(self) -> None:
         await self._transport.aclose()
