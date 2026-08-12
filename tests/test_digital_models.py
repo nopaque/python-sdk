@@ -669,3 +669,46 @@ def test_list_voices_response_tolerates_no_default():
         {"voices": [{"voiceId": "Telnyx.Ultra.abc", "name": "Alistair"}]}
     )
     assert res.default_voice_id is None
+
+
+# ---------------------------------------------------------------------------
+# Package-root re-exports
+# ---------------------------------------------------------------------------
+
+
+def test_new_models_are_importable_from_the_package_root():
+    """``from nopaque import DigitalTestRun`` must work, not just ``nopaque.models``."""
+    import nopaque
+
+    expected = [
+        "ChatStep",
+        "ChatStepBase",
+        "ConnectChatTarget",
+        "CreateDigitalTestConfigRequest",
+        "CreateDigitalTestRunRequest",
+        "CreateDigitalTestRunResponse",
+        "DigitalComplianceAuditSummary",
+        "DigitalProfile",
+        "DigitalProfileItem",
+        "DigitalSample",
+        "DigitalStepResult",
+        "DigitalTarget",
+        "DigitalTestConfig",
+        "DigitalTestConfigBase",
+        "DigitalTestRun",
+        "EndChatStep",
+        "ExpectChatStep",
+        "HttpJsonTarget",
+        "LaunchDigitalTestConfigRequest",
+        "ListDigitalTestConfigsResponse",
+        "ListDigitalTestRunsResponse",
+        "ListVoicesResponse",
+        "SendChatStep",
+        "UpdateDigitalTestConfigRequest",
+        "Voice",
+        "WaitChatStep",
+        "WebWidgetTarget",
+    ]
+    missing = [name for name in expected if not hasattr(nopaque, name)]
+    assert missing == []
+    assert [name for name in expected if name not in nopaque.__all__] == []
