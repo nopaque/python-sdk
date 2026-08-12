@@ -42,6 +42,7 @@ _ALIAS_MAP = {
     "failure_reason": "failureReason",
     # runs
     "workspace_id": "workspaceId",
+    "config_id": "configId",
     "user_id": "userId",
     "samples_requested": "samplesRequested",
     "samples_judged": "samplesJudged",
@@ -268,6 +269,12 @@ class DigitalTestRun(_DigitalBase):
     mission: Optional[str] = None
     acceptance: Optional[str] = None
     catalogue_test_id: Optional[str] = None
+    # Deliberate, documented exception to strict OpenAPI transcription: the
+    # ``DigitalTestRun`` schema omits ``configId``, but the
+    # ``launchDigitalTestConfig`` prose promises the run carries it, the server
+    # does send it, and the voice analogue ``TestRun`` already exposes it. Do
+    # not delete this as an invention when transcribing from the schema.
+    config_id: Optional[str] = None
     status: DigitalRunStatus
     outcome: Optional[DigitalOutcome] = None
     samples_requested: Optional[int] = None

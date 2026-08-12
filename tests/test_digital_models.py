@@ -243,6 +243,38 @@ def test_run_parses_camel_case_from_the_wire():
     assert run.samples[0].reasoning == "bot never stated the balance"
 
 
+def test_run_exposes_config_id_when_launched_from_a_saved_config():
+    run = DigitalTestRun.model_validate(
+        {
+            "id": "r1",
+            "workspaceId": "w1",
+            "configId": "cfg-1",
+            "targetRef": "acme/billing-bot",
+            "channel": "chat",
+            "kind": "freeform",
+            "status": "pending",
+            "startedAt": "2026-08-12T00:00:00Z",
+        }
+    )
+    assert run.config_id == "cfg-1"
+    assert run.model_dump(by_alias=True, exclude_none=True)["configId"] == "cfg-1"
+
+
+def test_run_config_id_is_none_for_an_ad_hoc_run():
+    run = DigitalTestRun.model_validate(
+        {
+            "id": "r1",
+            "workspaceId": "w1",
+            "targetRef": "acme/billing-bot",
+            "channel": "chat",
+            "kind": "freeform",
+            "status": "pending",
+            "startedAt": "2026-08-12T00:00:00Z",
+        }
+    )
+    assert run.config_id is None
+
+
 def test_run_parses_the_full_documented_shape():
     run = DigitalTestRun.model_validate(
         {
