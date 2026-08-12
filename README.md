@@ -47,6 +47,45 @@ async def main():
 asyncio.run(main())
 ```
 
+## Digital testing (beta)
+
+Run automated chat-channel conversations against a bot and get a pass/fail
+verdict. Access is limited to beta workspaces during the beta period.
+
+`sector` and `mission` are required — the API returns a 400 without them.
+
+```python
+run = client.digital_testing.create(
+    target_ref="acme/billing-bot",
+    target={"transport": "web-widget", "url": "https://example.com/support"},
+    sector="utilities",
+    mission="check the outstanding balance",
+    kind="freeform",
+    acceptance="The bot states the outstanding balance.",
+)
+
+finished = client.digital_testing.wait_for_run(run.id)
+# `completed` with outcome "fail" is a RESULT, not an error.
+print(finished.status, finished.outcome, finished.pass_rate)
+```
+
+Reusable configs live under `client.digital_test_configs`
+(`create`, `list`, `get`, `update`, `delete`, `launch`), and
+`client.digital_compliance` lists compliance audits and fetches a per-target
+report.
+
+## Voices
+
+List the operator-enabled voices a mission test may use, and which one is the
+default.
+
+```python
+voices = client.testing.list_voices()
+for voice in voices.voices:
+    print(voice.voice_id, voice.name)
+print("default:", voices.default_voice_id)
+```
+
 ## Features
 
 - Full coverage of the Nopaque REST API via API-key auth

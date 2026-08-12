@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-12
+
+### Added
+
+- Digital (chat channel) testing, in beta. Access is limited to beta workspaces
+  during the beta period.
+  - `client.digital_testing` — create, list, get, cancel and wait for digital test runs.
+  - `client.digital_test_configs` — save, update, delete and launch reusable digital test configs.
+  - `client.digital_compliance` — list digital compliance audits and fetch a per-target report.
+- `client.testing.list_voices()` — the operator-enabled voices a mission test may
+  use, and which one is the default.
+
+All new methods are available on both the sync and async clients.
+
 ## [0.3.0] - 2026-07-09
 
 ### Added
@@ -164,7 +178,8 @@ moved into it and the API requires the mode.
 - Method-aware retry with exponential jitter and `Retry-After` honor.
 - Typed exception hierarchy.
 
-[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.4.0
 [0.3.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.3.0
 [0.1.3]: https://github.com/nopaque/python-sdk/releases/tag/v0.1.3
 [0.1.2]: https://github.com/nopaque/python-sdk/releases/tag/v0.1.2
