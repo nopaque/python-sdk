@@ -39,6 +39,10 @@ path = "src/nopaque/_version.py"
 [tool.hatch.build.targets.wheel]
 packages = ["src/nopaque"]
 
+[tool.hatch.build.targets.sdist]
+# Internal AI-workflow planning artefacts; not part of the published package.
+exclude = ["docs/superpowers"]
+
 [tool.hatch.envs.default]
 dependencies = [
     "pytest>=8",
