@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `client.digital_testing` — create, list, get, cancel and wait for digital test runs.
   - `client.digital_test_configs` — save, update, delete and launch reusable digital test configs.
   - `client.digital_compliance` — list digital compliance audits and fetch a per-target report.
+  - `DigitalSample` carries the shapes the API actually returns, which differ
+    from the OpenAPI document: `transcript` is a list of `DigitalTranscriptTurn`
+    (`role`/`text`/`at`), not a string, and evidence arrives split into
+    `pass_evidence` / `fail_evidence` lists of `DigitalEvidence`
+    (`condition`/`reason`) — there is no combined `evidence` field.
 - `client.testing.list_voices()` — the operator-enabled voices a mission test may
   use, and which one is the default.
 
