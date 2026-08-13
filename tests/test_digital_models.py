@@ -317,9 +317,19 @@ def test_run_parses_the_full_documented_shape():
                     ],
                     "stepsRun": 1,
                     "stepsTotal": 1,
-                    "transcript": "customer: hi\nbot: Hello there",
+                    "transcript": [
+                        {"role": "customer", "text": "hi", "at": "2026-08-12T00:00:00Z"},
+                        {
+                            "role": "bot",
+                            "text": "Hello there",
+                            "at": "2026-08-12T00:00:01Z",
+                        },
+                    ],
                     "reasoning": "matched",
-                    "evidence": ["bot greeted the customer"],
+                    "passEvidence": [
+                        {"condition": "Greeted the customer", "reason": "bot: Hello there"}
+                    ],
+                    "failEvidence": [],
                     "failureReason": None,
                 }
             ],
@@ -345,6 +355,13 @@ def test_run_parses_the_full_documented_shape():
     sample = run.samples[0]
     assert sample.steps_run == 1
     assert sample.steps_total == 1
+    # A list of turns, not a string, and split pass/fail evidence — the shapes
+    # the API actually returns, which the OpenAPI document gets wrong.
+    assert [turn.role for turn in sample.transcript] == ["customer", "bot"]
+    assert sample.transcript[1].text == "Hello there"
+    assert sample.pass_evidence[0].condition == "Greeted the customer"
+    assert sample.pass_evidence[0].reason == "bot: Hello there"
+    assert sample.fail_evidence == []
     result = sample.step_results[0]
     assert result.step_id == "s1"
     assert result.action_type == "expect"

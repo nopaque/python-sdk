@@ -39,6 +39,8 @@ _ALIAS_MAP = {
     "step_results": "stepResults",
     "steps_run": "stepsRun",
     "steps_total": "stepsTotal",
+    "pass_evidence": "passEvidence",
+    "fail_evidence": "failEvidence",
     "failure_reason": "failureReason",
     # runs
     "workspace_id": "workspaceId",
@@ -237,16 +239,47 @@ class DigitalStepResult(_DigitalBase):
     duration: Optional[float] = None
 
 
+class DigitalTranscriptTurn(_DigitalBase):
+    """One turn of the conversation, as the worker's transcript emits it."""
+
+    role: Optional[str] = None
+    text: Optional[str] = None
+    at: Optional[str] = None
+
+
+class DigitalEvidence(_DigitalBase):
+    """One condition the judge cited for its verdict.
+
+    ``condition`` and ``reason`` are what the judge sends today; the rest are
+    tolerated because the judge may add fields and an unknown one must never
+    cost a caller their verdict.
+    """
+
+    condition: Optional[str] = None
+    reason: Optional[str] = None
+    quote: Optional[str] = None
+    met: Optional[bool] = None
+    triggered: Optional[bool] = None
+    turn: Optional[int] = None
+
+
 class DigitalSample(_DigitalBase):
-    """One conversation, with its own verdict and evidence."""
+    """One conversation, with its own verdict and evidence.
+
+    ``transcript`` is a list of turns and evidence arrives split into
+    ``pass_evidence`` / ``fail_evidence`` — whatever the OpenAPI document says.
+    There is no combined ``evidence`` field.
+    """
 
     outcome: Optional[DigitalOutcome] = None
     step_results: Optional[List[DigitalStepResult]] = None
     steps_run: Optional[int] = None
     steps_total: Optional[int] = None
-    transcript: Optional[str] = None
+    transcript: Optional[List[DigitalTranscriptTurn]] = None
     reasoning: Optional[str] = None
-    evidence: Optional[List[str]] = None
+    # Judged kinds only.
+    pass_evidence: Optional[List[DigitalEvidence]] = None
+    fail_evidence: Optional[List[DigitalEvidence]] = None
     failure_reason: Optional[str] = None
 
 
