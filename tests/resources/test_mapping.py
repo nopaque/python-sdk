@@ -41,6 +41,67 @@ def test_create_mapping_sends_expected_body(httpx_mock: HTTPXMock):
     c.close()
 
 
+def test_create_sends_full_config_for_non_dtmf_job(httpx_mock: HTTPXMock):
+    """vertical is required by the API whenever mapping_mode != 'dtmf'; before
+    these fields existed on MappingJobConfig, audio modes were uncreatable."""
+    from nopaque.models.mapping import (
+        EnrichmentConfig,
+        MappingJobConfig,
+        RepeatConfig,
+        RetryConfig,
+    )
+
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/mapping",
+        method="POST",
+        json={"id": "map_2", "name": "Audio", "status": "idle"},
+    )
+    c = client()
+    c.mapping.create(
+        name="Audio",
+        phone_number="+441234567890",
+        config=MappingJobConfig(
+            mapping_mode="full-audio",
+            vertical="Healthcare",
+            probe_mode=True,
+            max_depth=4,
+            max_calls=25,
+            max_duration_minutes=20,
+            max_concurrency=2,
+            retry_config=RetryConfig(enabled=True, max_retries=3),
+            repeat_config=RepeatConfig(behavior="explore_n", max_explorations=2),
+            enrichment_config=EnrichmentConfig(enabled=True, types=["quality_scoring"]),
+        ),
+    )
+    import json as _j
+
+    sent = _j.loads(httpx_mock.get_requests()[0].content)["config"]
+    assert sent == {
+        "mappingMode": "full-audio",
+        "vertical": "Healthcare",
+        "probeMode": True,
+        "maxDepth": 4,
+        "maxCalls": 25,
+        "maxDurationMinutes": 20,
+        "maxConcurrency": 2,
+        "retryConfig": {"enabled": True, "maxRetries": 3},
+        "repeatConfig": {"behavior": "explore_n", "maxExplorations": 2},
+        "enrichmentConfig": {"enabled": True, "types": ["quality_scoring"]},
+    }
+    c.close()
+
+
+def test_retry_config_serialises_max_retries_as_camel_case():
+    """Regression: `_alias` used to be a dict with a silent snake_case fallback
+    and had no entry for `max_retries`, so retry settings went out as
+    `max_retries` and the API ignored them."""
+    from nopaque.models.mapping import RetryConfig
+
+    assert RetryConfig(enabled=True, max_retries=4).model_dump(
+        by_alias=True, exclude_none=True
+    ) == {"enabled": True, "maxRetries": 4}
+
+
 def test_get_mapping(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/mapping/map_1",

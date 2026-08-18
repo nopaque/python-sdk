@@ -14,7 +14,7 @@
 
 **Derive every model from the OpenAPI document, never from the Node SDK.**
 
-Source of truth: `/Users/philipsmith/nopaque-v2-sdks/api/openapi/openapi.yaml`
+Source of truth: `/Users/phil/code/nopaque/nopaque-v2-sdks/api/openapi/openapi.yaml`
 
 The Node SDK's first attempt at these types was written from a partial read of that document and invented field names — `Voice.id` instead of `voiceId`, a `DigitalStepResult` sharing zero field names with the API, `DigitalSample.steps`/`reason` instead of `stepResults`/`reasoning`. It type-checked clean and would have failed silently at runtime. It was caught only when a reviewer went back to the OpenAPI document, and was rewritten in commit `d7e6eda`.
 

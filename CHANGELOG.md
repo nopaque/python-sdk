@@ -6,6 +6,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-18
+
+### Added
+
+- `MappingJobConfig` now carries the full configuration surface the API accepts.
+  It previously exposed 9 of 13 fields, and one of the omissions was `vertical`,
+  which the API **requires** whenever `mapping_mode` is `dtmf-audio` or
+  `full-audio`. Audio mapping jobs were therefore impossible to create from the
+  SDK; only `dtmf` worked.
+  - `vertical`, `probe_mode`, `repeat_config`, `enrichment_config`.
+- New exported models and aliases: `Vertical`, `RepeatBehavior`, `RepeatConfig`,
+  `EnrichmentConfig`.
+
+### Fixed
+
+- `RetryConfig.max_retries` was serialised as `max_retries` instead of
+  `maxRetries`, so the API ignored it and retry settings never applied. The
+  snake_case-to-camelCase alias table was a hand-maintained dict that fell back
+  silently to the unchanged name when an entry was missing. All 59 of its
+  entries were plain camelisations, so it is now computed rather than listed and
+  cannot drift again.
+
 ## [0.4.0] - 2026-08-12
 
 ### Added
