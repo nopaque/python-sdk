@@ -19,6 +19,7 @@ from ._version import __version__
 from .models import (
     AggregateBucket,
     AggregateGroup,
+    AudioCategory,
     AudioDownloadURL,
     AudioFile,
     AudioUploadURL,
@@ -98,6 +99,8 @@ from .models import (
     ResolvedEntry,
     RetryConfig,
     Schedule,
+    ScheduleTargetType,
+    ScheduleType,
     SendChatStep,
     StepResult,
     Sweep,
@@ -138,6 +141,7 @@ __all__ = [
     # Models
     "AggregateBucket",
     "AggregateGroup",
+    "AudioCategory",
     "AudioDownloadURL",
     "AudioFile",
     "AudioUploadURL",
@@ -217,6 +221,8 @@ __all__ = [
     "ResolvedEntry",
     "RetryConfig",
     "Schedule",
+    "ScheduleTargetType",
+    "ScheduleType",
     "SendChatStep",
     "StepResult",
     "Sweep",

@@ -15,7 +15,12 @@ from .._s3 import (
     s3_put_sync,
     sniff_content_type,
 )
-from ..models.audio import AudioDownloadURL, AudioFile, AudioUploadURL
+from ..models.audio import (
+    AudioCategory,
+    AudioDownloadURL,
+    AudioFile,
+    AudioUploadURL,
+)
 
 
 class AudioResource(SyncResource):
@@ -80,14 +85,25 @@ class AudioResource(SyncResource):
     def create_upload_url(
         self,
         *,
-        file_name: str,
+        filename: str,
         content_type: str,
+        category: AudioCategory,
+        associated_id: str | None = None,
+        duration_secs: float | None = None,
+        size_bytes: int | None = None,
         request_options: RequestOptions | None = None,
     ) -> AudioUploadURL:
         raw = self._transport.request(
             "POST",
             "/audio/upload-url",
-            json={"fileName": file_name, "contentType": content_type},
+            json={
+                "filename": filename,
+                "contentType": content_type,
+                "category": category,
+                **({"associatedId": associated_id} if associated_id else {}),
+                **({"durationSecs": duration_secs} if duration_secs is not None else {}),
+                **({"sizeBytes": size_bytes} if size_bytes is not None else {}),
+            },
             request_options=request_options,
         )
         return AudioUploadURL.model_validate(raw)
@@ -112,8 +128,10 @@ class AudioResource(SyncResource):
         self,
         *,
         file: Any,
+        category: AudioCategory,
         content_type: str | None = None,
         name: str | None = None,
+        associated_id: str | None = None,
         request_options: RequestOptions | None = None,
     ) -> AudioFile:
         """Upload a local file or bytes to Nopaque in one call.
@@ -126,8 +144,11 @@ class AudioResource(SyncResource):
         resolved_type = content_type or sniff_content_type(resolved_name)
 
         presign = self.create_upload_url(
-            file_name=resolved_name,
+            filename=resolved_name,
             content_type=resolved_type,
+            category=category,
+            associated_id=associated_id,
+            size_bytes=len(data),
             request_options=request_options,
         )
         s3_put_sync(presign.upload_url, data, content_type=resolved_type)
@@ -213,14 +234,25 @@ class AsyncAudioResource(AsyncResource):
     async def create_upload_url(
         self,
         *,
-        file_name: str,
+        filename: str,
         content_type: str,
+        category: AudioCategory,
+        associated_id: str | None = None,
+        duration_secs: float | None = None,
+        size_bytes: int | None = None,
         request_options: RequestOptions | None = None,
     ) -> AudioUploadURL:
         raw = await self._transport.request(
             "POST",
             "/audio/upload-url",
-            json={"fileName": file_name, "contentType": content_type},
+            json={
+                "filename": filename,
+                "contentType": content_type,
+                "category": category,
+                **({"associatedId": associated_id} if associated_id else {}),
+                **({"durationSecs": duration_secs} if duration_secs is not None else {}),
+                **({"sizeBytes": size_bytes} if size_bytes is not None else {}),
+            },
             request_options=request_options,
         )
         return AudioUploadURL.model_validate(raw)
@@ -245,8 +277,10 @@ class AsyncAudioResource(AsyncResource):
         self,
         *,
         file: Any,
+        category: AudioCategory,
         content_type: str | None = None,
         name: str | None = None,
+        associated_id: str | None = None,
         request_options: RequestOptions | None = None,
     ) -> AudioFile:
         """Async variant of AudioResource.upload."""
@@ -255,8 +289,11 @@ class AsyncAudioResource(AsyncResource):
         resolved_type = content_type or sniff_content_type(resolved_name)
 
         presign = await self.create_upload_url(
-            file_name=resolved_name,
+            filename=resolved_name,
             content_type=resolved_type,
+            category=category,
+            associated_id=associated_id,
+            size_bytes=len(data),
             request_options=request_options,
         )
         await s3_put_async(presign.upload_url, data, content_type=resolved_type)
