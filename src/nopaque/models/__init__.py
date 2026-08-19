@@ -125,7 +125,9 @@ from .testing import (
     TestJob,
     TestRun,
     TestRunAggregateResponse,
+    TestRunDetails,
     TestRunListItem,
+    TestStepResult,
     Voice,
 )
 
@@ -261,7 +263,9 @@ __all__ = [
     "TestConfig",
     "TestJob",
     "TestRun",
+    "TestRunDetails",
     "TestRunAggregateResponse",
     "TestRunListItem",
+    "TestStepResult",
     "Voice",
 ]

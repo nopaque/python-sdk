@@ -186,14 +186,61 @@ def test_runs_get(httpx_mock: HTTPXMock):
 
 
 def test_wait_for_run(httpx_mock: HTTPXMock):
-    for status in ("running", "completed"):
-        httpx_mock.add_response(
-            url="https://api.nopaque.co.uk/testing/runs/r1",
-            json={"id": "r1", "status": status},
-        )
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/runs/r1",
+        json={"id": "r1", "status": "running"},
+    )
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/runs/r1",
+        json={"id": "r1", "status": "completed", "outcome": "PASS"},
+    )
     c = client()
     run = c.testing.runs.wait_for_run("r1", timeout=5.0, poll_interval=0.01)
     assert run.status == "completed"
+    assert run.outcome == "PASS"
+    c.close()
+
+
+def test_wait_for_run_keeps_polling_until_the_verdict_is_written(
+    httpx_mock: HTTPXMock,
+):
+    """run_status_changed{completed} can land before run_completed{outcome}:
+    separate SQS messages, no ordering guarantee. Polling on status alone
+    returned that row — outcome None, no steps — on a passing run."""
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/runs/r1",
+        json={"id": "r1", "status": "completed", "stepResults": []},
+    )
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/runs/r1",
+        json={"id": "r1", "status": "completed", "outcome": "pending"},
+    )
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/runs/r1",
+        json={
+            "id": "r1",
+            "status": "completed",
+            "outcome": "PASS",
+            "stepResults": [
+                {"id": "s1", "runId": "r1", "stepIndex": 0, "outcome": "PASS"}
+            ],
+        },
+    )
+    c = client()
+    run = c.testing.runs.wait_for_run("r1", timeout=5.0, poll_interval=0.01)
+    assert run.outcome == "PASS"
+    assert len(run.step_results) == 1
+    c.close()
+
+
+def test_wait_for_run_settles_on_failed_without_a_verdict(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/runs/r2",
+        json={"id": "r2", "status": "failed"},
+    )
+    c = client()
+    run = c.testing.runs.wait_for_run("r2", timeout=5.0, poll_interval=0.01)
+    assert run.status == "failed"
     c.close()
 
 

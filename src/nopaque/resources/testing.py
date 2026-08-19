@@ -16,10 +16,32 @@ from ..models.testing import (
     TestJob,
     TestRun,
     TestRunAggregateResponse,
+    TestRunDetails,
     TestRunListItem,
 )
 
 RUN_TERMINAL_STATUSES: set[str] = {"completed", "failed", "cancelled"}
+
+
+def _is_run_settled(run: TestRun) -> bool:
+    """Has the run finished AND had its verdict written?
+
+    A run can be marked terminal before its outcome lands. The container emits
+    ``run_status_changed{status:'completed'}`` and ``run_completed{outcome}``
+    as separate SQS messages, SQS gives no ordering guarantee, and the API
+    skips undefined fields on write — so a status-only message sets ``status``
+    terminal and leaves ``outcome`` unwritten. Polling on status alone returns
+    that intermediate row: ``outcome`` None and no step results, on a run that
+    passed.
+
+    ``failed`` and ``cancelled`` settle immediately; neither is expected to
+    carry a verdict.
+    """
+    if run.status not in RUN_TERMINAL_STATUSES:
+        return False
+    if run.status != "completed":
+        return True
+    return run.outcome is not None and run.outcome != "pending"
 
 
 def _build_run_list_params(
@@ -348,11 +370,11 @@ class _SyncRuns:
 
     def get(
         self, run_id: str, *, request_options: RequestOptions | None = None
-    ) -> TestRun:
+    ) -> TestRunDetails:
         raw = self._transport.request(
             "GET", f"/testing/runs/{run_id}", request_options=request_options
         )
-        return TestRun.model_validate(raw)
+        return TestRunDetails.model_validate(raw)
 
     def create(
         self,
@@ -387,13 +409,13 @@ class _SyncRuns:
         poll_interval: float = 5.0,
         on_update: Callable[[TestRun], None] | None = None,
         request_options: RequestOptions | None = None,
-    ) -> TestRun:
-        def fetch() -> TestRun:
+    ) -> TestRunDetails:
+        def fetch() -> TestRunDetails:
             return self.get(run_id, request_options=request_options)
 
         return wait_for_sync(
             fetch=fetch,
-            is_terminal=lambda r: r.status in RUN_TERMINAL_STATUSES,
+            is_terminal=_is_run_settled,
             timeout=timeout,
             initial_interval=poll_interval,
             on_update=on_update,
@@ -745,11 +767,11 @@ class _AsyncRuns:
 
     async def get(
         self, run_id: str, *, request_options: RequestOptions | None = None
-    ) -> TestRun:
+    ) -> TestRunDetails:
         raw = await self._transport.request(
             "GET", f"/testing/runs/{run_id}", request_options=request_options
         )
-        return TestRun.model_validate(raw)
+        return TestRunDetails.model_validate(raw)
 
     async def create(
         self,
@@ -790,7 +812,7 @@ class _AsyncRuns:
 
         return await wait_for_async(
             fetch=fetch,
-            is_terminal=lambda r: r.status in RUN_TERMINAL_STATUSES,
+            is_terminal=_is_run_settled,
             timeout=timeout,
             initial_interval=poll_interval,
             on_update=on_update,
