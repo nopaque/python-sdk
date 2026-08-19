@@ -4,7 +4,7 @@ from __future__ import annotations
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
-from ..models.scheduler import Schedule
+from ..models.scheduler import Schedule, ScheduleTargetType, ScheduleType
 
 
 class SchedulerResource(SyncResource):
@@ -61,18 +61,34 @@ class SchedulerResource(SyncResource):
         self,
         *,
         name: str,
-        config_id: str,
-        cron_expression: str,
+        schedule_type: ScheduleType,
+        description: str | None = None,
+        target_id: str | None = None,
+        target_type: ScheduleTargetType | None = None,
+        cron_expression: str | None = None,
+        interval_minutes: int | None = None,
+        run_at: str | None = None,
         timezone: str | None = None,
         request_options: RequestOptions | None = None,
     ) -> Schedule:
-        body: dict = {
-            "name": name,
-            "configId": config_id,
-            "cronExpression": cron_expression,
-        }
-        if timezone is not None:
-            body["timezone"] = timezone
+        """Create a schedule.
+
+        ``schedule_type`` decides which companion field the API requires:
+        ``cron`` -> ``cron_expression``, ``recurring`` -> ``interval_minutes``,
+        ``once`` -> ``run_at`` (an ISO timestamp in the future).
+        """
+        body: dict = {"name": name, "scheduleType": schedule_type}
+        for key, value in (
+            ("description", description),
+            ("targetId", target_id),
+            ("targetType", target_type),
+            ("cronExpression", cron_expression),
+            ("intervalMinutes", interval_minutes),
+            ("runAt", run_at),
+            ("timezone", timezone),
+        ):
+            if value is not None:
+                body[key] = value
         raw = self._transport.request(
             "POST", "/schedules", json=body, request_options=request_options
         )
@@ -83,17 +99,28 @@ class SchedulerResource(SyncResource):
         schedule_id: str,
         *,
         name: str | None = None,
+        description: str | None = None,
+        schedule_type: ScheduleType | None = None,
         cron_expression: str | None = None,
+        interval_minutes: int | None = None,
+        run_at: str | None = None,
         timezone: str | None = None,
+        enabled: bool | None = None,
         request_options: RequestOptions | None = None,
     ) -> Schedule:
         body: dict = {}
-        if name is not None:
-            body["name"] = name
-        if cron_expression is not None:
-            body["cronExpression"] = cron_expression
-        if timezone is not None:
-            body["timezone"] = timezone
+        for key, value in (
+            ("name", name),
+            ("description", description),
+            ("scheduleType", schedule_type),
+            ("cronExpression", cron_expression),
+            ("intervalMinutes", interval_minutes),
+            ("runAt", run_at),
+            ("timezone", timezone),
+            ("enabled", enabled),
+        ):
+            if value is not None:
+                body[key] = value
         raw = self._transport.request(
             "PUT",
             f"/schedules/{schedule_id}",
@@ -184,18 +211,34 @@ class AsyncSchedulerResource(AsyncResource):
         self,
         *,
         name: str,
-        config_id: str,
-        cron_expression: str,
+        schedule_type: ScheduleType,
+        description: str | None = None,
+        target_id: str | None = None,
+        target_type: ScheduleTargetType | None = None,
+        cron_expression: str | None = None,
+        interval_minutes: int | None = None,
+        run_at: str | None = None,
         timezone: str | None = None,
         request_options: RequestOptions | None = None,
     ) -> Schedule:
-        body: dict = {
-            "name": name,
-            "configId": config_id,
-            "cronExpression": cron_expression,
-        }
-        if timezone is not None:
-            body["timezone"] = timezone
+        """Create a schedule.
+
+        ``schedule_type`` decides which companion field the API requires:
+        ``cron`` -> ``cron_expression``, ``recurring`` -> ``interval_minutes``,
+        ``once`` -> ``run_at`` (an ISO timestamp in the future).
+        """
+        body: dict = {"name": name, "scheduleType": schedule_type}
+        for key, value in (
+            ("description", description),
+            ("targetId", target_id),
+            ("targetType", target_type),
+            ("cronExpression", cron_expression),
+            ("intervalMinutes", interval_minutes),
+            ("runAt", run_at),
+            ("timezone", timezone),
+        ):
+            if value is not None:
+                body[key] = value
         raw = await self._transport.request(
             "POST", "/schedules", json=body, request_options=request_options
         )
@@ -206,17 +249,28 @@ class AsyncSchedulerResource(AsyncResource):
         schedule_id: str,
         *,
         name: str | None = None,
+        description: str | None = None,
+        schedule_type: ScheduleType | None = None,
         cron_expression: str | None = None,
+        interval_minutes: int | None = None,
+        run_at: str | None = None,
         timezone: str | None = None,
+        enabled: bool | None = None,
         request_options: RequestOptions | None = None,
     ) -> Schedule:
         body: dict = {}
-        if name is not None:
-            body["name"] = name
-        if cron_expression is not None:
-            body["cronExpression"] = cron_expression
-        if timezone is not None:
-            body["timezone"] = timezone
+        for key, value in (
+            ("name", name),
+            ("description", description),
+            ("scheduleType", schedule_type),
+            ("cronExpression", cron_expression),
+            ("intervalMinutes", interval_minutes),
+            ("runAt", run_at),
+            ("timezone", timezone),
+            ("enabled", enabled),
+        ):
+            if value is not None:
+                body[key] = value
         raw = await self._transport.request(
             "PUT",
             f"/schedules/{schedule_id}",

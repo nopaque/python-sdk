@@ -14,7 +14,9 @@ def test_create(httpx_mock: HTTPXMock):
         json={"id": "s1", "name": "Daily", "cronExpression": "0 9 * * *"},
     )
     c = client()
-    out = c.scheduler.create(name="Daily", config_id="c1", cron_expression="0 9 * * *")
+    out = c.scheduler.create(
+        name="Daily", schedule_type="cron", cron_expression="0 9 * * *"
+    )
     assert out.id == "s1"
     c.close()
 
@@ -68,11 +70,11 @@ def test_pause(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/schedules/s1/pause",
         method="POST",
-        json={"id": "s1", "status": "paused"},
+        json={"id": "s1", "enabled": "false"},
     )
     c = client()
     out = c.scheduler.pause("s1")
-    assert out.status == "paused"
+    assert out.enabled == "false"
     c.close()
 
 
@@ -80,9 +82,30 @@ def test_resume(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/schedules/s1/resume",
         method="POST",
-        json={"id": "s1", "status": "active"},
+        json={"id": "s1", "enabled": "true"},
     )
     c = client()
     out = c.scheduler.resume("s1")
-    assert out.status == "active"
+    assert out.enabled == "true"
     c.close()
+
+
+def test_create_sends_schedule_type(httpx_mock: HTTPXMock):
+    """scheduleType is required by the API and decides which companion field
+    it demands. The SDK previously sent a configId no handler reads."""
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/schedules",
+        method="POST",
+        json={"id": "s1", "name": "Nightly", "scheduleType": "recurring"},
+    )
+    c = client()
+    c.scheduler.create(name="Nightly", schedule_type="recurring", interval_minutes=30)
+    import json as _j
+
+    assert _j.loads(httpx_mock.get_requests()[0].content) == {
+        "name": "Nightly",
+        "scheduleType": "recurring",
+        "intervalMinutes": 30,
+    }
+    c.close()
+

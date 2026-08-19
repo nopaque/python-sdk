@@ -14,8 +14,8 @@ def test_list_audio(httpx_mock: HTTPXMock):
         url="https://api.nopaque.co.uk/audio",
         json={
             "audioFiles": [
-                {"id": "aud_1", "fileName": "a.wav", "contentType": "audio/wav"},
-                {"id": "aud_2", "fileName": "b.wav", "contentType": "audio/wav"},
+                {"id": "aud_1", "filename": "a.wav", "contentType": "audio/wav"},
+                {"id": "aud_2", "filename": "b.wav", "contentType": "audio/wav"},
             ],
             "count": 2,
         },
@@ -23,7 +23,7 @@ def test_list_audio(httpx_mock: HTTPXMock):
     c = client()
     files = list(c.audio.list())
     assert [f.id for f in files] == ["aud_1", "aud_2"]
-    assert files[0].file_name == "a.wav"
+    assert files[0].filename == "a.wav"
     c.close()
 
 
@@ -32,14 +32,14 @@ def test_list_audio_paginates(httpx_mock: HTTPXMock):
         url="https://api.nopaque.co.uk/audio",
         match_json=None,
         json={
-            "audioFiles": [{"id": "aud_1", "fileName": "a", "contentType": "audio/wav"}],
+            "audioFiles": [{"id": "aud_1", "filename": "a", "contentType": "audio/wav"}],
             "nextToken": "t1",
         },
     )
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/audio?nextToken=t1",
         json={
-            "audioFiles": [{"id": "aud_2", "fileName": "b", "contentType": "audio/wav"}],
+            "audioFiles": [{"id": "aud_2", "filename": "b", "contentType": "audio/wav"}],
             "nextToken": None,
         },
     )
@@ -52,7 +52,7 @@ def test_list_audio_paginates(httpx_mock: HTTPXMock):
 def test_get_audio(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/audio/aud_1",
-        json={"id": "aud_1", "fileName": "a.wav", "contentType": "audio/wav", "sizeBytes": 1024},
+        json={"id": "aud_1", "filename": "a.wav", "contentType": "audio/wav", "sizeBytes": 1024},
     )
     c = client()
     f = c.audio.get("aud_1")
@@ -95,7 +95,9 @@ def test_create_upload_url(httpx_mock: HTTPXMock):
         },
     )
     c = client()
-    res = c.audio.create_upload_url(file_name="a.wav", content_type="audio/wav")
+    res = c.audio.create_upload_url(
+        filename="a.wav", content_type="audio/wav", category="test"
+    )
     assert res.upload_url == "https://s3.example.com/signed"
     assert res.audio_id == "aud_xyz"
     c.close()
@@ -132,13 +134,13 @@ def test_upload_does_presign_then_put(httpx_mock: HTTPXMock, tmp_path):
     # Step C: fetch metadata after upload
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/audio/aud_xyz",
-        json={"id": "aud_xyz", "fileName": "a.wav", "contentType": "audio/wav"},
+        json={"id": "aud_xyz", "filename": "a.wav", "contentType": "audio/wav"},
     )
 
     f = tmp_path / "a.wav"
     f.write_bytes(b"RIFF...WAVEfmt ")
     c = client()
-    audio = c.audio.upload(file=str(f), content_type="audio/wav")
+    audio = c.audio.upload(file=str(f), category="test", content_type="audio/wav")
     assert audio.id == "aud_xyz"
     c.close()
 
@@ -152,10 +154,10 @@ def test_upload_accepts_bytes(httpx_mock: HTTPXMock):
     httpx_mock.add_response(url="https://s3.example.com/x", method="PUT")
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/audio/aud_1",
-        json={"id": "aud_1", "fileName": "clip.wav", "contentType": "audio/wav"},
+        json={"id": "aud_1", "filename": "clip.wav", "contentType": "audio/wav"},
     )
     c = client()
-    audio = c.audio.upload(file=b"RIFF...", content_type="audio/wav", name="clip.wav")
+    audio = c.audio.upload(file=b"RIFF...", content_type="audio/wav", name="clip.wav", category="test")
     assert audio.id == "aud_1"
     c.close()
 
@@ -175,7 +177,7 @@ def test_upload_s3_put_failure_surfaces_as_connection_error(httpx_mock: HTTPXMoc
     )
     c = client()
     with pytest.raises(APIConnectionError):
-        c.audio.upload(file=b"RIFF", content_type="audio/wav", name="x.wav")
+        c.audio.upload(file=b"RIFF", content_type="audio/wav", name="x.wav", category="test")
     c.close()
 
 
@@ -208,3 +210,28 @@ def test_download_writes_to_path(httpx_mock: HTTPXMock, tmp_path):
     c.audio.download("aud_1", to=str(dest))
     assert dest.read_bytes() == b"BYTES"
     c.close()
+
+
+def test_create_upload_url_sends_lowercase_filename_and_category(
+    httpx_mock: HTTPXMock,
+):
+    """The API requires `filename` (all lowercase) and `category`; it rejects
+    `fileName` with 400 Missing required fields."""
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/audio/upload-url",
+        method="POST",
+        json={"uploadUrl": "https://s3/sign", "audioId": "aud_1", "expiresIn": 3600},
+    )
+    c = client()
+    c.audio.create_upload_url(
+        filename="a.wav", content_type="audio/wav", category="voice"
+    )
+    import json as _j
+
+    assert _j.loads(httpx_mock.get_requests()[0].content) == {
+        "filename": "a.wav",
+        "contentType": "audio/wav",
+        "category": "voice",
+    }
+    c.close()
+

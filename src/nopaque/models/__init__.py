@@ -1,5 +1,5 @@
 """Pydantic models for requests and responses."""
-from .audio import AudioDownloadURL, AudioFile, AudioUploadURL
+from .audio import AudioCategory, AudioDownloadURL, AudioFile, AudioUploadURL
 from .batches import Batch, BatchRun
 from .compliance import (
     ComplianceCatalogue,
@@ -107,7 +107,7 @@ from .mission_tests import (
     MissionTestStatus,
 )
 from .profiles import Profile, ProfileItem, ProfileParameters
-from .scheduler import Schedule
+from .scheduler import Schedule, ScheduleTargetType, ScheduleType
 from .sweeps import Sweep, SweepRun
 from .testing import (
     AggregateBucket,
@@ -124,6 +124,7 @@ from .testing import (
 
 __all__ = [
     # audio
+    "AudioCategory",
     "AudioDownloadURL",
     "AudioFile",
     "AudioUploadURL",
@@ -237,6 +238,8 @@ __all__ = [
     "ProfileParameters",
     # scheduler
     "Schedule",
+    "ScheduleTargetType",
+    "ScheduleType",
     # sweeps
     "Sweep",
     "SweepRun",
