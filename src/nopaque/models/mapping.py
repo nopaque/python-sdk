@@ -3,72 +3,19 @@ from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
-_ALIAS_MAP = {
-    "workspace_id": "workspaceId",
-    "user_id": "userId",
-    "phone_number": "phoneNumber",
-    "mapping_mode": "mappingMode",
-    "profile_id": "profileId",
-    "voice_profile_id": "voiceProfileId",
-    "data_profile_id": "dataProfileId",
-    "current_run_id": "currentRunId",
-    "limit_reason": "limitReason",
-    "created_at": "createdAt",
-    "updated_at": "updatedAt",
-    "started_at": "startedAt",
-    "completed_at": "completedAt",
-    "cancelled_at": "cancelledAt",
-    "max_depth": "maxDepth",
-    "max_calls": "maxCalls",
-    "max_duration_minutes": "maxDurationMinutes",
-    "max_concurrency": "maxConcurrency",
-    "retry_config": "retryConfig",
-    "total_calls": "totalCalls",
-    "completed_calls": "completedCalls",
-    "failed_calls": "failedCalls",
-    "loops_detected": "loopsDetected",
-    "retried_calls": "retriedCalls",
-    "in_flight_count": "inFlightCount",
-    "pending_paths": "pendingPaths",
-    "parent_step_id": "parentStepId",
-    "path_string": "pathString",
-    "transcript_hash": "transcriptHash",
-    "retry_count": "retryCount",
-    "step_id": "stepId",
-    "audio_url": "audioUrl",
-    "audio_size_bytes": "audioSizeBytes",
-    "is_terminal": "isTerminal",
-    "dtmf_options": "dtmfOptions",
-    "dtmf_option": "dtmfOption",
-    "job_id": "jobId",
-    "run_id": "runId",
-    "repeat_behavior": "repeatBehavior",
-    "remap_path": "remapPath",
-    "probe_count": "probeCount",
-    # v0.3.0 additive
-    "run_number": "runNumber",
-    "current_run": "currentRun",
-    "next_cursor": "nextCursor",
-    "step_type": "stepType",
-    "voice_prompt": "voicePrompt",
-    "menu_label": "menuLabel",
-    "spoken_response": "spokenResponse",
-    "probe_category": "probeCategory",
-    "probe_classification": "probeClassification",
-    "probe_rationale": "probeRationale",
-    "input_required": "inputRequired",
-    "format_hint": "formatHint",
-    "start_time_ms": "startTimeMs",
-    "call_telemetry": "callTelemetry",
-    "turn_telemetry": "turnTelemetry",
-    "schema_version": "schemaVersion",
-    "llm_extraction": "llmExtraction",
-    "conversation_turn": "conversationTurn",
-}
-
 
 def _alias(name: str) -> str:
-    return _ALIAS_MAP.get(name, name)
+    """snake_case field name -> camelCase wire name.
+
+    This was previously a hand-maintained dict with a silent fallback to the
+    unchanged name, which meant any field missing an entry serialised as
+    snake_case and was ignored by the API. `RetryConfig.max_retries` had been
+    doing exactly that — it went out as `max_retries`, so retry settings never
+    applied. All 59 entries in that map were plain camelisations, so the
+    conversion is now computed and cannot fall out of sync.
+    """
+    head, *rest = name.split("_")
+    return head + "".join(word.capitalize() for word in rest)
 
 
 JobStatus = Literal[
@@ -85,6 +32,8 @@ StepStatus = Literal[
     "pending", "running", "completed", "failed", "retrying", "skipped"
 ]
 MappingMode = Literal["dtmf", "dtmf-audio", "full-audio"]
+Vertical = Literal["FSI", "Healthcare", "EnergyUtilities", "Telecoms", "General"]
+RepeatBehavior = Literal["skip", "explore_once", "explore_n"]
 
 
 class _MappingBase(BaseModel):
@@ -108,7 +57,30 @@ class RetryConfig(_MappingBase):
     max_retries: int = 3
 
 
+class RepeatConfig(_MappingBase):
+    """Repeat-detection behaviour for menus revisited via a different path."""
+
+    behavior: RepeatBehavior = "skip"
+    #: Only meaningful when ``behavior`` is ``explore_n``. Defaults to 2 server-side.
+    max_explorations: Optional[int] = None
+
+
+class EnrichmentConfig(_MappingBase):
+    """Post-run enrichment pipeline settings."""
+
+    enabled: bool = False
+    #: Defaults to ``["quality_scoring"]`` server-side.
+    types: Optional[List[str]] = None
+
+
 class MappingJobConfig(_MappingBase):
+    """Per-job mapping configuration.
+
+    Every mode-related knob lives here rather than at the top of the request
+    body — the API reads ``body.config.mapping_mode``, and a top-level
+    ``mapping_mode`` is ignored.
+    """
+
     max_depth: Optional[int] = None
     max_calls: Optional[int] = None
     max_duration_minutes: Optional[int] = None
@@ -117,7 +89,13 @@ class MappingJobConfig(_MappingBase):
     voice_profile_id: Optional[str] = None
     data_profile_id: Optional[str] = None
     retry_config: Optional[RetryConfig] = None
+    repeat_config: Optional[RepeatConfig] = None
+    enrichment_config: Optional[EnrichmentConfig] = None
     mapping_mode: Optional[MappingMode] = None
+    #: Required by the API when ``mapping_mode`` is ``dtmf-audio`` or ``full-audio``.
+    vertical: Optional[Vertical] = None
+    #: Security-probe mode. The API rejects it combined with ``mapping_mode="dtmf"``.
+    probe_mode: Optional[bool] = None
 
 
 class CurrentRun(_MappingBase):
