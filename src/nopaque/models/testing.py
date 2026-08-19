@@ -80,7 +80,10 @@ class TestRun(_TestingBase):
     test_config_id: Optional[str] = None
     workspace_id: Optional[str] = None
     status: Optional[str] = None
-    result: Optional[str] = None
+    #: Terminal verdict. The API never sends a ``result`` field — a model
+    #: declaring one read as None on every run, including passing ones.
+    #: Values are uppercase: PASS | FAIL | ERROR | INCONCLUSIVE | pending.
+    outcome: Optional[str] = None
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     launch_deadline: Optional[str] = None

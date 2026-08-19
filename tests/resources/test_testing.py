@@ -176,11 +176,12 @@ def test_runs_list(httpx_mock: HTTPXMock):
 def test_runs_get(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/runs/r1",
-        json={"id": "r1", "status": "completed", "result": "pass"},
+        json={"id": "r1", "status": "completed", "outcome": "PASS"},
     )
     c = client()
     run = c.testing.runs.get("r1")
-    assert run.result == "pass"
+    # The API sends `outcome` (uppercase), never `result`.
+    assert run.outcome == "PASS"
     c.close()
 
 

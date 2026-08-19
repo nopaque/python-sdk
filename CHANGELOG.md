@@ -6,6 +6,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-19
+
+### Fixed
+
+- `TestRun.outcome` replaces `TestRun.result`. The API has never sent a
+  `result` field, so `run.result` was `None` on every run including passing
+  ones. The real field is `outcome`, with uppercase values
+  `PASS | FAIL | ERROR | INCONCLUSIVE | pending`. `TestRunListItem` and the
+  aggregate models already had `outcome`; only the full `TestRun` had drifted.
+  Because the models set `extra="allow"`, the wrong field read as `None`
+  instead of raising — the failure was silent in both directions.
+- `ProfileItem` is now the discriminated union the API returns, keyed on
+  `type`: `ProfileVoiceItem` (`audio_id`) or `ProfileDataItem`
+  (`dataset_id` + `item_id`). It was `{id, label, value}` with `label` and
+  `value` both required. `value` exists on neither variant and `label` is
+  deprecated server-side, so `profiles.list()` raised a pydantic
+  `ValidationError` on real workspace data. `openapi.yaml` had this right as a
+  `oneOf`; the SDK was the drifted surface.
+- `profiles.add_item()`, `update_item()` and `delete_item()` return the updated
+  `Profile`, which is what all three routes send. They were annotated as
+  returning a `ProfileItem` (and `delete_item` returned `None`).
+- `add_item()` now takes `type` plus the matching id field (`audio_id`, or
+  `dataset_id` + `item_id`), replacing the invented `value` parameter.
+  `update_item()` takes `label` / `description`, the only two the handler reads.
+- Removed `Profile.matched_labels`, which appears nowhere in the API.
+
+### Changed
+
+- The profiles alias table is computed rather than hand-listed, matching the
+  change made to `mapping.py` and `scheduler.py` in 0.5.0.
+
 ## [0.5.0] - 2026-08-18
 
 ### Added

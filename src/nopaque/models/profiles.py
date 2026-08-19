@@ -1,18 +1,20 @@
 """Models for /profiles endpoints."""
-from typing import List, Optional
+from typing import List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
 
-_ALIAS_MAP = {
-    "profile_id": "profileId",
-    "created_at": "createdAt",
-    "updated_at": "updatedAt",
-    "matched_labels": "matchedLabels",
-}
+#: Which kind of thing a profile item points at.
+ProfileItemType = Literal["voice", "data"]
 
 
 def _alias(name: str) -> str:
-    return _ALIAS_MAP.get(name, name)
+    """snake_case field name -> camelCase wire name.
+
+    Computed rather than listed, so a new field cannot silently serialise as
+    snake_case and be ignored by the API.
+    """
+    head, *rest = name.split("_")
+    return head + "".join(word.capitalize() for word in rest)
 
 
 class _ProfilesBase(BaseModel):
@@ -23,23 +25,44 @@ class _ProfilesBase(BaseModel):
     )
 
 
-class ProfileItem(_ProfilesBase):
+class _ProfileItemBase(_ProfilesBase):
     id: str
-    profile_id: Optional[str] = None
-    label: str
-    value: str
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    #: Legacy display label. Deprecated server-side and no longer written — for
+    #: data items it is derived from the dataset item's key at read time, so it
+    #: is frequently absent. Do not rely on it.
+    label: Optional[str] = None
+    description: Optional[str] = None
+
+
+class ProfileVoiceItem(_ProfileItemBase):
+    """A profile item pointing at an uploaded audio row."""
+
+    type: Literal["voice"]
+    audio_id: str
+
+
+class ProfileDataItem(_ProfileItemBase):
+    """A profile item pointing at an item inside a dataset."""
+
+    type: Literal["data"]
+    dataset_id: str
+    item_id: str
+
+
+#: Discriminated on ``type``. Branch on it before reaching for ``audio_id`` or
+#: ``dataset_id``.
+ProfileItem = Union[ProfileVoiceItem, ProfileDataItem]
 
 
 class Profile(_ProfilesBase):
     id: str
+    workspace_id: Optional[str] = None
     name: str
     description: Optional[str] = None
     items: List[ProfileItem] = []
-    matched_labels: Optional[List[str]] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+    created_by: Optional[str] = None
 
 
 class ProfileParameters(_ProfilesBase):
