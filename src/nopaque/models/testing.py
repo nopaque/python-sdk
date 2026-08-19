@@ -3,43 +3,17 @@ from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
-_ALIAS_MAP = {
-    "phone_number": "phoneNumber",
-    "config_id": "configId",
-    "test_config_id": "testConfigId",
-    "job_id": "jobId",
-    "workspace_id": "workspaceId",
-    "created_at": "createdAt",
-    "updated_at": "updatedAt",
-    "started_at": "startedAt",
-    "completed_at": "completedAt",
-    "launch_deadline": "launchDeadline",
-    "total_steps": "totalSteps",
-    "passed_steps": "passedSteps",
-    "failed_steps": "failedSteps",
-    # v0.3.0 additive
-    "run_type": "runType",
-    "catalogue_test_id": "catalogueTestId",
-    "call_duration_secs": "callDurationSecs",
-    "next_cursor": "nextCursor",
-    "total_groups": "totalGroups",
-    "pass_reasoning": "passReasoning",
-    "pass_evidence": "passEvidence",
-    "compliance_fail_evidence": "complianceFailEvidence",
-    "compliance_pass_evidence": "compliancePassEvidence",
-    "judge_reasoning": "judgeReasoning",
-    "call_control_id": "callControlId",
-    "audio_id": "audioId",
-    "error_message": "errorMessage",
-    # voices (GET /testing/voices)
-    "voice_id": "voiceId",
-    "is_default": "isDefault",
-    "default_voice_id": "defaultVoiceId",
-}
-
 
 def _alias(name: str) -> str:
-    return _ALIAS_MAP.get(name, name)
+    """snake_case field name -> camelCase wire name.
+
+    Computed rather than listed. The previous hand-maintained dict fell back to
+    the unchanged name on a miss, so a field with no entry silently failed to
+    bind from the camelCase response and leaked through as a raw extra. All 29
+    entries were plain camelisations, so nothing changes for existing fields.
+    """
+    head, *rest = name.split("_")
+    return head + "".join(word.capitalize() for word in rest)
 
 
 class _TestingBase(BaseModel):
@@ -90,6 +64,45 @@ class TestRun(_TestingBase):
     total_steps: Optional[int] = None
     passed_steps: Optional[int] = None
     failed_steps: Optional[int] = None
+
+
+class TestStepResult(_TestingBase):
+    """A single scripted step's result.
+
+    Named ``TestStepResult``, not ``StepResult`` — the latter is already
+    exported for mapping and is an unrelated shape.
+    """
+
+    id: str
+    run_id: Optional[str] = None
+    step_index: Optional[int] = None
+    step_id: Optional[str] = None
+    step_name: Optional[str] = None
+    outcome: Optional[Literal["PASS", "FAIL", "TIMEOUT", "ERROR"]] = None
+    expected_transcript: Optional[str] = None
+    actual_transcript: Optional[str] = None
+    similarity: Optional[float] = None
+    threshold: Optional[float] = None
+    action_type: Optional[str] = None
+    action_value: Optional[str] = None
+    duration: Optional[float] = None
+    error_message: Optional[str] = None
+    matcher_scores: Optional[dict] = None
+    turn_telemetry: Optional[dict] = None
+    created_at: Optional[str] = None
+
+
+class TestRunDetails(TestRun):
+    """What ``testing.runs.get()`` returns: the run row enriched with its step
+    results, the joined transcript, and a snapshot of the parent config.
+
+    Mission and compliance runs have no scripted steps, so ``step_results`` is
+    empty and ``config`` absent for those.
+    """
+
+    step_results: List[TestStepResult] = []
+    full_transcript: Optional[str] = None
+    config: Optional[Any] = None
 
 
 class TestRunListItem(_TestingBase):

@@ -6,6 +6,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-19
+
+### Fixed
+
+- `wait_for_run()` could return before the run's verdict was written, giving
+  `outcome` of `None` and no step results on a run that had actually passed.
+  A re-fetch of the same id moments later returned the real verdict. The
+  container emits `run_status_changed{status:'completed'}` and
+  `run_completed{outcome}` as separate SQS messages with no ordering
+  guarantee, and the API skips undefined fields on write, so a status-only
+  message marks the run terminal with no outcome. Polling keyed on `status`
+  alone, so it returned that intermediate row. `completed` now also requires a
+  decided verdict; `failed` and `cancelled` still settle immediately, since
+  neither carries one.
+- The testing alias table is computed rather than hand-listed, matching the
+  change made to `mapping.py`, `scheduler.py` and `profiles.py`. The previous
+  dict fell back to the unchanged name on a miss, so any field without an
+  entry failed to bind from the camelCase response and leaked through as a raw
+  extra — `run.stepResults` instead of `run.step_results`.
+
+### Added
+
+- `TestStepResult` and `TestRunDetails`. `testing.runs.get()` and
+  `wait_for_run()` return `TestRunDetails` — the run row plus `step_results`,
+  `full_transcript` and an inline `config` snapshot, all of which the API has
+  always sent and neither SDK declared.
+  - Named `TestStepResult`, not `StepResult`: the latter is already exported
+    for mapping and is an unrelated shape.
+
 ## [0.6.0] - 2026-08-19
 
 ### Fixed
