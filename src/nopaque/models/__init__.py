@@ -106,7 +106,14 @@ from .mission_tests import (
     MissionTestRun,
     MissionTestStatus,
 )
-from .profiles import Profile, ProfileItem, ProfileParameters
+from .profiles import (
+    Profile,
+    ProfileDataItem,
+    ProfileItem,
+    ProfileItemType,
+    ProfileParameters,
+    ProfileVoiceItem,
+)
 from .scheduler import Schedule, ScheduleTargetType, ScheduleType
 from .sweeps import Sweep, SweepRun
 from .testing import (
@@ -234,7 +241,10 @@ __all__ = [
     "MissionTestStatus",
     # profiles
     "Profile",
+    "ProfileDataItem",
     "ProfileItem",
+    "ProfileItemType",
+    "ProfileVoiceItem",
     "ProfileParameters",
     # scheduler
     "Schedule",

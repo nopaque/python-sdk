@@ -6,7 +6,7 @@ import builtins
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
-from ..models.profiles import Profile, ProfileItem, ProfileParameters
+from ..models.profiles import Profile, ProfileItemType, ProfileParameters
 
 
 class ProfilesResource(SyncResource):
@@ -105,17 +105,36 @@ class ProfilesResource(SyncResource):
         self,
         profile_id: str,
         *,
+        type: ProfileItemType,
         label: str,
-        value: str,
+        audio_id: str | None = None,
+        dataset_id: str | None = None,
+        item_id: str | None = None,
+        description: str | None = None,
         request_options: RequestOptions | None = None,
-    ) -> ProfileItem:
+    ) -> Profile:
+        """Add an item to a profile. Returns the UPDATED PROFILE, not the item.
+
+        ``type="voice"`` requires ``audio_id``; ``type="data"`` requires
+        ``dataset_id`` and ``item_id``. ``label`` is required by this route even
+        though the field is deprecated on the stored item.
+        """
+        body: dict = {"type": type, "label": label}
+        for key, _value in (
+            ("audioId", audio_id),
+            ("datasetId", dataset_id),
+            ("itemId", item_id),
+            ("description", description),
+        ):
+            if _value is not None:
+                body[key] = _value
         raw = self._transport.request(
             "POST",
             f"/profiles/{profile_id}/items",
-            json={"label": label, "value": value},
+            json=body,
             request_options=request_options,
         )
-        return ProfileItem.model_validate(raw)
+        return Profile.model_validate(raw)
 
     def update_item(
         self,
@@ -123,21 +142,25 @@ class ProfilesResource(SyncResource):
         item_id: str,
         *,
         label: str | None = None,
-        value: str | None = None,
+        description: str | None = None,
         request_options: RequestOptions | None = None,
-    ) -> ProfileItem:
+    ) -> Profile:
+        """Update an item. Returns the UPDATED PROFILE, not the item.
+
+        Only ``label`` and ``description`` are read by the handler.
+        """
         body: dict = {}
         if label is not None:
             body["label"] = label
-        if value is not None:
-            body["value"] = value
+        if description is not None:
+            body["description"] = description
         raw = self._transport.request(
             "PUT",
             f"/profiles/{profile_id}/items/{item_id}",
             json=body,
             request_options=request_options,
         )
-        return ProfileItem.model_validate(raw)
+        return Profile.model_validate(raw)
 
     def delete_item(
         self,
@@ -145,12 +168,14 @@ class ProfilesResource(SyncResource):
         item_id: str,
         *,
         request_options: RequestOptions | None = None,
-    ) -> None:
-        self._transport.request(
+    ) -> Profile:
+        """Remove an item. Returns the UPDATED PROFILE, as all item routes do."""
+        raw = self._transport.request(
             "DELETE",
             f"/profiles/{profile_id}/items/{item_id}",
             request_options=request_options,
         )
+        return Profile.model_validate(raw)
 
     def list_parameters(
         self, *, request_options: RequestOptions | None = None
@@ -274,17 +299,36 @@ class AsyncProfilesResource(AsyncResource):
         self,
         profile_id: str,
         *,
+        type: ProfileItemType,
         label: str,
-        value: str,
+        audio_id: str | None = None,
+        dataset_id: str | None = None,
+        item_id: str | None = None,
+        description: str | None = None,
         request_options: RequestOptions | None = None,
-    ) -> ProfileItem:
+    ) -> Profile:
+        """Add an item to a profile. Returns the UPDATED PROFILE, not the item.
+
+        ``type="voice"`` requires ``audio_id``; ``type="data"`` requires
+        ``dataset_id`` and ``item_id``. ``label`` is required by this route even
+        though the field is deprecated on the stored item.
+        """
+        body: dict = {"type": type, "label": label}
+        for key, _value in (
+            ("audioId", audio_id),
+            ("datasetId", dataset_id),
+            ("itemId", item_id),
+            ("description", description),
+        ):
+            if _value is not None:
+                body[key] = _value
         raw = await self._transport.request(
             "POST",
             f"/profiles/{profile_id}/items",
-            json={"label": label, "value": value},
+            json=body,
             request_options=request_options,
         )
-        return ProfileItem.model_validate(raw)
+        return Profile.model_validate(raw)
 
     async def update_item(
         self,
@@ -292,21 +336,25 @@ class AsyncProfilesResource(AsyncResource):
         item_id: str,
         *,
         label: str | None = None,
-        value: str | None = None,
+        description: str | None = None,
         request_options: RequestOptions | None = None,
-    ) -> ProfileItem:
+    ) -> Profile:
+        """Update an item. Returns the UPDATED PROFILE, not the item.
+
+        Only ``label`` and ``description`` are read by the handler.
+        """
         body: dict = {}
         if label is not None:
             body["label"] = label
-        if value is not None:
-            body["value"] = value
+        if description is not None:
+            body["description"] = description
         raw = await self._transport.request(
             "PUT",
             f"/profiles/{profile_id}/items/{item_id}",
             json=body,
             request_options=request_options,
         )
-        return ProfileItem.model_validate(raw)
+        return Profile.model_validate(raw)
 
     async def delete_item(
         self,
@@ -314,12 +362,14 @@ class AsyncProfilesResource(AsyncResource):
         item_id: str,
         *,
         request_options: RequestOptions | None = None,
-    ) -> None:
-        await self._transport.request(
+    ) -> Profile:
+        """Remove an item. Returns the UPDATED PROFILE, as all item routes do."""
+        raw = await self._transport.request(
             "DELETE",
             f"/profiles/{profile_id}/items/{item_id}",
             request_options=request_options,
         )
+        return Profile.model_validate(raw)
 
     async def list_parameters(
         self, *, request_options: RequestOptions | None = None
