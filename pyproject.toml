@@ -54,7 +54,7 @@ dependencies = [
 
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
-"test:integration" = "pytest tests/integration {args}"
+integration = "pytest tests/integration {args}"
 type = "mypy src/nopaque"
 lint = "ruff check src/nopaque tests"
 format = "ruff format src/nopaque tests"
