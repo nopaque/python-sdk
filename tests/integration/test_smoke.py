@@ -3,7 +3,7 @@
 Run with:
     NOPAQUE_API_KEY=... \
     NOPAQUE_BASE_URL=https://api.dev.nopaque.co.uk \
-    hatch run test:integration
+    hatch run integration
 
 These are intentionally minimal - enough to detect a breaking server change
 without costing real resources. They run nightly via
@@ -37,9 +37,11 @@ def test_list_profiles(client):
 
 def test_create_get_delete_schedule(client):
     # Create -> get -> delete a throwaway schedule.
+    # No target_id: a schedule with no target is a valid reusable template,
+    # so this does not depend on a test config existing in the dev workspace.
     sched = client.scheduler.create(
         name="sdk-smoke-test",
-        config_id=os.environ.get("NOPAQUE_SMOKE_CONFIG_ID", "cfg_placeholder"),
+        schedule_type="cron",
         cron_expression="0 0 * * *",
     )
     try:
@@ -52,8 +54,9 @@ def test_create_get_delete_schedule(client):
 def test_create_audio_upload_url(client):
     # Exercises the presign call without actually uploading a file.
     res = client.audio.create_upload_url(
-        file_name="smoke-test.wav",
+        filename="smoke-test.wav",
         content_type="audio/wav",
+        category="test",
     )
     assert res.upload_url.startswith("https://")
     assert res.audio_id

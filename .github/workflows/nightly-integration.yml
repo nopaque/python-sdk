@@ -19,4 +19,4 @@ jobs:
         env:
           NOPAQUE_API_KEY: ${{ secrets.NOPAQUE_DEV_API_KEY }}
           NOPAQUE_BASE_URL: https://api.dev.nopaque.co.uk
-        run: hatch run test:integration -v
+        run: hatch run integration -v

@@ -48,7 +48,7 @@ CI runs `lint`, `type`, `test` and `build` on Python 3.9, 3.10, 3.11 and 3.12. *
 ### Integration tests place real API calls
 
 ```bash
-hatch run test:integration
+hatch run integration
 ```
 
 These hit the live dev API and require `NOPAQUE_API_KEY` (and optionally `NOPAQUE_BASE_URL`). They are excluded from the default `pytest` run by `addopts = "--ignore=tests/integration"` and are normally exercised only by the nightly workflow. **Do not run them casually** - some API operations place real outbound phone calls and bill a workspace.
