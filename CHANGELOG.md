@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-09-30
+
+### Fixed
+
+- An error body carrying `message` instead of `error` now surfaces its text.
+  API Gateway's own 401, 403 and 429 responses, and a few older handlers, send
+  `message`; the SDK read only `error`, so those errors showed as just
+  `HTTP 403` with no reason.
+
 ### Added
 
 - `client.surveys`, for survey tests (`/testing/survey-*`). A survey test claims
@@ -284,7 +293,8 @@ moved into it and the API requires the mode.
 - Method-aware retry with exponential jitter and `Retry-After` honor.
 - Typed exception hierarchy.
 
-[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.8.0
 [0.4.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.4.0
 [0.3.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.3.0
 [0.1.3]: https://github.com/nopaque/python-sdk/releases/tag/v0.1.3
