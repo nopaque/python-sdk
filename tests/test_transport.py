@@ -7,6 +7,7 @@ from nopaque._errors import (
     APIConnectionError,
     APITimeoutError,
     NotFoundError,
+    PermissionError,
     RateLimitError,
     ServerError,
 )
@@ -42,6 +43,33 @@ def test_sync_404_raises_not_found(httpx_mock: HTTPXMock):
         t.request("GET", "/mapping/none")
     assert ei.value.status == 404
     assert ei.value.code == "mapping_not_found"
+    t.close()
+
+
+def test_gateway_message_body_is_used_when_error_is_absent(httpx_mock: HTTPXMock):
+    """API Gateway's own 403 sends `message`, not `error`."""
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/profiles",
+        status_code=403,
+        json={"message": "Forbidden"},
+    )
+    t = SyncTransport(make_config(max_retries=0))
+    with pytest.raises(PermissionError) as ei:
+        t.request("GET", "/profiles")
+    assert ei.value.message == "Forbidden"
+    t.close()
+
+
+def test_error_field_wins_over_message(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/x",
+        status_code=404,
+        json={"error": "from handler", "message": "other"},
+    )
+    t = SyncTransport(make_config(max_retries=0))
+    with pytest.raises(NotFoundError) as ei:
+        t.request("GET", "/x")
+    assert ei.value.message == "from handler"
     t.close()
 
 

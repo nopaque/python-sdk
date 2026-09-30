@@ -55,7 +55,9 @@ def _raise_for_status(response: httpx.Response) -> None:
         body = response.json()
     except (ValueError, jsonlib.JSONDecodeError):
         body = {}
-    error_message = body.get("error") if isinstance(body, dict) else None
+    # Most handlers send `error`; API Gateway's own 401/403/429 and a few older
+    # handlers send `message`. Without the fallback those surface as "HTTP 403".
+    error_message = (body.get("error") or body.get("message")) if isinstance(body, dict) else None
     code = body.get("code") if isinstance(body, dict) else None
     details = body.get("details") if isinstance(body, dict) else None
     request_id = response.headers.get("x-request-id")
