@@ -74,6 +74,34 @@ Reusable configs live under `client.digital_test_configs`
 `client.digital_compliance` lists compliance audits and fetches a per-target
 report.
 
+## Survey tests
+
+A survey test runs the other way round from a call test: your survey platform
+starts the conversation, and a nopaque respondent answers it. Starting a test
+claims one of your workspace's survey numbers; you then send your survey to it.
+
+```python
+run = client.surveys.start(
+    config_id="d41eaa86-34ae-4b7c-b5cc-debf7c254b44",
+    sender="+447921721840",   # the number your survey platform sends FROM
+    window_secs=600,          # the survey must arrive within this window
+)
+print("Send the survey to", run.agent_e164)
+
+# ... trigger your survey platform, aimed at run.agent_e164 ...
+
+result = client.surveys.wait_for_result(run.run_id)   # until the transcript is final
+print(result.outcome, result.answers_given)
+for turn in result.turns:
+    print(turn.at, turn.from_, turn.text)
+```
+
+`start` raises `ConflictError` when the workspace has no free survey number for
+that sender. `wait_for_result` returns a failed capture rather than raising it;
+check `result.capture.status`. Saved respondents live under
+`client.surveys.configs` (`create`, `list`, `get`, `update`, `delete`), and past
+results under `client.surveys.results` (`list`, `list_page`, `get`).
+
 ## Voices
 
 List the operator-enabled voices a mission test may use, and which one is the

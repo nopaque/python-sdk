@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `client.surveys`, for survey tests (`/testing/survey-*`). A survey test claims
+  one of the workspace's numbers and arms a respondent on it; the customer's
+  survey platform then sends its survey to that number.
+  - `surveys.start()`, `stop()` and `list()` for live tests. `start()` takes
+    `sender`, the number the survey platform sends from, and sends it as
+    `endUserE164`.
+  - `surveys.wait_for_result()` polls until the transcript is settled
+    (`capture.status` of `final` or `failed`). The result row is written a few
+    seconds after the start, so a 404 is treated as "not yet" for
+    `not_found_grace` seconds (default 60). With no `timeout`, it waits until
+    10 minutes past the test's window.
+  - `surveys.results` (`list`, `list_page`, `get`) and `surveys.configs`
+    (`create`, `list`, `get`, `update`, `delete`).
+  - Models: `SurveyRunStarted`, `SurveyRun`, `SurveyRunList`, `SurveyResult`,
+    `SurveyResultSummary`, `SurveyTurn`, `SurveyCapture`, `SurveyTestConfig`,
+    `SurveyTestConfigListItem` and the request and literal types.
+
 ## [0.7.0] - 2026-08-19
 
 ### Fixed
