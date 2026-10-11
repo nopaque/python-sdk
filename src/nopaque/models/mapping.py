@@ -313,7 +313,6 @@ class CallTelemetry(_MappingBase):
     telephony: Optional[dict] = None
     quality: Optional[dict] = None
     audio: Optional[dict] = None
-    cost: Optional[dict] = None
     timing: Optional[dict] = None
     mode: Optional[dict] = None
     turns: Optional[List[TurnTelemetry]] = None
