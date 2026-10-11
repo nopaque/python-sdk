@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-11
+
 ### Changed
 
 - `audio.create_upload_url` now requires `size_bytes`, the exact file size in
@@ -307,7 +309,8 @@ moved into it and the API requires the mode.
 - Method-aware retry with exponential jitter and `Retry-After` honor.
 - Typed exception hierarchy.
 
-[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.9.0
 [0.8.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.8.0
 [0.4.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.4.0
 [0.3.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.3.0
