@@ -88,9 +88,9 @@ class AudioResource(SyncResource):
         filename: str,
         content_type: str,
         category: AudioCategory,
+        size_bytes: int,
         associated_id: str | None = None,
         duration_secs: float | None = None,
-        size_bytes: int | None = None,
         request_options: RequestOptions | None = None,
     ) -> AudioUploadURL:
         raw = self._transport.request(
@@ -102,7 +102,7 @@ class AudioResource(SyncResource):
                 "category": category,
                 **({"associatedId": associated_id} if associated_id else {}),
                 **({"durationSecs": duration_secs} if duration_secs is not None else {}),
-                **({"sizeBytes": size_bytes} if size_bytes is not None else {}),
+                "sizeBytes": size_bytes,
             },
             request_options=request_options,
         )
@@ -237,9 +237,9 @@ class AsyncAudioResource(AsyncResource):
         filename: str,
         content_type: str,
         category: AudioCategory,
+        size_bytes: int,
         associated_id: str | None = None,
         duration_secs: float | None = None,
-        size_bytes: int | None = None,
         request_options: RequestOptions | None = None,
     ) -> AudioUploadURL:
         raw = await self._transport.request(
@@ -251,7 +251,7 @@ class AsyncAudioResource(AsyncResource):
                 "category": category,
                 **({"associatedId": associated_id} if associated_id else {}),
                 **({"durationSecs": duration_secs} if duration_secs is not None else {}),
-                **({"sizeBytes": size_bytes} if size_bytes is not None else {}),
+                "sizeBytes": size_bytes,
             },
             request_options=request_options,
         )
