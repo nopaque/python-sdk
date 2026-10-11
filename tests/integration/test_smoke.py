@@ -57,6 +57,7 @@ def test_create_audio_upload_url(client):
         filename="smoke-test.wav",
         content_type="audio/wav",
         category="test",
+        size_bytes=1024,
     )
     assert res.upload_url.startswith("https://")
     assert res.audio_id

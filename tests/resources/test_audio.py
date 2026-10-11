@@ -96,7 +96,7 @@ def test_create_upload_url(httpx_mock: HTTPXMock):
     )
     c = client()
     res = c.audio.create_upload_url(
-        filename="a.wav", content_type="audio/wav", category="test"
+        filename="a.wav", content_type="audio/wav", category="test", size_bytes=1024
     )
     assert res.upload_url == "https://s3.example.com/signed"
     assert res.audio_id == "aud_xyz"
@@ -224,7 +224,7 @@ def test_create_upload_url_sends_lowercase_filename_and_category(
     )
     c = client()
     c.audio.create_upload_url(
-        filename="a.wav", content_type="audio/wav", category="voice"
+        filename="a.wav", content_type="audio/wav", category="voice", size_bytes=1024
     )
     import json as _j
 
@@ -232,6 +232,7 @@ def test_create_upload_url_sends_lowercase_filename_and_category(
         "filename": "a.wav",
         "contentType": "audio/wav",
         "category": "voice",
+        "sizeBytes": 1024,
     }
     c.close()
 
