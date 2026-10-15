@@ -1,7 +1,7 @@
 """Mission tests resource - all /testing/mission-tests endpoints."""
 from __future__ import annotations
 
-from typing import Union
+from typing import Optional, Sequence, Union
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._request_options import RequestOptions
@@ -9,6 +9,7 @@ from .._resource import AsyncResource, SyncResource
 from ..models.mission_tests import (
     CreateMissionTestRequest,
     MissionTestDefaults,
+    MissionTestKind,
     MissionTestProfile,
     MissionTestRun,
 )
@@ -34,6 +35,42 @@ def _build_create_body(
     return request.model_dump(by_alias=True, exclude_none=True)
 
 
+def _build_list_params(
+    *,
+    kind: Optional[str],
+    config_id: Optional[str],
+    q: Optional[str],
+    phone_number: Optional[str],
+    tags: Union[str, Sequence[str], None],
+    limit: Optional[int],
+    next_token: Optional[str],
+) -> dict:
+    """Query params for GET /testing/mission-tests. All filters are server-side.
+
+    - kind: "freeform" (missions) or "compliance".
+    - config_id: only runs launched from this mission test config.
+    - q: case-insensitive text search on the run's sector or mission.
+    - phone_number: substring match on the number called.
+    - tags: runs whose config carries ANY of these tags (str or list).
+    """
+    params: dict = {}
+    if kind is not None:
+        params["kind"] = kind
+    if config_id is not None:
+        params["configId"] = config_id
+    if q is not None:
+        params["q"] = q
+    if phone_number is not None:
+        params["phoneNumber"] = phone_number
+    if tags is not None:
+        params["tags"] = tags if isinstance(tags, str) else ",".join(tags)
+    if limit is not None:
+        params["limit"] = limit
+    if next_token is not None:
+        params["nextToken"] = next_token
+    return params
+
+
 def _apply_cursor(params: dict) -> dict:
     """Translate the paginator's `nextToken` into the api's `cursor` param."""
     p = dict(params)
@@ -53,15 +90,24 @@ class MissionTestsResource(SyncResource):
     def list(
         self,
         *,
+        kind: MissionTestKind | None = None,
+        config_id: str | None = None,
+        q: str | None = None,
+        phone_number: str | None = None,
+        tags: Union[str, Sequence[str], None] = None,
         limit: int | None = None,
         next_token: str | None = None,
         request_options: RequestOptions | None = None,
     ) -> SyncPaginator[MissionTestRun]:
-        params: dict = {}
-        if limit is not None:
-            params["limit"] = limit
-        if next_token is not None:
-            params["nextToken"] = next_token
+        params = _build_list_params(
+            kind=kind,
+            config_id=config_id,
+            q=q,
+            phone_number=phone_number,
+            tags=tags,
+            limit=limit,
+            next_token=next_token,
+        )
 
         def fetch(p: dict) -> dict:
             raw = self._transport.request(
@@ -77,15 +123,24 @@ class MissionTestsResource(SyncResource):
     def list_page(
         self,
         *,
+        kind: MissionTestKind | None = None,
+        config_id: str | None = None,
+        q: str | None = None,
+        phone_number: str | None = None,
+        tags: Union[str, Sequence[str], None] = None,
         limit: int | None = None,
         next_token: str | None = None,
         request_options: RequestOptions | None = None,
     ) -> Page[MissionTestRun]:
-        params: dict = {}
-        if limit is not None:
-            params["limit"] = limit
-        if next_token is not None:
-            params["nextToken"] = next_token
+        params = _build_list_params(
+            kind=kind,
+            config_id=config_id,
+            q=q,
+            phone_number=phone_number,
+            tags=tags,
+            limit=limit,
+            next_token=next_token,
+        )
         raw = self._transport.request(
             "GET",
             "/testing/mission-tests",
@@ -149,15 +204,24 @@ class AsyncMissionTestsResource(AsyncResource):
     def list(
         self,
         *,
+        kind: MissionTestKind | None = None,
+        config_id: str | None = None,
+        q: str | None = None,
+        phone_number: str | None = None,
+        tags: Union[str, Sequence[str], None] = None,
         limit: int | None = None,
         next_token: str | None = None,
         request_options: RequestOptions | None = None,
     ) -> AsyncPaginator[MissionTestRun]:
-        params: dict = {}
-        if limit is not None:
-            params["limit"] = limit
-        if next_token is not None:
-            params["nextToken"] = next_token
+        params = _build_list_params(
+            kind=kind,
+            config_id=config_id,
+            q=q,
+            phone_number=phone_number,
+            tags=tags,
+            limit=limit,
+            next_token=next_token,
+        )
 
         async def fetch(p: dict) -> dict:
             raw = await self._transport.request(
@@ -173,15 +237,24 @@ class AsyncMissionTestsResource(AsyncResource):
     async def list_page(
         self,
         *,
+        kind: MissionTestKind | None = None,
+        config_id: str | None = None,
+        q: str | None = None,
+        phone_number: str | None = None,
+        tags: Union[str, Sequence[str], None] = None,
         limit: int | None = None,
         next_token: str | None = None,
         request_options: RequestOptions | None = None,
     ) -> Page[MissionTestRun]:
-        params: dict = {}
-        if limit is not None:
-            params["limit"] = limit
-        if next_token is not None:
-            params["nextToken"] = next_token
+        params = _build_list_params(
+            kind=kind,
+            config_id=config_id,
+            q=q,
+            phone_number=phone_number,
+            tags=tags,
+            limit=limit,
+            next_token=next_token,
+        )
         raw = await self._transport.request(
             "GET",
             "/testing/mission-tests",
