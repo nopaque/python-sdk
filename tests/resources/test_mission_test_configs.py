@@ -51,7 +51,8 @@ def test_list_returns_paginator(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/mission-test-configs",
         json={
-            "items": [
+            # The api's real envelope: `{configs, nextCursor}` (listMissionTestConfigs).
+            "configs": [
                 {
                     "id": "cfg_1",
                     "name": "qa",
@@ -64,7 +65,7 @@ def test_list_returns_paginator(httpx_mock: HTTPXMock):
                     "updatedAt": "",
                 }
             ],
-            "nextToken": None,
+            "nextCursor": None,
         },
     )
     c = client()
@@ -205,7 +206,7 @@ def test_list_sends_filters_and_returns_slim_items(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/mission-test-configs?sector=insurance&tag=eu&limit=10",
         json={
-            "items": [
+            "configs": [
                 {
                     "id": "cfg_1",
                     "workspaceId": "w",
@@ -250,4 +251,21 @@ def test_get_cross_workspace_raises_not_found(httpx_mock: HTTPXMock):
     c = client()
     with pytest.raises(NotFoundError):
         c.mission_test_configs.get("cfg_other")
+    c.close()
+
+
+def test_list_follows_next_cursor_across_pages(httpx_mock: HTTPXMock):
+    # 2026-10-15 Walgreens: list(name="test mission") printed nothing for a
+    # config that existed, because the SDK read `items` from a `{configs}` body.
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/mission-test-configs?name=test+mission",
+        json={"configs": [{"id": "cfg_1", "workspaceId": "w", "name": "test mission"}], "nextCursor": "c2"},
+    )
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/mission-test-configs?name=test+mission&cursor=c2",
+        json={"configs": [{"id": "cfg_2", "workspaceId": "w", "name": "test mission 2"}]},
+    )
+    c = client()
+    ids = [cfg.id for cfg in c.mission_test_configs.list(name="test mission")]
+    assert ids == ["cfg_1", "cfg_2"]
     c.close()

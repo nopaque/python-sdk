@@ -6,6 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-15
+
+### Fixed
+
+- `mission_test_configs.list()` / `list_page()` returned nothing. The API
+  responds with `{configs, nextCursor}`, but the SDK read `items`, so every
+  call came back empty whatever the filters.
+- `mission_tests.list()` / `list_page()` returned nothing, for the same
+  reason (`runs` rather than `items`). The paginator also sent `nextToken`
+  where the API expects `cursor`, and read `nextToken` where it returns
+  `nextCursor`, so only the first page could ever be fetched.
+- `compliance.list_reports()` / `list_reports_page()` returned nothing
+  (`audits` rather than `items`). The API nests the counts under `summary`;
+  they are still exposed as `passed`, `failed` and `total`.
+- `MissionTestRun` failed to validate real runs. Only the API's required
+  fields (`id`, `workspace_id`, `status`) are now required. `profile` accepts
+  the profile ID string the API sends, and `status` accepts `"pending"`. It
+  also gains `test_type`, `started_at`, `completed_at`, `phone_number`,
+  `config_id`, `voice_id`, `passed`, `pass_reasoning`, `pass_evidence` and
+  `error_message`.
+
 ## [0.9.0] - 2026-10-11
 
 ### Changed
@@ -309,7 +330,8 @@ moved into it and the API requires the mode.
 - Method-aware retry with exponential jitter and `Retry-After` honor.
 - Typed exception hierarchy.
 
-[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/nopaque/python-sdk/releases/tag/v0.9.1
 [0.9.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.9.0
 [0.8.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.8.0
 [0.4.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.4.0
