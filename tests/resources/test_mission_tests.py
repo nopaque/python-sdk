@@ -4,7 +4,7 @@ import json
 import pytest
 from pytest_httpx import HTTPXMock
 
-from nopaque import Nopaque, NotFoundError, ServerError
+from nopaque import AsyncNopaque, Nopaque, NotFoundError, ServerError
 
 
 def client():
@@ -201,3 +201,63 @@ def test_cancel_posts_to_cancel(httpx_mock: HTTPXMock):
     assert req.url.path == "/testing/mission-tests/mt_1/cancel"
     assert req.method == "POST"
     c.close()
+
+
+def test_list_sends_server_side_filters(httpx_mock: HTTPXMock):
+    # 2026-10-15 Walgreens: "can you use the filtering with listing runs?"
+    # Every filter goes to the api; nothing is filtered client-side.
+    httpx_mock.add_response(
+        url=(
+            "https://api.nopaque.co.uk/testing/mission-tests"
+            "?kind=freeform&configId=cfg_1&q=covid&phoneNumber=3301900&tags=vax%2Cregression"
+        ),
+        json={"runs": [{"id": "mt_1", "workspaceId": "w", "status": "completed", "configId": "cfg_1"}]},
+    )
+    c = client()
+    runs = list(
+        c.mission_tests.list(
+            kind="freeform",
+            config_id="cfg_1",
+            q="covid",
+            phone_number="3301900",
+            tags=["vax", "regression"],
+        )
+    )
+    assert [r.id for r in runs] == ["mt_1"]
+    c.close()
+
+
+def test_list_keeps_filters_on_every_page(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/mission-tests?configId=cfg_1",
+        json={"runs": [{"id": "mt_1", "workspaceId": "w", "status": "completed"}], "nextCursor": "c2"},
+    )
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/mission-tests?configId=cfg_1&cursor=c2",
+        json={"runs": [{"id": "mt_2", "workspaceId": "w", "status": "completed"}]},
+    )
+    c = client()
+    assert [r.id for r in c.mission_tests.list(config_id="cfg_1")] == ["mt_1", "mt_2"]
+    c.close()
+
+
+def test_list_page_accepts_tags_as_a_string(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/mission-tests?tags=vax&limit=5",
+        json={"runs": []},
+    )
+    c = client()
+    page = c.mission_tests.list_page(tags="vax", limit=5)
+    assert page.items == []
+    c.close()
+
+
+async def test_list_filters_async(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/mission-tests?configId=cfg_1&kind=freeform",
+        json={"runs": [{"id": "mt_1", "workspaceId": "w", "status": "completed"}]},
+    )
+    c = AsyncNopaque(api_key="k", max_retries=0)
+    ids = [r.id async for r in c.mission_tests.list(config_id="cfg_1", kind="freeform")]
+    assert ids == ["mt_1"]
+    await c.aclose()
