@@ -48,10 +48,11 @@ def test_create_sends_expected_body(httpx_mock: HTTPXMock):
 
 
 def test_list_returns_paginator(httpx_mock: HTTPXMock):
+    # The api's real envelope is `{runs, nextCursor}` and it pages on `cursor`.
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/mission-tests",
         json={
-            "items": [
+            "runs": [
                 {
                     "id": "mt_1",
                     "kind": "freeform",
@@ -65,12 +66,51 @@ def test_list_returns_paginator(httpx_mock: HTTPXMock):
                     "updatedAt": "",
                 }
             ],
-            "nextToken": None,
+            "nextCursor": "c2",
         },
+    )
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/mission-tests?cursor=c2",
+        json={"runs": [{"id": "mt_2", "workspaceId": "w", "status": "pending", "testType": "mission", "startedAt": ""}]},
     )
     c = client()
     ids = [r.id for r in c.mission_tests.list()]
-    assert ids == ["mt_1"]
+    assert ids == ["mt_1", "mt_2"]
+    c.close()
+
+
+def test_list_parses_a_run_launched_from_a_saved_config(httpx_mock: HTTPXMock):
+    # Shape of prod run 2bd58510: no kind/createdAt/updatedAt, `profile` is the
+    # profile ID string, status "cancelled". The old model required all of
+    # those and raised a ValidationError on real workspaces.
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/mission-tests",
+        json={
+            "runs": [
+                {
+                    "id": "2bd58510",
+                    "workspaceId": "w",
+                    "testType": "mission",
+                    "status": "cancelled",
+                    "startedAt": "2026-10-15T16:41:15.941Z",
+                    "completedAt": "2026-10-15T16:42:55.605Z",
+                    "configId": "cfg_1",
+                    "profile": "profile_abc",
+                    "mission": "say hello",
+                    "acceptance": "person answering says hello",
+                    "sector": "test sector",
+                    "phoneNumber": "+15550000000",
+                    "voiceId": "Telnyx.Ultra.x",
+                }
+            ],
+        },
+    )
+    c = client()
+    (run,) = list(c.mission_tests.list())
+    assert run.status == "cancelled"
+    assert run.profile == "profile_abc"
+    assert run.config_id == "cfg_1"
+    assert run.kind is None
     c.close()
 
 

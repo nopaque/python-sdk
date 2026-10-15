@@ -1,9 +1,9 @@
 """Models for /testing/compliance-* endpoints."""
 from __future__ import annotations
 
-from typing import List, Literal, Optional
+from typing import Any, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 _ALIAS_MAP = {
     "regulation_keys": "regulationKeys",
@@ -111,11 +111,29 @@ class ComplianceReport(_ComplianceBase):
 
 
 class ComplianceReportListItem(_ComplianceBase):
+    """One audited number from GET /testing/compliance-reports.
+
+    The api nests the counts (`summary: {ran, passed, failed}`, openapi
+    ComplianceAuditSummary); they are flattened here so `passed`, `failed` and
+    `total` stay the SDK's interface. `total` is `summary.ran`.
+    """
+
     phone_number: str
     passed: int
     failed: int
     total: int
     last_run_at: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def _flatten_summary(cls, data: Any) -> Any:
+        if isinstance(data, dict) and isinstance(data.get("summary"), dict):
+            summary = data["summary"]
+            data = {k: v for k, v in data.items() if k != "summary"}
+            data.setdefault("passed", summary.get("passed"))
+            data.setdefault("failed", summary.get("failed"))
+            data.setdefault("total", summary.get("ran"))
+        return data
 
 
 class GeneratePdfRequest(_ComplianceBase):

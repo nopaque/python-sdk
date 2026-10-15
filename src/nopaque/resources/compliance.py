@@ -89,12 +89,14 @@ class ComplianceResource(SyncResource):
             params["nextToken"] = next_token
 
         def fetch(p: dict) -> dict:
-            return self._transport.request(
+            raw = self._transport.request(
                 "GET",
                 "/testing/compliance-reports",
                 params=p,
                 request_options=request_options,
             )
+            # The api returns `{audits}` in one response, with no cursor.
+            return {"items": raw.get("audits", []), "nextToken": None}
 
         return SyncPaginator(
             fetch_page=fetch, params=params, model_cls=ComplianceReportListItem
@@ -118,8 +120,8 @@ class ComplianceResource(SyncResource):
             params=params,
             request_options=request_options,
         )
-        items = [ComplianceReportListItem.model_validate(i) for i in raw.get("items", [])]
-        return Page(items=items, next_token=raw.get("nextToken"))
+        items = [ComplianceReportListItem.model_validate(i) for i in raw.get("audits", [])]
+        return Page(items=items, next_token=None)
 
     def get_report(
         self, phone_number: str, *, request_options: RequestOptions | None = None
@@ -243,12 +245,14 @@ class AsyncComplianceResource(AsyncResource):
             params["nextToken"] = next_token
 
         async def fetch(p: dict) -> dict:
-            return await self._transport.request(
+            raw = await self._transport.request(
                 "GET",
                 "/testing/compliance-reports",
                 params=p,
                 request_options=request_options,
             )
+            # The api returns `{audits}` in one response, with no cursor.
+            return {"items": raw.get("audits", []), "nextToken": None}
 
         return AsyncPaginator(
             fetch_page=fetch, params=params, model_cls=ComplianceReportListItem
@@ -272,8 +276,8 @@ class AsyncComplianceResource(AsyncResource):
             params=params,
             request_options=request_options,
         )
-        items = [ComplianceReportListItem.model_validate(i) for i in raw.get("items", [])]
-        return Page(items=items, next_token=raw.get("nextToken"))
+        items = [ComplianceReportListItem.model_validate(i) for i in raw.get("audits", [])]
+        return Page(items=items, next_token=None)
 
     async def get_report(
         self, phone_number: str, *, request_options: RequestOptions | None = None

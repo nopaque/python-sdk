@@ -34,6 +34,19 @@ def _build_create_body(
     return request.model_dump(by_alias=True, exclude_none=True)
 
 
+def _apply_cursor(params: dict) -> dict:
+    """Translate the paginator's `nextToken` into the api's `cursor` param."""
+    p = dict(params)
+    if "nextToken" in p:
+        p["cursor"] = p.pop("nextToken")
+    return p
+
+
+def _to_page(raw: dict) -> dict:
+    """The api returns `{runs, nextCursor}`; the paginator expects `{items, nextToken}`."""
+    return {"items": raw.get("runs", []), "nextToken": raw.get("nextCursor")}
+
+
 class MissionTestsResource(SyncResource):
     """Synchronous /testing/mission-tests endpoints."""
 
@@ -51,9 +64,13 @@ class MissionTestsResource(SyncResource):
             params["nextToken"] = next_token
 
         def fetch(p: dict) -> dict:
-            return self._transport.request(
-                "GET", "/testing/mission-tests", params=p, request_options=request_options
+            raw = self._transport.request(
+                "GET",
+                "/testing/mission-tests",
+                params=_apply_cursor(p),
+                request_options=request_options,
             )
+            return _to_page(raw)
 
         return SyncPaginator(fetch_page=fetch, params=params, model_cls=MissionTestRun)
 
@@ -70,10 +87,13 @@ class MissionTestsResource(SyncResource):
         if next_token is not None:
             params["nextToken"] = next_token
         raw = self._transport.request(
-            "GET", "/testing/mission-tests", params=params, request_options=request_options
+            "GET",
+            "/testing/mission-tests",
+            params=_apply_cursor(params),
+            request_options=request_options,
         )
-        items = [MissionTestRun.model_validate(i) for i in raw.get("items", [])]
-        return Page(items=items, next_token=raw.get("nextToken"))
+        items = [MissionTestRun.model_validate(i) for i in raw.get("runs", [])]
+        return Page(items=items, next_token=raw.get("nextCursor"))
 
     def create(
         self,
@@ -140,9 +160,13 @@ class AsyncMissionTestsResource(AsyncResource):
             params["nextToken"] = next_token
 
         async def fetch(p: dict) -> dict:
-            return await self._transport.request(
-                "GET", "/testing/mission-tests", params=p, request_options=request_options
+            raw = await self._transport.request(
+                "GET",
+                "/testing/mission-tests",
+                params=_apply_cursor(p),
+                request_options=request_options,
             )
+            return _to_page(raw)
 
         return AsyncPaginator(fetch_page=fetch, params=params, model_cls=MissionTestRun)
 
@@ -159,10 +183,13 @@ class AsyncMissionTestsResource(AsyncResource):
         if next_token is not None:
             params["nextToken"] = next_token
         raw = await self._transport.request(
-            "GET", "/testing/mission-tests", params=params, request_options=request_options
+            "GET",
+            "/testing/mission-tests",
+            params=_apply_cursor(params),
+            request_options=request_options,
         )
-        items = [MissionTestRun.model_validate(i) for i in raw.get("items", [])]
-        return Page(items=items, next_token=raw.get("nextToken"))
+        items = [MissionTestRun.model_validate(i) for i in raw.get("runs", [])]
+        return Page(items=items, next_token=raw.get("nextCursor"))
 
     async def create(
         self,

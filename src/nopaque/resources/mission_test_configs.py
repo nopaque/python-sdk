@@ -95,7 +95,12 @@ def _build_update_body(
 
 
 def _apply_cursor(params: dict) -> dict:
-    """Translate the paginator's injected `nextToken` into the spec `cursor` param."""
+    """Translate the paginator's injected `nextToken` into the spec `cursor` param.
+
+    The api returns `{configs, nextCursor}` (listMissionTestConfigs), not the
+    `{items, nextToken}` envelope the paginator works in, so the fetchers
+    below translate both ways.
+    """
     p = dict(params)
     if "nextToken" in p:
         p["cursor"] = p.pop("nextToken")
@@ -145,7 +150,7 @@ class MissionTestConfigsResource(SyncResource):
                 request_options=request_options,
             )
             return {
-                "items": raw.get("items", []),
+                "items": raw.get("configs", []),
                 "nextToken": raw.get("nextCursor", raw.get("nextToken")),
             }
 
@@ -190,7 +195,7 @@ class MissionTestConfigsResource(SyncResource):
             params=params,
             request_options=request_options,
         )
-        items = [MissionTestConfigListItem.model_validate(i) for i in raw.get("items", [])]
+        items = [MissionTestConfigListItem.model_validate(i) for i in raw.get("configs", [])]
         return Page(items=items, next_token=raw.get("nextCursor", raw.get("nextToken")))
 
     def create(
@@ -338,7 +343,7 @@ class AsyncMissionTestConfigsResource(AsyncResource):
                 request_options=request_options,
             )
             return {
-                "items": raw.get("items", []),
+                "items": raw.get("configs", []),
                 "nextToken": raw.get("nextCursor", raw.get("nextToken")),
             }
 
@@ -383,7 +388,7 @@ class AsyncMissionTestConfigsResource(AsyncResource):
             params=params,
             request_options=request_options,
         )
-        items = [MissionTestConfigListItem.model_validate(i) for i in raw.get("items", [])]
+        items = [MissionTestConfigListItem.model_validate(i) for i in raw.get("configs", [])]
         return Page(items=items, next_token=raw.get("nextCursor", raw.get("nextToken")))
 
     async def create(

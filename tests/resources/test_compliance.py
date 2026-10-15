@@ -72,24 +72,26 @@ def test_run_surfaces_batch_size_exceeds_tier(httpx_mock: HTTPXMock):
 
 
 def test_list_reports_paginates(httpx_mock: HTTPXMock):
+    # The api's real shape (openapi ComplianceAuditSummary): `{audits}`, nested
+    # `summary`, no cursor. The fixture used to say `{items, nextToken}` with flat
+    # counts, which is why this passed while the SDK returned nothing against
+    # the live api.
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/compliance-reports",
         json={
-            "items": [
+            "audits": [
                 {
                     "phoneNumber": "+441234",
-                    "passed": 2,
-                    "failed": 3,
-                    "total": 5,
-                    "lastRunAt": "",
+                    "summary": {"ran": 5, "passed": 2, "failed": 3},
+                    "lastRunAt": "2026-05-03T10:00:00.000Z",
                 }
             ],
-            "nextToken": None,
         },
     )
     c = client()
-    out = [r.phone_number for r in c.compliance.list_reports()]
-    assert out == ["+441234"]
+    out = list(c.compliance.list_reports())
+    assert [r.phone_number for r in out] == ["+441234"]
+    assert (out[0].passed, out[0].failed, out[0].total) == (2, 3, 5)
     c.close()
 
 
