@@ -28,15 +28,31 @@ class _TestingBase(BaseModel):
 
 class TestConfig(_TestingBase):
     id: str
+    workspace_id: Optional[str] = None
     name: str
+    description: Optional[str] = None
     phone_number: Optional[str] = None
+    #: ``standard`` or ``parameterized``.
+    type: Optional[str] = None
+    #: Voice / data profile; ``standard`` configs only.
+    profile_id: Optional[str] = None
+    #: Parameter labels filled at run time; ``parameterized`` configs only.
+    required_parameters: Optional[List[str]] = None
+    #: Schedule that triggers automated runs.
+    schedule_id: Optional[str] = None
+    #: Whole-call ceiling in seconds. None means the tester default of 300.
+    max_duration_secs: Optional[int] = None
     steps: List[Any] = []
     #: Bring-your-own-carrier (invite-only): the carrier route this config's
     #: calls are dialled through, over the workspace's own SIP trunk. None when
     #: the config dials normally.
     carrier_route_id: Optional[str] = None
+    #: Bumped on every update.
+    version: Optional[int] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+    #: User ID of the creator.
+    created_by: Optional[str] = None
 
 
 class TestJob(_TestingBase):

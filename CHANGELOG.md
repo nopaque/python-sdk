@@ -6,6 +6,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `testing.configs.create()` / `update()` take every field the API accepts:
+  `description`, `type` (`"standard"` / `"parameterized"`), `profile_id`,
+  `required_parameters`, `schedule_id` and `max_duration_secs`, alongside the
+  existing `name`, `phone_number`, `steps` and `carrier_route_id`. Only the
+  arguments you pass are sent. On `update()`, `schedule_id=None` unlinks the
+  schedule and `max_duration_secs=None` resets the ceiling to the tester
+  default of 300; omit them to leave them unchanged.
+- `TestConfig` gains `description`, `type`, `profile_id`,
+  `required_parameters`, `schedule_id`, `max_duration_secs`, `workspace_id`,
+  `version` and `created_by`. These previously arrived only as raw camelCase
+  extras.
+
 ## [0.11.0] - 2026-10-25
 
 ### Added
