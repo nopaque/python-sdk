@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import builtins
-from typing import Any, Callable, Mapping, Sequence, Union
+from typing import Any, Callable, Literal, Mapping, Sequence, Union
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._polling import wait_for_async, wait_for_sync
@@ -105,6 +105,78 @@ def _apply_cursor(params: dict) -> dict:
 # Sentinel for update fields where an explicit ``None`` means "remove it"
 # server-side, distinct from "leave unchanged" (argument omitted).
 _UNSET: Any = object()
+
+
+ConfigType = Literal["standard", "parameterized"]
+
+
+def _build_config_create_body(
+    *,
+    name: str,
+    phone_number: str,
+    steps: builtins.list[Any],
+    description: str | None,
+    type: ConfigType | None,
+    profile_id: str | None,
+    required_parameters: Sequence[str] | None,
+    schedule_id: str | None,
+    max_duration_secs: int | None,
+    carrier_route_id: str | None,
+) -> dict:
+    body: dict = {"name": name, "phoneNumber": phone_number, "steps": steps}
+    if description is not None:
+        body["description"] = description
+    if type is not None:
+        body["type"] = type
+    if profile_id is not None:
+        body["profileId"] = profile_id
+    if required_parameters is not None:
+        body["requiredParameters"] = builtins.list(required_parameters)
+    if schedule_id is not None:
+        body["scheduleId"] = schedule_id
+    if max_duration_secs is not None:
+        body["maxDurationSecs"] = max_duration_secs
+    if carrier_route_id is not None:
+        body["carrierRouteId"] = carrier_route_id
+    return body
+
+
+def _build_config_update_body(
+    *,
+    name: str | None,
+    description: str | None,
+    phone_number: str | None,
+    type: ConfigType | None,
+    profile_id: str | None,
+    required_parameters: Sequence[str] | None,
+    steps: builtins.list[Any] | None,
+    schedule_id: Any,
+    max_duration_secs: Any,
+    carrier_route_id: Any,
+) -> dict:
+    body: dict = {}
+    if name is not None:
+        body["name"] = name
+    if description is not None:
+        body["description"] = description
+    if phone_number is not None:
+        body["phoneNumber"] = phone_number
+    if type is not None:
+        body["type"] = type
+    if profile_id is not None:
+        body["profileId"] = profile_id
+    if required_parameters is not None:
+        body["requiredParameters"] = builtins.list(required_parameters)
+    if steps is not None:
+        body["steps"] = steps
+    # Nullable on the wire: None clears, omitted (_UNSET) leaves unchanged.
+    if schedule_id is not _UNSET:
+        body["scheduleId"] = schedule_id
+    if max_duration_secs is not _UNSET:
+        body["maxDurationSecs"] = max_duration_secs
+    if carrier_route_id is not _UNSET:
+        body["carrierRouteId"] = carrier_route_id
+    return body
 
 CustomHeaders = Sequence[Union[CarrierCustomHeader, Mapping[str, str]]]
 
@@ -222,10 +294,24 @@ class _SyncConfigs:
         name: str,
         phone_number: str,
         steps: builtins.list[Any],
+        description: str | None = None,
+        type: ConfigType | None = None,
+        profile_id: str | None = None,
+        required_parameters: Sequence[str] | None = None,
+        schedule_id: str | None = None,
+        max_duration_secs: int | None = None,
         carrier_route_id: str | None = None,
         request_options: RequestOptions | None = None,
     ) -> TestConfig:
         """Create a test config.
+
+        Only the arguments you pass are sent. ``type`` is ``"standard"`` (the
+        server default) or ``"parameterized"``; a parameterized config lists the
+        labels it needs filled at run time in ``required_parameters``, while
+        ``profile_id`` applies to standard configs. ``schedule_id`` attaches a
+        schedule (``"template:<template-id>"`` creates one from a recurring
+        template). ``max_duration_secs`` (30-1800) is the whole-call ceiling;
+        the tester defaults to 300, and every ``hold`` step must fit inside it.
 
         ``carrier_route_id`` is bring-your-own-carrier (invite-only): dial this
         config's calls through one of the workspace's carrier routes, over the
@@ -233,9 +319,18 @@ class _SyncConfigs:
         checked on save (400 if it cannot be dialled), and a run whose route
         cannot be dialled is refused rather than placed normally.
         """
-        body: dict = {"name": name, "phoneNumber": phone_number, "steps": steps}
-        if carrier_route_id is not None:
-            body["carrierRouteId"] = carrier_route_id
+        body = _build_config_create_body(
+            name=name,
+            phone_number=phone_number,
+            steps=steps,
+            description=description,
+            type=type,
+            profile_id=profile_id,
+            required_parameters=required_parameters,
+            schedule_id=schedule_id,
+            max_duration_secs=max_duration_secs,
+            carrier_route_id=carrier_route_id,
+        )
         raw = self._transport.request(
             "POST",
             "/testing/configs",
@@ -249,26 +344,43 @@ class _SyncConfigs:
         config_id: str,
         *,
         name: str | None = None,
+        description: str | None = None,
         phone_number: str | None = None,
+        type: ConfigType | None = None,
+        profile_id: str | None = None,
+        required_parameters: Sequence[str] | None = None,
         steps: builtins.list[Any] | None = None,
+        schedule_id: Any = _UNSET,
+        max_duration_secs: Any = _UNSET,
         carrier_route_id: Any = _UNSET,
         request_options: RequestOptions | None = None,
     ) -> TestConfig:
         """Update a test config. Only supplied fields change.
 
-        ``carrier_route_id`` (bring-your-own-carrier, invite-only) sets the
-        carrier route to dial through. Pass ``None`` to remove it, so the
-        number is dialled normally again; omit it to leave it unchanged.
+        ``name``, ``description``, ``phone_number``, ``type``, ``profile_id``,
+        ``required_parameters`` and ``steps`` are sent only when not ``None``.
+
+        ``schedule_id``, ``max_duration_secs`` and ``carrier_route_id`` can be
+        cleared: pass ``None`` to clear, omit to leave unchanged.
+        ``schedule_id=None`` unlinks the schedule. ``max_duration_secs=None``
+        resets the ceiling to the tester default of 300; hold steps are
+        re-checked against the new ceiling, so lowering or clearing it below a
+        saved hold returns 400. ``carrier_route_id`` (bring-your-own-carrier,
+        invite-only) sets the carrier route to dial through; ``None`` removes
+        it, so the number is dialled normally again.
         """
-        body: dict = {}
-        if name is not None:
-            body["name"] = name
-        if phone_number is not None:
-            body["phoneNumber"] = phone_number
-        if steps is not None:
-            body["steps"] = steps
-        if carrier_route_id is not _UNSET:
-            body["carrierRouteId"] = carrier_route_id  # may be None to remove
+        body = _build_config_update_body(
+            name=name,
+            description=description,
+            phone_number=phone_number,
+            type=type,
+            profile_id=profile_id,
+            required_parameters=required_parameters,
+            steps=steps,
+            schedule_id=schedule_id,
+            max_duration_secs=max_duration_secs,
+            carrier_route_id=carrier_route_id,
+        )
         raw = self._transport.request(
             "PUT",
             f"/testing/configs/{config_id}",
@@ -771,10 +883,24 @@ class _AsyncConfigs:
         name: str,
         phone_number: str,
         steps: builtins.list[Any],
+        description: str | None = None,
+        type: ConfigType | None = None,
+        profile_id: str | None = None,
+        required_parameters: Sequence[str] | None = None,
+        schedule_id: str | None = None,
+        max_duration_secs: int | None = None,
         carrier_route_id: str | None = None,
         request_options: RequestOptions | None = None,
     ) -> TestConfig:
         """Create a test config.
+
+        Only the arguments you pass are sent. ``type`` is ``"standard"`` (the
+        server default) or ``"parameterized"``; a parameterized config lists the
+        labels it needs filled at run time in ``required_parameters``, while
+        ``profile_id`` applies to standard configs. ``schedule_id`` attaches a
+        schedule (``"template:<template-id>"`` creates one from a recurring
+        template). ``max_duration_secs`` (30-1800) is the whole-call ceiling;
+        the tester defaults to 300, and every ``hold`` step must fit inside it.
 
         ``carrier_route_id`` is bring-your-own-carrier (invite-only): dial this
         config's calls through one of the workspace's carrier routes, over the
@@ -782,9 +908,18 @@ class _AsyncConfigs:
         checked on save (400 if it cannot be dialled), and a run whose route
         cannot be dialled is refused rather than placed normally.
         """
-        body: dict = {"name": name, "phoneNumber": phone_number, "steps": steps}
-        if carrier_route_id is not None:
-            body["carrierRouteId"] = carrier_route_id
+        body = _build_config_create_body(
+            name=name,
+            phone_number=phone_number,
+            steps=steps,
+            description=description,
+            type=type,
+            profile_id=profile_id,
+            required_parameters=required_parameters,
+            schedule_id=schedule_id,
+            max_duration_secs=max_duration_secs,
+            carrier_route_id=carrier_route_id,
+        )
         raw = await self._transport.request(
             "POST",
             "/testing/configs",
@@ -798,26 +933,43 @@ class _AsyncConfigs:
         config_id: str,
         *,
         name: str | None = None,
+        description: str | None = None,
         phone_number: str | None = None,
+        type: ConfigType | None = None,
+        profile_id: str | None = None,
+        required_parameters: Sequence[str] | None = None,
         steps: builtins.list[Any] | None = None,
+        schedule_id: Any = _UNSET,
+        max_duration_secs: Any = _UNSET,
         carrier_route_id: Any = _UNSET,
         request_options: RequestOptions | None = None,
     ) -> TestConfig:
         """Update a test config. Only supplied fields change.
 
-        ``carrier_route_id`` (bring-your-own-carrier, invite-only) sets the
-        carrier route to dial through. Pass ``None`` to remove it, so the
-        number is dialled normally again; omit it to leave it unchanged.
+        ``name``, ``description``, ``phone_number``, ``type``, ``profile_id``,
+        ``required_parameters`` and ``steps`` are sent only when not ``None``.
+
+        ``schedule_id``, ``max_duration_secs`` and ``carrier_route_id`` can be
+        cleared: pass ``None`` to clear, omit to leave unchanged.
+        ``schedule_id=None`` unlinks the schedule. ``max_duration_secs=None``
+        resets the ceiling to the tester default of 300; hold steps are
+        re-checked against the new ceiling, so lowering or clearing it below a
+        saved hold returns 400. ``carrier_route_id`` (bring-your-own-carrier,
+        invite-only) sets the carrier route to dial through; ``None`` removes
+        it, so the number is dialled normally again.
         """
-        body: dict = {}
-        if name is not None:
-            body["name"] = name
-        if phone_number is not None:
-            body["phoneNumber"] = phone_number
-        if steps is not None:
-            body["steps"] = steps
-        if carrier_route_id is not _UNSET:
-            body["carrierRouteId"] = carrier_route_id  # may be None to remove
+        body = _build_config_update_body(
+            name=name,
+            description=description,
+            phone_number=phone_number,
+            type=type,
+            profile_id=profile_id,
+            required_parameters=required_parameters,
+            steps=steps,
+            schedule_id=schedule_id,
+            max_duration_secs=max_duration_secs,
+            carrier_route_id=carrier_route_id,
+        )
         raw = await self._transport.request(
             "PUT",
             f"/testing/configs/{config_id}",

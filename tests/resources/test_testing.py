@@ -706,3 +706,177 @@ def test_runs_get_without_carrier(httpx_mock: HTTPXMock):
     assert run.carrier is None
     assert run.call_telemetry is None
     c.close()
+
+
+# --- configs: full create/update field coverage ---
+
+_CONFIG_URL = "https://api.nopaque.co.uk/testing/configs"
+_FULL_CONFIG = {
+    "id": "cfg_1",
+    "workspaceId": "ws_1",
+    "name": "T1",
+    "description": "Main menu",
+    "phoneNumber": "+441",
+    "type": "parameterized",
+    "profileId": "prof_1",
+    "requiredParameters": ["accountNumber", "dob"],
+    "scheduleId": "sch_1",
+    "maxDurationSecs": 600,
+    "carrierRouteId": "rt_1",
+    "steps": [],
+    "version": 2,
+    "createdBy": "user_1",
+}
+_FULL_CREATE_KWARGS = dict(
+    name="T1",
+    phone_number="+441",
+    steps=[{"name": "Hold", "type": "hold", "durationSecs": 30}],
+    description="Main menu",
+    type="parameterized",
+    profile_id="prof_1",
+    required_parameters=("accountNumber", "dob"),
+    schedule_id="template:weekday-9am",
+    max_duration_secs=600,
+    carrier_route_id="rt_1",
+)
+_FULL_CREATE_BODY = {
+    "name": "T1",
+    "phoneNumber": "+441",
+    "steps": [{"name": "Hold", "type": "hold", "durationSecs": 30}],
+    "description": "Main menu",
+    "type": "parameterized",
+    "profileId": "prof_1",
+    "requiredParameters": ["accountNumber", "dob"],
+    "scheduleId": "template:weekday-9am",
+    "maxDurationSecs": 600,
+    "carrierRouteId": "rt_1",
+}
+
+
+def _assert_full_config(cfg):
+    assert cfg.workspace_id == "ws_1"
+    assert cfg.description == "Main menu"
+    assert cfg.type == "parameterized"
+    assert cfg.profile_id == "prof_1"
+    assert cfg.required_parameters == ["accountNumber", "dob"]
+    assert cfg.schedule_id == "sch_1"
+    assert cfg.max_duration_secs == 600
+    assert cfg.version == 2
+    assert cfg.created_by == "user_1"
+    assert cfg.model_extra == {}
+
+
+def test_configs_create_sends_all_fields(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=_CONFIG_URL, method="POST", json=_FULL_CONFIG)
+    c = client()
+    cfg = c.testing.configs.create(**_FULL_CREATE_KWARGS)
+    assert json.loads(httpx_mock.get_requests()[0].content) == _FULL_CREATE_BODY
+    _assert_full_config(cfg)
+    c.close()
+
+
+def test_configs_create_sends_only_required_by_default(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=_CONFIG_URL, method="POST", json={"id": "cfg_1", "name": "T1"})
+    c = client()
+    cfg = c.testing.configs.create(name="T1", phone_number="+441", steps=[])
+    assert json.loads(httpx_mock.get_requests()[0].content) == {
+        "name": "T1",
+        "phoneNumber": "+441",
+        "steps": [],
+    }
+    assert cfg.max_duration_secs is None and cfg.schedule_id is None
+    c.close()
+
+
+def test_configs_update_sends_all_fields(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=f"{_CONFIG_URL}/cfg_1", method="PUT", json=_FULL_CONFIG)
+    c = client()
+    cfg = c.testing.configs.update(
+        "cfg_1",
+        name="T1",
+        description="Main menu",
+        phone_number="+441",
+        type="standard",
+        profile_id="prof_1",
+        required_parameters=["accountNumber"],
+        steps=[],
+        schedule_id="sch_1",
+        max_duration_secs=900,
+        carrier_route_id="rt_1",
+    )
+    assert json.loads(httpx_mock.get_requests()[0].content) == {
+        "name": "T1",
+        "description": "Main menu",
+        "phoneNumber": "+441",
+        "type": "standard",
+        "profileId": "prof_1",
+        "requiredParameters": ["accountNumber"],
+        "steps": [],
+        "scheduleId": "sch_1",
+        "maxDurationSecs": 900,
+        "carrierRouteId": "rt_1",
+    }
+    _assert_full_config(cfg)
+    c.close()
+
+
+def test_configs_update_omit_vs_null(httpx_mock: HTTPXMock):
+    url = f"{_CONFIG_URL}/cfg_1"
+    for _ in range(3):
+        httpx_mock.add_response(url=url, method="PUT", json={"id": "cfg_1", "name": "T1"})
+    c = client()
+    # None clears the nullable fields.
+    c.testing.configs.update(
+        "cfg_1", schedule_id=None, max_duration_secs=None, carrier_route_id=None
+    )
+    # Omitted nullable fields are not sent at all.
+    c.testing.configs.update("cfg_1", description="d")
+    # None on a non-nullable field means "leave unchanged", not null.
+    c.testing.configs.update(
+        "cfg_1", description=None, type=None, profile_id=None, required_parameters=None
+    )
+    bodies = [json.loads(r.content) for r in httpx_mock.get_requests()]
+    assert bodies[0] == {"scheduleId": None, "maxDurationSecs": None, "carrierRouteId": None}
+    assert bodies[1] == {"description": "d"}
+    assert bodies[2] == {}
+    c.close()
+
+
+async def test_async_configs_create_sends_all_fields(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=_CONFIG_URL, method="POST", json=_FULL_CONFIG)
+    c = AsyncNopaque(api_key="k", max_retries=0)
+    cfg = await c.testing.configs.create(**_FULL_CREATE_KWARGS)
+    assert json.loads(httpx_mock.get_requests()[0].content) == _FULL_CREATE_BODY
+    _assert_full_config(cfg)
+    await c.aclose()
+
+
+async def test_async_configs_update_fields_and_omit_vs_null(httpx_mock: HTTPXMock):
+    url = f"{_CONFIG_URL}/cfg_1"
+    for _ in range(3):
+        httpx_mock.add_response(url=url, method="PUT", json=_FULL_CONFIG)
+    c = AsyncNopaque(api_key="k", max_retries=0)
+    cfg = await c.testing.configs.update(
+        "cfg_1",
+        description="Main menu",
+        type="parameterized",
+        profile_id="prof_1",
+        required_parameters=["dob"],
+        schedule_id="sch_1",
+        max_duration_secs=600,
+    )
+    _assert_full_config(cfg)
+    await c.testing.configs.update("cfg_1", schedule_id=None, max_duration_secs=None)
+    await c.testing.configs.update("cfg_1", name="T1")
+    bodies = [json.loads(r.content) for r in httpx_mock.get_requests()]
+    assert bodies[0] == {
+        "description": "Main menu",
+        "type": "parameterized",
+        "profileId": "prof_1",
+        "requiredParameters": ["dob"],
+        "scheduleId": "sch_1",
+        "maxDurationSecs": 600,
+    }
+    assert bodies[1] == {"scheduleId": None, "maxDurationSecs": None}
+    assert bodies[2] == {"name": "T1"}
+    await c.aclose()

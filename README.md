@@ -114,6 +114,30 @@ for voice in voices.voices:
 print("default:", voices.default_voice_id)
 ```
 
+## Test configs
+
+`client.testing.configs` holds reusable scripted test plans. `create()` takes
+`name`, `phone_number` and `steps`, plus optional `description`, `type`
+(`"standard"` or `"parameterized"`), `profile_id`, `required_parameters`,
+`schedule_id`, `max_duration_secs` (30-1800, whole-call ceiling; the tester
+defaults to 300) and `carrier_route_id`. Only the arguments you pass are sent.
+
+```python
+config = client.testing.configs.create(
+    name="Transfer to agent",
+    phone_number="+442012345678",
+    max_duration_secs=900,
+    steps=[
+        {"name": "Main menu", "type": "dtmf", "expected": "Press 1 for sales", "dtmf": "1"},
+        {"name": "Hold music", "type": "hold", "durationSecs": 600},
+    ],
+)
+
+# update() changes only what you pass. schedule_id, max_duration_secs and
+# carrier_route_id can also be cleared with None; omit them to leave them as is.
+client.testing.configs.update(config.id, description="Nightly", max_duration_secs=None)
+```
+
 ## Bring your own carrier
 
 Invite-only. A workspace can dial its tests through its own SIP trunk (a
