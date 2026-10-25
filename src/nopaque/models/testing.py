@@ -3,6 +3,8 @@ from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
+from .mapping import CallTelemetry
+
 
 def _alias(name: str) -> str:
     """snake_case field name -> camelCase wire name.
@@ -29,6 +31,10 @@ class TestConfig(_TestingBase):
     name: str
     phone_number: Optional[str] = None
     steps: List[Any] = []
+    #: Bring-your-own-carrier (invite-only): the carrier route this config's
+    #: calls are dialled through, over the workspace's own SIP trunk. None when
+    #: the config dials normally.
+    carrier_route_id: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -64,6 +70,27 @@ class TestRun(_TestingBase):
     total_steps: Optional[int] = None
     passed_steps: Optional[int] = None
     failed_steps: Optional[int] = None
+    #: Call-level telemetry. The hang-up outcome is under
+    #: ``call_telemetry.telephony`` as the wire keys ``hangupCause``,
+    #: ``hangupSource`` and ``sipHangupCause``.
+    call_telemetry: Optional[CallTelemetry] = None
+    #: Bring-your-own-carrier: the route this run was dialled through, recorded
+    #: at dispatch. None when the run was dialled normally.
+    carrier: Optional["TestRunCarrier"] = None
+
+
+class TestRunCarrier(_TestingBase):
+    """The carrier route a run was dialled through (``TestRun.carrier``).
+
+    Still names that route after the config's ``carrier_route_id`` is changed
+    or removed.
+    """
+
+    integration_id: str
+    route_id: str
+
+
+TestRun.model_rebuild()
 
 
 class TestStepResult(_TestingBase):
@@ -206,3 +233,63 @@ class ListVoicesResponse(_TestingBase):
 
     voices: List[Voice]
     default_voice_id: Optional[str] = None
+
+
+# ==== Bring your own carrier (invite-only) ====================================
+
+
+class CarrierCustomHeader(_TestingBase):
+    """An ``X-`` header sent on the INVITE, for SBCs that route on a header."""
+
+    name: str
+    value: str
+
+
+class CarrierRoute(_TestingBase):
+    """One vendor reached through a carrier integration, selected by its tech
+    prefix. Pass its ``route_id`` as a test config's ``carrier_route_id`` to
+    dial through it.
+    """
+
+    route_id: str
+    integration_id: str
+    name: str
+    #: Dialled in front of the destination number
+    #: (``sip:{tech_prefix}{e164}@{host}:{port}``). Empty means the trunk's
+    #: default route.
+    tech_prefix: str = ""
+    custom_headers: List[CarrierCustomHeader] = []
+    enabled: Optional[bool] = None
+    #: Whether a run naming this route would be placed now: the route is
+    #: enabled and its integration is ``active``. Checked again when a run
+    #: starts.
+    dialable: Optional[bool] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+class CarrierIntegration(_TestingBase):
+    """One of the workspace's own SIP trunks. Set up and managed by nopaque;
+    read-only through the API. Credentials are never returned:
+    ``has_credentials`` says whether the trunk uses digest authentication.
+    """
+
+    integration_id: str
+    name: str
+    host: Optional[str] = None
+    port: Optional[int] = None
+    transport: Optional[Literal["UDP", "TCP", "TLS"]] = None
+    media_encryption: Optional[Literal["disabled", "SRTP"]] = None
+    #: Caller ID sent on the INVITE, when set.
+    from_number: Optional[str] = None
+    #: ``draft`` | ``verified`` | ``active`` | ``disabled``. Only ``active``
+    #: trunks can be dialled.
+    status: Optional[str] = None
+    verified_at: Optional[str] = None
+    has_credentials: Optional[bool] = None
+    max_concurrent_calls: Optional[int] = None
+    daily_minutes: Optional[int] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    #: Sorted by name. Includes routes that cannot be dialled; see ``dialable``.
+    routes: List[CarrierRoute] = []

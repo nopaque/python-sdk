@@ -1,6 +1,9 @@
+import json
+
+import pytest
 from pytest_httpx import HTTPXMock
 
-from nopaque import AsyncNopaque, Nopaque
+from nopaque import AsyncNopaque, CarrierCustomHeader, Nopaque
 
 
 def client():
@@ -403,3 +406,303 @@ async def test_list_voices_async(httpx_mock: HTTPXMock):
     r = await c.testing.list_voices()
     assert r.voices[0].voice_id == "v1"
     await c.aclose()
+
+
+# --- bring your own carrier ---
+
+BASE = "https://api.nopaque.co.uk/testing/carrier-integrations"
+
+ROUTE = {
+    "routeId": "rt_1",
+    "integrationId": "ci_1",
+    "name": "Vendor X premium",
+    "techPrefix": "R7Q2#",
+    "customHeaders": [{"name": "X-Vendor-Route", "value": "vx-premium"}],
+    "enabled": True,
+    "dialable": True,
+    "createdAt": "2026-10-01T00:00:00Z",
+    "updatedAt": "2026-10-01T00:00:00Z",
+}
+
+INTEGRATION = {
+    "integrationId": "ci_1",
+    "name": "Integral London SBC",
+    "host": "sbc.example.net",
+    "port": 5060,
+    "transport": "UDP",
+    "mediaEncryption": "disabled",
+    "status": "active",
+    "hasCredentials": False,
+    "maxConcurrentCalls": 5,
+    "dailyMinutes": 300,
+    "createdAt": "2026-10-01T00:00:00Z",
+    "updatedAt": "2026-10-01T00:00:00Z",
+    "routes": [ROUTE],
+}
+
+
+def test_carrier_integrations_list(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=BASE, method="GET", json={"integrations": [INTEGRATION]})
+    c = client()
+    out = c.testing.carrier_integrations.list()
+    assert len(out) == 1
+    ci = out[0]
+    assert ci.integration_id == "ci_1"
+    assert ci.status == "active"
+    assert ci.max_concurrent_calls == 5
+    assert ci.daily_minutes == 300
+    assert ci.has_credentials is False
+    assert ci.routes[0].route_id == "rt_1"
+    assert ci.routes[0].tech_prefix == "R7Q2#"
+    assert ci.routes[0].custom_headers[0].name == "X-Vendor-Route"
+    assert ci.routes[0].dialable is True
+    c.close()
+
+
+def test_carrier_integrations_list_empty(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=BASE, json={"integrations": []})
+    c = client()
+    assert c.testing.carrier_integrations.list() == []
+    c.close()
+
+
+def test_carrier_integrations_get(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=f"{BASE}/ci_1", json={"integration": INTEGRATION})
+    c = client()
+    ci = c.testing.carrier_integrations.get("ci_1")
+    assert ci.integration_id == "ci_1"
+    assert ci.host == "sbc.example.net"
+    assert ci.routes[0].route_id == "rt_1"
+    c.close()
+
+
+def test_carrier_routes_list(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=f"{BASE}/ci_1/routes", json={"routes": [ROUTE]})
+    c = client()
+    routes = c.testing.carrier_integrations.routes.list("ci_1")
+    assert [r.route_id for r in routes] == ["rt_1"]
+    c.close()
+
+
+def test_carrier_routes_get(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=f"{BASE}/ci_1/routes/rt_1", json={"route": ROUTE})
+    c = client()
+    r = c.testing.carrier_integrations.routes.get("ci_1", "rt_1")
+    assert r.route_id == "rt_1"
+    assert r.integration_id == "ci_1"
+    c.close()
+
+
+def test_carrier_routes_create(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE}/ci_1/routes", method="POST", status_code=201, json={"route": ROUTE}
+    )
+    c = client()
+    r = c.testing.carrier_integrations.routes.create(
+        "ci_1",
+        name="Vendor X premium",
+        tech_prefix="R7Q2#",
+        custom_headers=[{"name": "X-Vendor-Route", "value": "vx-premium"}],
+    )
+    assert r.route_id == "rt_1"
+    body = json.loads(httpx_mock.get_requests()[0].content)
+    assert body == {
+        "name": "Vendor X premium",
+        "techPrefix": "R7Q2#",
+        "customHeaders": [{"name": "X-Vendor-Route", "value": "vx-premium"}],
+    }
+    c.close()
+
+
+def test_carrier_routes_create_sends_only_name_by_default(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE}/ci_1/routes", method="POST", status_code=201, json={"route": ROUTE}
+    )
+    c = client()
+    c.testing.carrier_integrations.routes.create("ci_1", name="Default")
+    assert json.loads(httpx_mock.get_requests()[0].content) == {"name": "Default"}
+    c.close()
+
+
+def test_carrier_routes_update(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE}/ci_1/routes/rt_1",
+        method="PATCH",
+        json={"route": {**ROUTE, "enabled": False, "dialable": False, "customHeaders": []}},
+    )
+    c = client()
+    r = c.testing.carrier_integrations.routes.update(
+        "ci_1",
+        "rt_1",
+        enabled=False,
+        custom_headers=[CarrierCustomHeader(name="X-A", value="b")],
+    )
+    assert r.enabled is False
+    assert r.dialable is False
+    body = json.loads(httpx_mock.get_requests()[0].content)
+    assert body == {"enabled": False, "customHeaders": [{"name": "X-A", "value": "b"}]}
+    c.close()
+
+
+def test_carrier_routes_update_requires_a_field():
+    c = client()
+    with pytest.raises(ValueError):
+        c.testing.carrier_integrations.routes.update("ci_1", "rt_1")
+    c.close()
+
+
+async def test_async_carrier_integrations(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url=BASE, json={"integrations": [INTEGRATION]})
+    httpx_mock.add_response(url=f"{BASE}/ci_1", json={"integration": INTEGRATION})
+    httpx_mock.add_response(url=f"{BASE}/ci_1/routes", json={"routes": [ROUTE]})
+    httpx_mock.add_response(url=f"{BASE}/ci_1/routes/rt_1", json={"route": ROUTE})
+    httpx_mock.add_response(
+        url=f"{BASE}/ci_1/routes", method="POST", status_code=201, json={"route": ROUTE}
+    )
+    httpx_mock.add_response(
+        url=f"{BASE}/ci_1/routes/rt_1", method="PATCH", json={"route": {**ROUTE, "name": "New"}}
+    )
+    c = AsyncNopaque(api_key="k", max_retries=0)
+    ci = c.testing.carrier_integrations
+    assert (await ci.list())[0].integration_id == "ci_1"
+    assert (await ci.get("ci_1")).name == "Integral London SBC"
+    assert (await ci.routes.list("ci_1"))[0].route_id == "rt_1"
+    assert (await ci.routes.get("ci_1", "rt_1")).tech_prefix == "R7Q2#"
+    created = await ci.routes.create("ci_1", name="Vendor X premium", tech_prefix="R7Q2#")
+    assert created.route_id == "rt_1"
+    updated = await ci.routes.update("ci_1", "rt_1", name="New")
+    assert updated.name == "New"
+    await c.aclose()
+
+
+def test_configs_create_with_carrier_route(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/configs",
+        method="POST",
+        json={"id": "cfg_1", "name": "T1", "phoneNumber": "+441", "carrierRouteId": "rt_1"},
+    )
+    c = client()
+    cfg = c.testing.configs.create(
+        name="T1", phone_number="+441", steps=[], carrier_route_id="rt_1"
+    )
+    assert cfg.carrier_route_id == "rt_1"
+    body = json.loads(httpx_mock.get_requests()[0].content)
+    assert body["carrierRouteId"] == "rt_1"
+    c.close()
+
+
+def test_configs_create_omits_carrier_route_by_default(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/configs",
+        method="POST",
+        json={"id": "cfg_1", "name": "T1"},
+    )
+    c = client()
+    cfg = c.testing.configs.create(name="T1", phone_number="+441", steps=[])
+    assert cfg.carrier_route_id is None
+    assert "carrierRouteId" not in json.loads(httpx_mock.get_requests()[0].content)
+    c.close()
+
+
+def test_configs_update_carrier_route_set_remove_and_leave(httpx_mock: HTTPXMock):
+    url = "https://api.nopaque.co.uk/testing/configs/cfg_1"
+    for _ in range(3):
+        httpx_mock.add_response(url=url, method="PUT", json={"id": "cfg_1", "name": "T1"})
+    c = client()
+    c.testing.configs.update("cfg_1", carrier_route_id="rt_2")
+    c.testing.configs.update("cfg_1", carrier_route_id=None)
+    c.testing.configs.update("cfg_1", name="T1")
+    bodies = [json.loads(r.content) for r in httpx_mock.get_requests()]
+    assert bodies[0] == {"carrierRouteId": "rt_2"}
+    assert bodies[1] == {"carrierRouteId": None}
+    assert bodies[2] == {"name": "T1"}
+    c.close()
+
+
+async def test_async_configs_carrier_route(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/configs",
+        method="POST",
+        json={"id": "cfg_1", "name": "T1", "carrierRouteId": "rt_1"},
+    )
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/configs/cfg_1",
+        method="PUT",
+        json={"id": "cfg_1", "name": "T1"},
+    )
+    c = AsyncNopaque(api_key="k", max_retries=0)
+    cfg = await c.testing.configs.create(
+        name="T1", phone_number="+441", steps=[], carrier_route_id="rt_1"
+    )
+    assert cfg.carrier_route_id == "rt_1"
+    await c.testing.configs.update("cfg_1", carrier_route_id=None)
+    bodies = [json.loads(r.content) for r in httpx_mock.get_requests()]
+    assert bodies[0]["carrierRouteId"] == "rt_1"
+    assert bodies[1] == {"carrierRouteId": None}
+    await c.aclose()
+
+
+def test_runs_get_exposes_dtmf_steps_and_carrier_outcome(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/runs/run_1",
+        json={
+            "id": "run_1",
+            "workspaceId": "w",
+            "status": "completed",
+            "outcome": "FAIL",
+            "startedAt": "2026-10-01T00:00:00Z",
+            "carrier": {"integrationId": "ci_1", "routeId": "rt_1"},
+            "callTelemetry": {
+                "schemaVersion": 1,
+                "telephony": {
+                    "hangupCause": "normal_clearing",
+                    "hangupSource": "callee",
+                    "sipHangupCause": "200",
+                },
+            },
+            "stepResults": [
+                {
+                    "id": "s1",
+                    "runId": "run_1",
+                    "stepIndex": 0,
+                    "stepId": "st1",
+                    "stepName": "Press 1",
+                    "outcome": "FAIL",
+                    "expectedTranscript": "Thank you",
+                    "actualTranscript": "Sorry, I didn't get that",
+                    "similarity": 12.5,
+                    "threshold": 80,
+                    "actionType": "dtmf",
+                    "actionValue": "1",
+                    "createdAt": "2026-10-01T00:00:01Z",
+                }
+            ],
+        },
+    )
+    c = client()
+    run = c.testing.runs.get("run_1")
+    assert run.carrier is not None
+    assert run.carrier.integration_id == "ci_1"
+    assert run.carrier.route_id == "rt_1"
+    assert run.call_telemetry is not None
+    assert run.call_telemetry.telephony is not None
+    assert run.call_telemetry.telephony["sipHangupCause"] == "200"
+    assert run.call_telemetry.telephony["hangupCause"] == "normal_clearing"
+    step = run.step_results[0]
+    assert (step.action_type, step.action_value, step.outcome) == ("dtmf", "1", "FAIL")
+    assert step.actual_transcript == "Sorry, I didn't get that"
+    assert step.expected_transcript == "Thank you"
+    assert step.similarity == 12.5
+    c.close()
+
+
+def test_runs_get_without_carrier(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/runs/run_2",
+        json={"id": "run_2", "status": "running"},
+    )
+    c = client()
+    run = c.testing.runs.get("run_2")
+    assert run.carrier is None
+    assert run.call_telemetry is None
+    c.close()

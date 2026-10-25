@@ -1,8 +1,9 @@
-"""Testing resource - /testing/configs, /testing/jobs, /testing/runs."""
+"""Testing resource - /testing/configs, /testing/jobs, /testing/runs,
+/testing/carrier-integrations."""
 from __future__ import annotations
 
 import builtins
-from typing import Any, Callable
+from typing import Any, Callable, Mapping, Sequence, Union
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._polling import wait_for_async, wait_for_sync
@@ -10,6 +11,9 @@ from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
 from .._transport import AsyncTransport, SyncTransport
 from ..models.testing import (
+    CarrierCustomHeader,
+    CarrierIntegration,
+    CarrierRoute,
     ListVoicesResponse,
     MissionTestRunResponse,
     TestConfig,
@@ -98,6 +102,64 @@ def _apply_cursor(params: dict) -> dict:
     return p
 
 
+# Sentinel for update fields where an explicit ``None`` means "remove it"
+# server-side, distinct from "leave unchanged" (argument omitted).
+_UNSET: Any = object()
+
+CustomHeaders = Sequence[Union[CarrierCustomHeader, Mapping[str, str]]]
+
+
+def _custom_headers_body(headers: CustomHeaders) -> builtins.list[dict]:
+    """Accept ``CarrierCustomHeader`` models or plain ``{name, value}`` dicts."""
+    out: builtins.list[dict] = []
+    for h in headers:
+        if isinstance(h, CarrierCustomHeader):
+            out.append({"name": h.name, "value": h.value})
+        else:
+            out.append({"name": h["name"], "value": h["value"]})
+    return out
+
+
+def _build_route_create_body(
+    *,
+    name: str,
+    tech_prefix: str | None,
+    custom_headers: CustomHeaders | None,
+    enabled: bool | None,
+) -> dict:
+    body: dict = {"name": name}
+    if tech_prefix is not None:
+        body["techPrefix"] = tech_prefix
+    if custom_headers is not None:
+        body["customHeaders"] = _custom_headers_body(custom_headers)
+    if enabled is not None:
+        body["enabled"] = enabled
+    return body
+
+
+def _build_route_update_body(
+    *,
+    name: str | None,
+    tech_prefix: str | None,
+    custom_headers: CustomHeaders | None,
+    enabled: bool | None,
+) -> dict:
+    body: dict = {}
+    if name is not None:
+        body["name"] = name
+    if tech_prefix is not None:
+        body["techPrefix"] = tech_prefix
+    if custom_headers is not None:
+        body["customHeaders"] = _custom_headers_body(custom_headers)
+    if enabled is not None:
+        body["enabled"] = enabled
+    if not body:
+        raise ValueError(
+            "Pass at least one of name, tech_prefix, custom_headers or enabled"
+        )
+    return body
+
+
 # ==== Sync sub-namespaces =====================================================
 
 
@@ -160,12 +222,24 @@ class _SyncConfigs:
         name: str,
         phone_number: str,
         steps: builtins.list[Any],
+        carrier_route_id: str | None = None,
         request_options: RequestOptions | None = None,
     ) -> TestConfig:
+        """Create a test config.
+
+        ``carrier_route_id`` is bring-your-own-carrier (invite-only): dial this
+        config's calls through one of the workspace's carrier routes, over the
+        workspace's own SIP trunk, instead of nopaque's network. The route is
+        checked on save (400 if it cannot be dialled), and a run whose route
+        cannot be dialled is refused rather than placed normally.
+        """
+        body: dict = {"name": name, "phoneNumber": phone_number, "steps": steps}
+        if carrier_route_id is not None:
+            body["carrierRouteId"] = carrier_route_id
         raw = self._transport.request(
             "POST",
             "/testing/configs",
-            json={"name": name, "phoneNumber": phone_number, "steps": steps},
+            json=body,
             request_options=request_options,
         )
         return TestConfig.model_validate(raw)
@@ -177,8 +251,15 @@ class _SyncConfigs:
         name: str | None = None,
         phone_number: str | None = None,
         steps: builtins.list[Any] | None = None,
+        carrier_route_id: Any = _UNSET,
         request_options: RequestOptions | None = None,
     ) -> TestConfig:
+        """Update a test config. Only supplied fields change.
+
+        ``carrier_route_id`` (bring-your-own-carrier, invite-only) sets the
+        carrier route to dial through. Pass ``None`` to remove it, so the
+        number is dialled normally again; omit it to leave it unchanged.
+        """
         body: dict = {}
         if name is not None:
             body["name"] = name
@@ -186,6 +267,8 @@ class _SyncConfigs:
             body["phoneNumber"] = phone_number
         if steps is not None:
             body["steps"] = steps
+        if carrier_route_id is not _UNSET:
+            body["carrierRouteId"] = carrier_route_id  # may be None to remove
         raw = self._transport.request(
             "PUT",
             f"/testing/configs/{config_id}",
@@ -422,14 +505,143 @@ class _SyncRuns:
         )
 
 
+class _SyncCarrierRoutes:
+    """Routes on a carrier integration — /testing/carrier-integrations/{id}/routes."""
+
+    def __init__(self, transport: SyncTransport) -> None:
+        self._transport = transport
+
+    def list(
+        self, integration_id: str, *, request_options: RequestOptions | None = None
+    ) -> builtins.list[CarrierRoute]:
+        """All routes on an integration, sorted by name. Not paginated."""
+        raw = self._transport.request(
+            "GET",
+            f"/testing/carrier-integrations/{integration_id}/routes",
+            request_options=request_options,
+        )
+        return [CarrierRoute.model_validate(r) for r in raw.get("routes", [])]
+
+    def get(
+        self,
+        integration_id: str,
+        route_id: str,
+        *,
+        request_options: RequestOptions | None = None,
+    ) -> CarrierRoute:
+        raw = self._transport.request(
+            "GET",
+            f"/testing/carrier-integrations/{integration_id}/routes/{route_id}",
+            request_options=request_options,
+        )
+        return CarrierRoute.model_validate(raw.get("route", raw))
+
+    def create(
+        self,
+        integration_id: str,
+        *,
+        name: str,
+        tech_prefix: str | None = None,
+        custom_headers: CustomHeaders | None = None,
+        enabled: bool | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> CarrierRoute:
+        """Add a route to an integration.
+
+        ``tech_prefix`` (up to 16 of ``0-9A-Za-z#*``) is dialled in front of the
+        destination number; empty or omitted means the trunk's default route.
+        ``custom_headers`` are ``X-`` headers sent on the INVITE, as
+        ``CarrierCustomHeader`` models or ``{"name": ..., "value": ...}`` dicts
+        (at most 10). Use the returned ``route_id`` as a test config's
+        ``carrier_route_id``.
+        """
+        raw = self._transport.request(
+            "POST",
+            f"/testing/carrier-integrations/{integration_id}/routes",
+            json=_build_route_create_body(
+                name=name,
+                tech_prefix=tech_prefix,
+                custom_headers=custom_headers,
+                enabled=enabled,
+            ),
+            request_options=request_options,
+        )
+        return CarrierRoute.model_validate(raw.get("route", raw))
+
+    def update(
+        self,
+        integration_id: str,
+        route_id: str,
+        *,
+        name: str | None = None,
+        tech_prefix: str | None = None,
+        custom_headers: CustomHeaders | None = None,
+        enabled: bool | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> CarrierRoute:
+        """Change a route. Send only what changes; at least one field.
+
+        ``tech_prefix=""`` switches to the trunk's default route and
+        ``custom_headers=[]`` removes all headers. ``enabled=False`` turns the
+        route off: runs that name it are refused, never dialled another way.
+        """
+        body = _build_route_update_body(
+            name=name,
+            tech_prefix=tech_prefix,
+            custom_headers=custom_headers,
+            enabled=enabled,
+        )
+        raw = self._transport.request(
+            "PATCH",
+            f"/testing/carrier-integrations/{integration_id}/routes/{route_id}",
+            json=body,
+            request_options=request_options,
+        )
+        return CarrierRoute.model_validate(raw.get("route", raw))
+
+
+class _SyncCarrierIntegrations:
+    """Bring-your-own-carrier (invite-only): the workspace's own SIP trunks —
+    /testing/carrier-integrations. Trunks are set up by nopaque and read-only
+    here; their routes are managed under ``.routes``.
+    """
+
+    def __init__(self, transport: SyncTransport) -> None:
+        self._transport = transport
+        self.routes = _SyncCarrierRoutes(transport)
+
+    def list(
+        self, *, request_options: RequestOptions | None = None
+    ) -> builtins.list[CarrierIntegration]:
+        """All of the workspace's carrier integrations, each with its routes,
+        sorted by name. Not paginated; empty when the workspace has none.
+        """
+        raw = self._transport.request(
+            "GET", "/testing/carrier-integrations", request_options=request_options
+        )
+        return [CarrierIntegration.model_validate(i) for i in raw.get("integrations", [])]
+
+    def get(
+        self, integration_id: str, *, request_options: RequestOptions | None = None
+    ) -> CarrierIntegration:
+        raw = self._transport.request(
+            "GET",
+            f"/testing/carrier-integrations/{integration_id}",
+            request_options=request_options,
+        )
+        return CarrierIntegration.model_validate(raw.get("integration", raw))
+
+
 class TestingResource(SyncResource):
-    """Synchronous /testing/* endpoints. Nested: configs, jobs, runs."""
+    """Synchronous /testing/* endpoints. Nested: configs, jobs, runs,
+    carrier_integrations."""
 
     def __init__(self, transport: SyncTransport) -> None:
         super().__init__(transport)
         self.configs = _SyncConfigs(transport)
         self.jobs = _SyncJobs(transport)
         self.runs = _SyncRuns(transport)
+        self.carrier_integrations = _SyncCarrierIntegrations(transport)
 
     def aggregate_runs(
         self,
@@ -559,12 +771,24 @@ class _AsyncConfigs:
         name: str,
         phone_number: str,
         steps: builtins.list[Any],
+        carrier_route_id: str | None = None,
         request_options: RequestOptions | None = None,
     ) -> TestConfig:
+        """Create a test config.
+
+        ``carrier_route_id`` is bring-your-own-carrier (invite-only): dial this
+        config's calls through one of the workspace's carrier routes, over the
+        workspace's own SIP trunk, instead of nopaque's network. The route is
+        checked on save (400 if it cannot be dialled), and a run whose route
+        cannot be dialled is refused rather than placed normally.
+        """
+        body: dict = {"name": name, "phoneNumber": phone_number, "steps": steps}
+        if carrier_route_id is not None:
+            body["carrierRouteId"] = carrier_route_id
         raw = await self._transport.request(
             "POST",
             "/testing/configs",
-            json={"name": name, "phoneNumber": phone_number, "steps": steps},
+            json=body,
             request_options=request_options,
         )
         return TestConfig.model_validate(raw)
@@ -576,8 +800,15 @@ class _AsyncConfigs:
         name: str | None = None,
         phone_number: str | None = None,
         steps: builtins.list[Any] | None = None,
+        carrier_route_id: Any = _UNSET,
         request_options: RequestOptions | None = None,
     ) -> TestConfig:
+        """Update a test config. Only supplied fields change.
+
+        ``carrier_route_id`` (bring-your-own-carrier, invite-only) sets the
+        carrier route to dial through. Pass ``None`` to remove it, so the
+        number is dialled normally again; omit it to leave it unchanged.
+        """
         body: dict = {}
         if name is not None:
             body["name"] = name
@@ -585,6 +816,8 @@ class _AsyncConfigs:
             body["phoneNumber"] = phone_number
         if steps is not None:
             body["steps"] = steps
+        if carrier_route_id is not _UNSET:
+            body["carrierRouteId"] = carrier_route_id  # may be None to remove
         raw = await self._transport.request(
             "PUT",
             f"/testing/configs/{config_id}",
@@ -819,14 +1052,143 @@ class _AsyncRuns:
         )
 
 
+class _AsyncCarrierRoutes:
+    """Routes on a carrier integration — /testing/carrier-integrations/{id}/routes."""
+
+    def __init__(self, transport: AsyncTransport) -> None:
+        self._transport = transport
+
+    async def list(
+        self, integration_id: str, *, request_options: RequestOptions | None = None
+    ) -> builtins.list[CarrierRoute]:
+        """All routes on an integration, sorted by name. Not paginated."""
+        raw = await self._transport.request(
+            "GET",
+            f"/testing/carrier-integrations/{integration_id}/routes",
+            request_options=request_options,
+        )
+        return [CarrierRoute.model_validate(r) for r in raw.get("routes", [])]
+
+    async def get(
+        self,
+        integration_id: str,
+        route_id: str,
+        *,
+        request_options: RequestOptions | None = None,
+    ) -> CarrierRoute:
+        raw = await self._transport.request(
+            "GET",
+            f"/testing/carrier-integrations/{integration_id}/routes/{route_id}",
+            request_options=request_options,
+        )
+        return CarrierRoute.model_validate(raw.get("route", raw))
+
+    async def create(
+        self,
+        integration_id: str,
+        *,
+        name: str,
+        tech_prefix: str | None = None,
+        custom_headers: CustomHeaders | None = None,
+        enabled: bool | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> CarrierRoute:
+        """Add a route to an integration.
+
+        ``tech_prefix`` (up to 16 of ``0-9A-Za-z#*``) is dialled in front of the
+        destination number; empty or omitted means the trunk's default route.
+        ``custom_headers`` are ``X-`` headers sent on the INVITE, as
+        ``CarrierCustomHeader`` models or ``{"name": ..., "value": ...}`` dicts
+        (at most 10). Use the returned ``route_id`` as a test config's
+        ``carrier_route_id``.
+        """
+        raw = await self._transport.request(
+            "POST",
+            f"/testing/carrier-integrations/{integration_id}/routes",
+            json=_build_route_create_body(
+                name=name,
+                tech_prefix=tech_prefix,
+                custom_headers=custom_headers,
+                enabled=enabled,
+            ),
+            request_options=request_options,
+        )
+        return CarrierRoute.model_validate(raw.get("route", raw))
+
+    async def update(
+        self,
+        integration_id: str,
+        route_id: str,
+        *,
+        name: str | None = None,
+        tech_prefix: str | None = None,
+        custom_headers: CustomHeaders | None = None,
+        enabled: bool | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> CarrierRoute:
+        """Change a route. Send only what changes; at least one field.
+
+        ``tech_prefix=""`` switches to the trunk's default route and
+        ``custom_headers=[]`` removes all headers. ``enabled=False`` turns the
+        route off: runs that name it are refused, never dialled another way.
+        """
+        body = _build_route_update_body(
+            name=name,
+            tech_prefix=tech_prefix,
+            custom_headers=custom_headers,
+            enabled=enabled,
+        )
+        raw = await self._transport.request(
+            "PATCH",
+            f"/testing/carrier-integrations/{integration_id}/routes/{route_id}",
+            json=body,
+            request_options=request_options,
+        )
+        return CarrierRoute.model_validate(raw.get("route", raw))
+
+
+class _AsyncCarrierIntegrations:
+    """Bring-your-own-carrier (invite-only): the workspace's own SIP trunks —
+    /testing/carrier-integrations. Trunks are set up by nopaque and read-only
+    here; their routes are managed under ``.routes``.
+    """
+
+    def __init__(self, transport: AsyncTransport) -> None:
+        self._transport = transport
+        self.routes = _AsyncCarrierRoutes(transport)
+
+    async def list(
+        self, *, request_options: RequestOptions | None = None
+    ) -> builtins.list[CarrierIntegration]:
+        """All of the workspace's carrier integrations, each with its routes,
+        sorted by name. Not paginated; empty when the workspace has none.
+        """
+        raw = await self._transport.request(
+            "GET", "/testing/carrier-integrations", request_options=request_options
+        )
+        return [CarrierIntegration.model_validate(i) for i in raw.get("integrations", [])]
+
+    async def get(
+        self, integration_id: str, *, request_options: RequestOptions | None = None
+    ) -> CarrierIntegration:
+        raw = await self._transport.request(
+            "GET",
+            f"/testing/carrier-integrations/{integration_id}",
+            request_options=request_options,
+        )
+        return CarrierIntegration.model_validate(raw.get("integration", raw))
+
+
 class AsyncTestingResource(AsyncResource):
-    """Asynchronous /testing/* endpoints. Nested: configs, jobs, runs."""
+    """Asynchronous /testing/* endpoints. Nested: configs, jobs, runs,
+    carrier_integrations."""
 
     def __init__(self, transport: AsyncTransport) -> None:
         super().__init__(transport)
         self.configs = _AsyncConfigs(transport)
         self.jobs = _AsyncJobs(transport)
         self.runs = _AsyncRuns(transport)
+        self.carrier_integrations = _AsyncCarrierIntegrations(transport)
 
     async def aggregate_runs(
         self,

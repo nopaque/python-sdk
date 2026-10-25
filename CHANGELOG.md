@@ -6,6 +6,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Bring your own carrier (invite-only): `testing.carrier_integrations`.
+  - `list()` returns the workspace's SIP trunks (`CarrierIntegration`), each
+    with its `routes`. `get(integration_id)` returns one trunk.
+  - `routes.list(integration_id)`, `routes.get(integration_id, route_id)`,
+    `routes.create(integration_id, name=, tech_prefix=, custom_headers=, enabled=)`
+    and `routes.update(integration_id, route_id, ...)` manage the trunk's
+    routes (`CarrierRoute`).
+
+  `get()`, `routes.list()` and `routes.get()` need the API's per-trunk and
+  per-route reads (api#1053). Against an API without them, they get a 404.
+- `testing.configs.create()` / `update()` take `carrier_route_id`, which dials
+  the config's calls through that carrier route. On `update()`, pass `None` to
+  remove it. `TestConfig` gains `carrier_route_id`.
+- `TestRun` (and so `TestRunDetails`) gains `carrier` (`TestRunCarrier`:
+  `integration_id`, `route_id`), the route the run was dialled through, and
+  `call_telemetry` (`CallTelemetry`). The hang-up outcome is in
+  `call_telemetry.telephony` (`hangupCause`, `hangupSource`, `sipHangupCause`).
+
 ## [0.10.0] - 2026-10-15
 
 ### Added
