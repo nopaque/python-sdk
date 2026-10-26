@@ -89,6 +89,7 @@ from .mapping import (
     RetryConfig,
     StepResult,
     StepStatus,
+    TranscriptionLanguage,
     TreeNode,
     TurnTelemetry,
     Vertical,
@@ -99,6 +100,7 @@ from .mission_test_configs import (
     MissionTestConfigListItem,
 )
 from .mission_tests import (
+    CallLanguage,
     CreateMissionTestRequest,
     MissionTestDefaults,
     MissionTestKind,
@@ -246,6 +248,7 @@ __all__ = [
     "MappingJobStats",
     "EnrichmentConfig",
     "MappingMode",
+    "TranscriptionLanguage",
     "MappingPath",
     "MappingRun",
     "MappingStep",
@@ -264,6 +267,7 @@ __all__ = [
     "MissionTestConfig",
     "MissionTestConfigListItem",
     # mission_tests
+    "CallLanguage",
     "CreateMissionTestRequest",
     "MissionTestDefaults",
     "MissionTestKind",

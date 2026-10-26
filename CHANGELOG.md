@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Language selection, which was not on the SDK surface at all: `language` was
+  absent from every resource method, so an SDK caller could not pick one and
+  was locked to the default English.
+  - `testing.configs.create()` / `update()` take `language`, the language the
+    call audio is **transcribed** in. Only sent when you pass it, so omitting
+    it on `update()` leaves the saved value untouched. `TestConfig` gains
+    `language` so it can be read back.
+  - `mission_tests.create()` takes `language`, the language the **call** is
+    held in. `MissionTestRun` and `MissionTestRunResponse` gain `language`.
+  - Two new exported `Literal` aliases, because these are two different sets
+    and mixing them up is a 400: `TranscriptionLanguage` (standard tests and
+    mapping; defaults to `en-GB`) and `CallLanguage` (mission tests; absent
+    means English). Bare `en` is valid as a *call* language but rejected as a
+    transcription language, which needs a region (`en-GB`).
+  - `MappingJobConfig.language` is retyped from a bare `str` to
+    `TranscriptionLanguage` and documented.
+
 ## [0.12.0] - 2026-10-25
 
 ### Added

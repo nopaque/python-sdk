@@ -10,6 +10,7 @@ from .._polling import wait_for_async, wait_for_sync
 from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
 from .._transport import AsyncTransport, SyncTransport
+from ..models.mapping import TranscriptionLanguage
 from ..models.testing import (
     CarrierCustomHeader,
     CarrierIntegration,
@@ -122,6 +123,7 @@ def _build_config_create_body(
     schedule_id: str | None,
     max_duration_secs: int | None,
     carrier_route_id: str | None,
+    language: TranscriptionLanguage | None,
 ) -> dict:
     body: dict = {"name": name, "phoneNumber": phone_number, "steps": steps}
     if description is not None:
@@ -138,6 +140,9 @@ def _build_config_create_body(
         body["maxDurationSecs"] = max_duration_secs
     if carrier_route_id is not None:
         body["carrierRouteId"] = carrier_route_id
+    # Absent means the server default, en-GB. Only sent when passed.
+    if language is not None:
+        body["language"] = language
     return body
 
 
@@ -153,6 +158,7 @@ def _build_config_update_body(
     schedule_id: Any,
     max_duration_secs: Any,
     carrier_route_id: Any,
+    language: TranscriptionLanguage | None,
 ) -> dict:
     body: dict = {}
     if name is not None:
@@ -169,6 +175,10 @@ def _build_config_update_body(
         body["requiredParameters"] = builtins.list(required_parameters)
     if steps is not None:
         body["steps"] = steps
+    # Omitting it leaves the saved language untouched, so only send it when
+    # the caller passed one.
+    if language is not None:
+        body["language"] = language
     # Nullable on the wire: None clears, omitted (_UNSET) leaves unchanged.
     if schedule_id is not _UNSET:
         body["scheduleId"] = schedule_id
@@ -301,6 +311,7 @@ class _SyncConfigs:
         schedule_id: str | None = None,
         max_duration_secs: int | None = None,
         carrier_route_id: str | None = None,
+        language: TranscriptionLanguage | None = None,
         request_options: RequestOptions | None = None,
     ) -> TestConfig:
         """Create a test config.
@@ -318,6 +329,12 @@ class _SyncConfigs:
         workspace's own SIP trunk, instead of nopaque's network. The route is
         checked on save (400 if it cannot be dialled), and a run whose route
         cannot be dialled is refused rather than placed normally.
+
+        ``language`` is the language the call audio is **transcribed** in and
+        defaults to ``en-GB`` when omitted. It needs a region for English:
+        pass ``"en-GB"``, not bare ``"en"``, which the API rejects with a 400.
+        This is a different set from the mission-test call language -- see
+        ``TranscriptionLanguage`` and ``CallLanguage``.
         """
         body = _build_config_create_body(
             name=name,
@@ -330,6 +347,7 @@ class _SyncConfigs:
             schedule_id=schedule_id,
             max_duration_secs=max_duration_secs,
             carrier_route_id=carrier_route_id,
+            language=language,
         )
         raw = self._transport.request(
             "POST",
@@ -353,12 +371,16 @@ class _SyncConfigs:
         schedule_id: Any = _UNSET,
         max_duration_secs: Any = _UNSET,
         carrier_route_id: Any = _UNSET,
+        language: TranscriptionLanguage | None = None,
         request_options: RequestOptions | None = None,
     ) -> TestConfig:
         """Update a test config. Only supplied fields change.
 
         ``name``, ``description``, ``phone_number``, ``type``, ``profile_id``,
-        ``required_parameters`` and ``steps`` are sent only when not ``None``.
+        ``required_parameters``, ``steps`` and ``language`` are sent only when
+        not ``None``. Omitting ``language`` leaves the config's saved
+        transcription language untouched; it needs a region for English
+        (``"en-GB"``, never bare ``"en"``).
 
         ``schedule_id``, ``max_duration_secs`` and ``carrier_route_id`` can be
         cleared: pass ``None`` to clear, omit to leave unchanged.
@@ -380,6 +402,7 @@ class _SyncConfigs:
             schedule_id=schedule_id,
             max_duration_secs=max_duration_secs,
             carrier_route_id=carrier_route_id,
+            language=language,
         )
         raw = self._transport.request(
             "PUT",
@@ -890,6 +913,7 @@ class _AsyncConfigs:
         schedule_id: str | None = None,
         max_duration_secs: int | None = None,
         carrier_route_id: str | None = None,
+        language: TranscriptionLanguage | None = None,
         request_options: RequestOptions | None = None,
     ) -> TestConfig:
         """Create a test config.
@@ -907,6 +931,12 @@ class _AsyncConfigs:
         workspace's own SIP trunk, instead of nopaque's network. The route is
         checked on save (400 if it cannot be dialled), and a run whose route
         cannot be dialled is refused rather than placed normally.
+
+        ``language`` is the language the call audio is **transcribed** in and
+        defaults to ``en-GB`` when omitted. It needs a region for English:
+        pass ``"en-GB"``, not bare ``"en"``, which the API rejects with a 400.
+        This is a different set from the mission-test call language -- see
+        ``TranscriptionLanguage`` and ``CallLanguage``.
         """
         body = _build_config_create_body(
             name=name,
@@ -919,6 +949,7 @@ class _AsyncConfigs:
             schedule_id=schedule_id,
             max_duration_secs=max_duration_secs,
             carrier_route_id=carrier_route_id,
+            language=language,
         )
         raw = await self._transport.request(
             "POST",
@@ -942,12 +973,16 @@ class _AsyncConfigs:
         schedule_id: Any = _UNSET,
         max_duration_secs: Any = _UNSET,
         carrier_route_id: Any = _UNSET,
+        language: TranscriptionLanguage | None = None,
         request_options: RequestOptions | None = None,
     ) -> TestConfig:
         """Update a test config. Only supplied fields change.
 
         ``name``, ``description``, ``phone_number``, ``type``, ``profile_id``,
-        ``required_parameters`` and ``steps`` are sent only when not ``None``.
+        ``required_parameters``, ``steps`` and ``language`` are sent only when
+        not ``None``. Omitting ``language`` leaves the config's saved
+        transcription language untouched; it needs a region for English
+        (``"en-GB"``, never bare ``"en"``).
 
         ``schedule_id``, ``max_duration_secs`` and ``carrier_route_id`` can be
         cleared: pass ``None`` to clear, omit to leave unchanged.
@@ -969,6 +1004,7 @@ class _AsyncConfigs:
             schedule_id=schedule_id,
             max_duration_secs=max_duration_secs,
             carrier_route_id=carrier_route_id,
+            language=language,
         )
         raw = await self._transport.request(
             "PUT",

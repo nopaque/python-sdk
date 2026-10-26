@@ -27,6 +27,36 @@ def _alias(name: str) -> str:
 
 
 MissionTestKind = Literal["freeform", "compliance"]
+
+#: The language a mission test **call** is held in. These are the languages
+#: Telnyx ``deepgram/flux`` accepts on the AI Assistant: one language, or
+#: ``multi`` (Flux-multi), which code-switches across the other ten. Absent
+#: means English -- that is how every mission test behaved before the field
+#: existed, so omitting it is always safe.
+#:
+#: .. warning::
+#:    This is **not** the transcription language that standard tests and
+#:    mapping use (``MappingJobConfig.language``, ``en-GB`` and friends). The
+#:    two sets are genuinely different and the difference bites: bare ``en``
+#:    is **valid here** but is rejected with a 400 as a transcription
+#:    language, which wants a region -- ``en-GB``. Bare ``en`` is the only
+#:    code in this set with no transcription counterpart; the other ten all
+#:    appear in both, which is what makes the mistake easy to make.
+#:
+#: Mirrors the ``CallLanguage`` schema in the OpenAPI document.
+CallLanguage = Literal[
+    "en",
+    "multi",
+    "es",
+    "fr",
+    "de",
+    "it",
+    "pt",
+    "nl",
+    "hi",
+    "ru",
+    "ja",
+]
 # "pending" is what the api sends (openapi MissionTestRun.status); "queued" is
 # kept so nothing that validated before stops validating.
 MissionTestStatus = Literal["pending", "queued", "running", "completed", "failed", "cancelled"]
@@ -50,6 +80,10 @@ class CreateMissionTestRequest(_MissionTestBase):
     mission: str
     acceptance: str
     profile: MissionTestProfile
+    #: Optional call language. Omit for English, which is how every mission
+    #: test has behaved to date. Use ``multi`` when the IVR may start in
+    #: English and switch.
+    language: Optional[CallLanguage] = None
 
 
 class MissionTestRun(_MissionTestBase):
@@ -83,6 +117,10 @@ class MissionTestRun(_MissionTestBase):
     pass_evidence: Optional[str] = None
     verdict: Optional[Literal["pass", "fail"]] = None
     error_message: Optional[str] = None
+    #: The call language the run was dispatched with. None means English --
+    #: every run from before the field existed, and every run that did not
+    #: set it.
+    language: Optional[CallLanguage] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 

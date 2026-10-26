@@ -3,7 +3,8 @@ from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
-from .mapping import CallTelemetry
+from .mapping import CallTelemetry, TranscriptionLanguage
+from .mission_tests import CallLanguage
 
 
 def _alias(name: str) -> str:
@@ -42,6 +43,10 @@ class TestConfig(_TestingBase):
     schedule_id: Optional[str] = None
     #: Whole-call ceiling in seconds. None means the tester default of 300.
     max_duration_secs: Optional[int] = None
+    #: Language the call audio is transcribed in. None means the server
+    #: default, ``en-GB``. Distinct from the mission-test call language --
+    #: bare ``en`` is not valid here; see :data:`TranscriptionLanguage`.
+    language: Optional[TranscriptionLanguage] = None
     steps: List[Any] = []
     #: Bring-your-own-carrier (invite-only): the carrier route this config's
     #: calls are dialled through, over the workspace's own SIP trunk. None when
@@ -199,6 +204,9 @@ class MissionTestRunResponse(_TestingBase):
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     error_message: Optional[str] = None
+    #: The call language the run was dispatched with. None means English.
+    #: This is the mission-test CALL language, not a transcription language.
+    language: Optional[CallLanguage] = None
 
 
 class AggregateGroup(_TestingBase):
