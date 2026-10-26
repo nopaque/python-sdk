@@ -177,6 +177,21 @@ transcription language, which wants `en-GB`. Every other call language
 sets, which is what makes it easy to miss. Omitting `language` on an update
 leaves the saved value untouched.
 
+The aliases are **strict on write, lenient on read**. The `language=`
+parameters you pass to `configs.create()`, `configs.update()` and
+`mission_tests.create()` are typed to the `Literal`, so a typo is caught
+before a request goes out. The matching fields on the models you read back
+(`TestConfig.language`, `MissionTestRun.language`,
+`MappingJobConfig.language`) are plain `str`, so a row saved with a code this
+SDK version has never heard of still parses instead of raising. Both aliases
+are exported either way, for annotating your own variables:
+
+```python
+from nopaque import TranscriptionLanguage
+
+preferred: TranscriptionLanguage = "en-GB"
+```
+
 ## Bring your own carrier
 
 Invite-only. A workspace can dial its tests through its own SIP trunk (a

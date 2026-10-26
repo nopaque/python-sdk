@@ -159,10 +159,21 @@ class MappingJobConfig(_MappingBase):
     max_duration_minutes: Optional[int] = None
     max_concurrency: Optional[int] = None
     #: Language the call audio is transcribed in. None means the server
-    #: default, ``en-GB``. Needs a region for English (``en-GB``, not bare
-    #: ``en``) -- see :data:`TranscriptionLanguage`, and note this is a
-    #: different set from the mission-test call language.
-    language: Optional[TranscriptionLanguage] = None
+    #: default, ``en-GB``. The accepted values are the
+    #: :data:`TranscriptionLanguage` codes -- a region is required for English
+    #: (``en-GB``, never bare ``en``, which the API rejects with a 400), and
+    #: this is a different set from the mission-test call language.
+    #:
+    #: Deliberately typed ``str`` rather than that Literal: this model parses
+    #: server responses (it is nested on ``MappingJob`` and
+    #: ``MappingJobListItem``) as well as building requests, so a legacy row
+    #: holding a value outside the set -- bare ``en`` being the real-world
+    #: candidate -- must not raise on read. Same precedent as
+    #: ``MissionTestStatus`` keeping ``"queued"``: nothing that validated
+    #: before stops validating. Strictness belongs on the write path, where
+    #: ``testing.configs.create()`` / ``update()`` take the Literal and catch
+    #: a typo before it is sent. Do not narrow this back.
+    language: Optional[str] = None
     voice_profile_id: Optional[str] = None
     data_profile_id: Optional[str] = None
     retry_config: Optional[RetryConfig] = None

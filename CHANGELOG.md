@@ -22,8 +22,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     mapping; defaults to `en-GB`) and `CallLanguage` (mission tests; absent
     means English). Bare `en` is valid as a *call* language but rejected as a
     transcription language, which needs a region (`en-GB`).
-  - `MappingJobConfig.language` is retyped from a bare `str` to
-    `TranscriptionLanguage` and documented.
+  - `MappingJobConfig.language` keeps its `str` type but is now documented:
+    the accepted values are the `TranscriptionLanguage` codes.
+  - The aliases are **strict on write, lenient on read**. The `language=`
+    parameters on the create/update methods are typed to the `Literal`, so a
+    typo fails before a request is sent. The fields you read back
+    (`TestConfig.language`, `MissionTestRun.language`,
+    `MissionTestRunResponse.language`, `MappingJobConfig.language`) stay
+    `str`, so a row holding a code this SDK version does not know still
+    parses rather than raising -- the same reason `MissionTestStatus` keeps
+    `"queued"`.
 
 ## [0.12.0] - 2026-10-25
 

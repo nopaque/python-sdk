@@ -117,10 +117,14 @@ class MissionTestRun(_MissionTestBase):
     pass_evidence: Optional[str] = None
     verdict: Optional[Literal["pass", "fail"]] = None
     error_message: Optional[str] = None
-    #: The call language the run was dispatched with. None means English --
-    #: every run from before the field existed, and every run that did not
-    #: set it.
-    language: Optional[CallLanguage] = None
+    #: The call language the run was dispatched with, one of the
+    #: :data:`CallLanguage` codes. None means English -- every run from before
+    #: the field existed, and every run that did not set it.
+    #:
+    #: Typed ``str``, not that Literal, because this is a response field:
+    #: reading a run must never raise over an unrecognised code. The Literal
+    #: guards the write path instead (``mission_tests.create(language=...)``).
+    language: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 

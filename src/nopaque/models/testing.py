@@ -3,8 +3,7 @@ from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
-from .mapping import CallTelemetry, TranscriptionLanguage
-from .mission_tests import CallLanguage
+from .mapping import CallTelemetry
 
 
 def _alias(name: str) -> str:
@@ -43,10 +42,16 @@ class TestConfig(_TestingBase):
     schedule_id: Optional[str] = None
     #: Whole-call ceiling in seconds. None means the tester default of 300.
     max_duration_secs: Optional[int] = None
-    #: Language the call audio is transcribed in. None means the server
-    #: default, ``en-GB``. Distinct from the mission-test call language --
-    #: bare ``en`` is not valid here; see :data:`TranscriptionLanguage`.
-    language: Optional[TranscriptionLanguage] = None
+    #: Language the call audio is transcribed in, one of the
+    #: :data:`TranscriptionLanguage` codes. None means the server default,
+    #: ``en-GB``. Distinct from the mission-test call language -- bare ``en``
+    #: is not valid here.
+    #:
+    #: Typed ``str``, not that Literal, because this is a response field:
+    #: reading a config must never raise over an unrecognised code. The
+    #: Literal guards the write path instead (``configs.create()`` /
+    #: ``update()``).
+    language: Optional[str] = None
     steps: List[Any] = []
     #: Bring-your-own-carrier (invite-only): the carrier route this config's
     #: calls are dialled through, over the workspace's own SIP trunk. None when
@@ -204,9 +209,13 @@ class MissionTestRunResponse(_TestingBase):
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     error_message: Optional[str] = None
-    #: The call language the run was dispatched with. None means English.
-    #: This is the mission-test CALL language, not a transcription language.
-    language: Optional[CallLanguage] = None
+    #: The call language the run was dispatched with, one of the
+    #: :data:`CallLanguage` codes -- the mission-test CALL language, not a
+    #: transcription language. None means English.
+    #:
+    #: Typed ``str``, not that Literal: response field, so reading a run must
+    #: never raise over an unrecognised code.
+    language: Optional[str] = None
 
 
 class AggregateGroup(_TestingBase):

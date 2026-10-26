@@ -1034,6 +1034,64 @@ def test_mapping_job_config_accepts_transcription_language():
     assert cfg.model_dump(by_alias=True, exclude_none=True) == {"language": "en-GB"}
 
 
+def test_reading_a_mapping_job_config_with_an_out_of_set_language_does_not_raise():
+    """Strict on write, LENIENT ON READ -- do not narrow these to the Literal.
+
+    ``MappingJobConfig`` parses server responses (nested on ``MappingJob`` and
+    ``MappingJobListItem``) as well as building requests. A legacy row holding
+    a code outside ``TranscriptionLanguage`` -- bare ``en`` is the real-world
+    candidate, since the API spec itself used to give it as an example -- must
+    still read back rather than raising ``ValidationError``. Same precedent as
+    ``MissionTestStatus`` keeping ``"queued"``: nothing that validated before
+    stops validating.
+    """
+    import typing
+
+    from nopaque import TranscriptionLanguage
+    from nopaque.models.mapping import MappingJobConfig
+
+    # Precondition: "en" really is outside the set, so this test is meaningful.
+    assert "en" not in typing.get_args(TranscriptionLanguage)
+
+    cfg = MappingJobConfig.model_validate({"language": "en"})
+    assert cfg.language == "en"
+
+
+def test_reading_response_models_with_an_out_of_set_language_does_not_raise():
+    """The same leniency on every response model that carries a language."""
+    from nopaque.models.mission_tests import MissionTestRun
+    from nopaque.models.testing import MissionTestRunResponse, TestConfig
+
+    # A transcription language the SDK has never heard of.
+    assert TestConfig.model_validate(
+        {"id": "cfg_1", "name": "T1", "language": "qq-ZZ"}
+    ).language == "qq-ZZ"
+    # A call language outside CallLanguage.
+    assert MissionTestRun.model_validate(
+        {"id": "mt_1", "workspaceId": "w", "status": "completed", "language": "zz"}
+    ).language == "zz"
+    assert MissionTestRunResponse.model_validate(
+        {"id": "mt_1", "language": "zz"}
+    ).language == "zz"
+
+
+def test_create_request_model_stays_strict_on_the_write_path():
+    """The request model DOES reject a bad code -- that is where typos die."""
+    import pydantic
+    import pytest as _pytest
+
+    from nopaque.models.mission_tests import CreateMissionTestRequest, MissionTestProfile
+
+    with _pytest.raises(pydantic.ValidationError):
+        CreateMissionTestRequest(
+            sector="s",
+            mission="m",
+            acceptance="a",
+            profile=MissionTestProfile(phone_number="+441234"),
+            language="en-GB",  # a TRANSCRIPTION code; not a valid call language
+        )
+
+
 def test_transcription_language_alias_is_exported():
     """Exported like the other type aliases, and the two sets differ.
 
