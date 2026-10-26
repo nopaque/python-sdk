@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-26
+
 ### Added
 
 - Language selection, which was not on the SDK surface at all: `language` was
@@ -410,7 +412,10 @@ moved into it and the API requires the mode.
 - Method-aware retry with exponential jitter and `Retry-After` honor.
 - Typed exception hierarchy.
 
-[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.13.0
+[0.12.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.12.0
+[0.11.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.11.0
 [0.10.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.10.0
 [0.9.1]: https://github.com/nopaque/python-sdk/releases/tag/v0.9.1
 [0.9.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.9.0
