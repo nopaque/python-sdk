@@ -7,6 +7,7 @@ from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
 from ..models.mission_tests import (
+    CallLanguage,
     CreateMissionTestRequest,
     MissionTestDefaults,
     MissionTestKind,
@@ -21,6 +22,7 @@ def _build_create_body(
     mission: str,
     acceptance: str,
     profile: Union[MissionTestProfile, dict],
+    language: Optional[CallLanguage] = None,
 ) -> dict:
     if isinstance(profile, MissionTestProfile):
         profile_model = profile
@@ -31,7 +33,10 @@ def _build_create_body(
         mission=mission,
         acceptance=acceptance,
         profile=profile_model,
+        language=language,
     )
+    # exclude_none keeps `language` off the wire unless the caller passed one;
+    # absent means English.
     return request.model_dump(by_alias=True, exclude_none=True)
 
 
@@ -157,10 +162,24 @@ class MissionTestsResource(SyncResource):
         mission: str,
         acceptance: str,
         profile: Union[MissionTestProfile, dict],
+        language: Optional[CallLanguage] = None,
         request_options: RequestOptions | None = None,
     ) -> MissionTestRun:
+        """Launch an ad-hoc mission test.
+
+        ``language`` is the language the **call** is held in. Omit it for
+        English, which is how every mission test has behaved to date; use
+        ``"multi"`` when the IVR may start in English and switch. This is a
+        different set from the transcription language standard tests and
+        mapping use -- bare ``"en"`` is valid here, but a transcription
+        language needs its region (``"en-GB"``).
+        """
         body = _build_create_body(
-            sector=sector, mission=mission, acceptance=acceptance, profile=profile
+            sector=sector,
+            mission=mission,
+            acceptance=acceptance,
+            profile=profile,
+            language=language,
         )
         raw = self._transport.request(
             "POST", "/testing/mission-tests", json=body, request_options=request_options
@@ -271,10 +290,24 @@ class AsyncMissionTestsResource(AsyncResource):
         mission: str,
         acceptance: str,
         profile: Union[MissionTestProfile, dict],
+        language: Optional[CallLanguage] = None,
         request_options: RequestOptions | None = None,
     ) -> MissionTestRun:
+        """Launch an ad-hoc mission test.
+
+        ``language`` is the language the **call** is held in. Omit it for
+        English, which is how every mission test has behaved to date; use
+        ``"multi"`` when the IVR may start in English and switch. This is a
+        different set from the transcription language standard tests and
+        mapping use -- bare ``"en"`` is valid here, but a transcription
+        language needs its region (``"en-GB"``).
+        """
         body = _build_create_body(
-            sector=sector, mission=mission, acceptance=acceptance, profile=profile
+            sector=sector,
+            mission=mission,
+            acceptance=acceptance,
+            profile=profile,
+            language=language,
         )
         raw = await self._transport.request(
             "POST", "/testing/mission-tests", json=body, request_options=request_options

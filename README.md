@@ -120,7 +120,8 @@ print("default:", voices.default_voice_id)
 `name`, `phone_number` and `steps`, plus optional `description`, `type`
 (`"standard"` or `"parameterized"`), `profile_id`, `required_parameters`,
 `schedule_id`, `max_duration_secs` (30-1800, whole-call ceiling; the tester
-defaults to 300) and `carrier_route_id`. Only the arguments you pass are sent.
+defaults to 300), `carrier_route_id` and `language`. Only the arguments you
+pass are sent.
 
 ```python
 config = client.testing.configs.create(
@@ -136,6 +137,59 @@ config = client.testing.configs.create(
 # update() changes only what you pass. schedule_id, max_duration_secs and
 # carrier_route_id can also be cleared with None; omit them to leave them as is.
 client.testing.configs.update(config.id, description="Nightly", max_duration_secs=None)
+```
+
+### Languages
+
+Two different sets, and mixing them up is a 400. Both are exported as
+`Literal` aliases, so a typo is a type error rather than a failed run.
+
+`TranscriptionLanguage` is the language audio is **transcribed** in. It applies
+to standard test configs (`language=`) and to mapping jobs
+(`MappingJobConfig(language=...)`), and defaults to `en-GB` when omitted.
+English needs its region here - `en-GB`, `en-US`, `en-AU`, `en-IN`, `en-NZ`.
+
+`CallLanguage` is the language a **mission-test call** is held in
+(`client.mission_tests.create(language=...)`). Absent means English. Use
+`"multi"` when the IVR may start in English and switch.
+
+```python
+from nopaque import CallLanguage, TranscriptionLanguage
+
+# Transcription: a region is required for English.
+client.testing.configs.create(
+    name="Spanish main menu", phone_number="+34910000000", steps=[], language="es"
+)
+
+# Mission-test call language: bare "en" is valid HERE and only here.
+client.mission_tests.create(
+    sector="insurance",
+    mission="Buy a policy",
+    acceptance="Bot offers a quote",
+    profile={"phone_number": "+34910000000"},
+    language="es",
+)
+```
+
+The trap: bare `en` is a valid **call** language but is rejected as a
+transcription language, which wants `en-GB`. Every other call language
+(`multi`, `es`, `fr`, `de`, `it`, `pt`, `nl`, `hi`, `ru`, `ja`) appears in both
+sets, which is what makes it easy to miss. Omitting `language` on an update
+leaves the saved value untouched.
+
+The aliases are **strict on write, lenient on read**. The `language=`
+parameters you pass to `configs.create()`, `configs.update()` and
+`mission_tests.create()` are typed to the `Literal`, so a typo is caught
+before a request goes out. The matching fields on the models you read back
+(`TestConfig.language`, `MissionTestRun.language`,
+`MappingJobConfig.language`) are plain `str`, so a row saved with a code this
+SDK version has never heard of still parses instead of raising. Both aliases
+are exported either way, for annotating your own variables:
+
+```python
+from nopaque import TranscriptionLanguage
+
+preferred: TranscriptionLanguage = "en-GB"
 ```
 
 ## Bring your own carrier

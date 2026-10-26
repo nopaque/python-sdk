@@ -35,6 +35,79 @@ MappingMode = Literal["dtmf", "dtmf-audio", "full-audio"]
 Vertical = Literal["FSI", "Healthcare", "EnergyUtilities", "Telecoms", "General"]
 RepeatBehavior = Literal["skip", "explore_once", "explore_n"]
 
+#: The language audio is **transcribed** in, for standard tests
+#: (``testing.configs``) and mapping jobs. Defaults to ``en-GB`` when absent;
+#: on update, omitting the key leaves the saved value untouched. ``multi``
+#: transcribes code-switching audio.
+#:
+#: .. warning::
+#:    This is **not** the mission-test call language (:data:`CallLanguage`).
+#:    The two sets are genuinely different and the difference bites: bare
+#:    ``en`` is a valid *call* language but is **rejected with a 400** here --
+#:    a transcription language needs its region, so use ``en-GB`` (or
+#:    ``en-US``, ``en-AU``, ``en-IN``, ``en-NZ``). Bare ``en`` is the only
+#:    call language with no counterpart here -- every other one appears in
+#:    both sets, which is exactly why the mistake is easy to make.
+TranscriptionLanguage = Literal[
+    "en-GB",
+    "en-US",
+    "en-AU",
+    "en-IN",
+    "en-NZ",
+    "multi",
+    "ar",
+    "be",
+    "bn",
+    "bs",
+    "bg",
+    "ca",
+    "zh-HK",
+    "zh",
+    "hr",
+    "cs",
+    "da",
+    "nl",
+    "et",
+    "fi",
+    "nl-BE",
+    "fr",
+    "de",
+    "el",
+    "gu",
+    "he",
+    "hi",
+    "hu",
+    "id",
+    "it",
+    "ja",
+    "kn",
+    "ko",
+    "lv",
+    "lt",
+    "mk",
+    "ms",
+    "mr",
+    "no",
+    "fa",
+    "pl",
+    "pt",
+    "ro",
+    "ru",
+    "sr",
+    "sk",
+    "sl",
+    "es",
+    "sv",
+    "tl",
+    "ta",
+    "te",
+    "th",
+    "tr",
+    "uk",
+    "ur",
+    "vi",
+]
+
 
 class _MappingBase(BaseModel):
     model_config = ConfigDict(
@@ -85,6 +158,21 @@ class MappingJobConfig(_MappingBase):
     max_calls: Optional[int] = None
     max_duration_minutes: Optional[int] = None
     max_concurrency: Optional[int] = None
+    #: Language the call audio is transcribed in. None means the server
+    #: default, ``en-GB``. The accepted values are the
+    #: :data:`TranscriptionLanguage` codes -- a region is required for English
+    #: (``en-GB``, never bare ``en``, which the API rejects with a 400), and
+    #: this is a different set from the mission-test call language.
+    #:
+    #: Deliberately typed ``str`` rather than that Literal: this model parses
+    #: server responses (it is nested on ``MappingJob`` and
+    #: ``MappingJobListItem``) as well as building requests, so a legacy row
+    #: holding a value outside the set -- bare ``en`` being the real-world
+    #: candidate -- must not raise on read. Same precedent as
+    #: ``MissionTestStatus`` keeping ``"queued"``: nothing that validated
+    #: before stops validating. Strictness belongs on the write path, where
+    #: ``testing.configs.create()`` / ``update()`` take the Literal and catch
+    #: a typo before it is sent. Do not narrow this back.
     language: Optional[str] = None
     voice_profile_id: Optional[str] = None
     data_profile_id: Optional[str] = None

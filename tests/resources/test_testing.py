@@ -880,3 +880,237 @@ async def test_async_configs_update_fields_and_omit_vs_null(httpx_mock: HTTPXMoc
     assert bodies[1] == {"scheduleId": None, "maxDurationSecs": None}
     assert bodies[2] == {"name": "T1"}
     await c.aclose()
+
+
+# ==== Transcription language =================================================
+# The language standard tests and mapping transcribe in. Default `en-GB` when
+# absent. Distinct from the mission-test CALL language: bare `en` is valid
+# there and rejected here. The contract: the key reaches the wire ONLY when the
+# caller passes it, and it round-trips on the response model.
+
+
+def test_configs_create_omits_language_when_not_passed(httpx_mock: HTTPXMock):
+    """No language argument -> no `language` key at all (not `None`).
+
+    The server leaves the saved value alone when the key is absent, so sending
+    `None` would be a behaviour change for every existing caller.
+    """
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/configs",
+        method="POST",
+        json={"id": "cfg_1", "name": "T1", "phoneNumber": "+441", "steps": []},
+    )
+    c = client()
+    c.testing.configs.create(name="T1", phone_number="+441", steps=[])
+    assert "language" not in json.loads(httpx_mock.get_requests()[0].content)
+    c.close()
+
+
+def test_configs_create_sends_language_when_passed(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/configs",
+        method="POST",
+        json={
+            "id": "cfg_1",
+            "name": "T1",
+            "phoneNumber": "+441",
+            "steps": [],
+            "language": "fr",
+        },
+    )
+    c = client()
+    cfg = c.testing.configs.create(
+        name="T1", phone_number="+441", steps=[], language="fr"
+    )
+    assert json.loads(httpx_mock.get_requests()[0].content)["language"] == "fr"
+    assert cfg.language == "fr"
+    c.close()
+
+
+def test_configs_create_sends_regioned_english(httpx_mock: HTTPXMock):
+    """`en-GB` is the transcription default; bare `en` is NOT in this set."""
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/configs",
+        method="POST",
+        json={
+            "id": "cfg_1",
+            "name": "T1",
+            "phoneNumber": "+441",
+            "steps": [],
+            "language": "en-GB",
+        },
+    )
+    c = client()
+    cfg = c.testing.configs.create(
+        name="T1", phone_number="+441", steps=[], language="en-GB"
+    )
+    assert json.loads(httpx_mock.get_requests()[0].content)["language"] == "en-GB"
+    assert cfg.language == "en-GB"
+    c.close()
+
+
+def test_configs_update_omits_language_when_not_passed(httpx_mock: HTTPXMock):
+    """Omitting it on update leaves the saved value untouched."""
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/configs/cfg_1",
+        method="PUT",
+        json={"id": "cfg_1", "name": "updated"},
+    )
+    c = client()
+    c.testing.configs.update("cfg_1", name="updated")
+    assert "language" not in json.loads(httpx_mock.get_requests()[0].content)
+    c.close()
+
+
+def test_configs_update_sends_language_when_passed(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/configs/cfg_1",
+        method="PUT",
+        json={"id": "cfg_1", "name": "T1", "language": "de"},
+    )
+    c = client()
+    cfg = c.testing.configs.update("cfg_1", language="de")
+    assert json.loads(httpx_mock.get_requests()[0].content)["language"] == "de"
+    assert cfg.language == "de"
+    c.close()
+
+
+def test_config_language_is_none_when_absent(httpx_mock: HTTPXMock):
+    """Absent means the server default (`en-GB`); the SDK does not guess."""
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/configs/cfg_1",
+        json={"id": "cfg_1", "name": "T1"},
+    )
+    c = client()
+    assert c.testing.configs.get("cfg_1").language is None
+    c.close()
+
+
+async def test_configs_create_sends_language_when_passed_async(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/configs",
+        method="POST",
+        json={"id": "cfg_1", "name": "T1", "steps": [], "language": "es"},
+    )
+    c = AsyncNopaque(api_key="k", max_retries=0)
+    cfg = await c.testing.configs.create(
+        name="T1", phone_number="+441", steps=[], language="es"
+    )
+    assert json.loads(httpx_mock.get_requests()[0].content)["language"] == "es"
+    assert cfg.language == "es"
+    await c.aclose()
+
+
+async def test_configs_create_omits_language_when_not_passed_async(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/configs",
+        method="POST",
+        json={"id": "cfg_1", "name": "T1", "steps": []},
+    )
+    c = AsyncNopaque(api_key="k", max_retries=0)
+    await c.testing.configs.create(name="T1", phone_number="+441", steps=[])
+    assert "language" not in json.loads(httpx_mock.get_requests()[0].content)
+    await c.aclose()
+
+
+async def test_configs_update_sends_language_when_passed_async(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/configs/cfg_1",
+        method="PUT",
+        json={"id": "cfg_1", "name": "T1", "language": "it"},
+    )
+    c = AsyncNopaque(api_key="k", max_retries=0)
+    cfg = await c.testing.configs.update("cfg_1", language="it")
+    assert json.loads(httpx_mock.get_requests()[0].content)["language"] == "it"
+    assert cfg.language == "it"
+    await c.aclose()
+
+
+def test_mapping_job_config_accepts_transcription_language():
+    from nopaque.models.mapping import MappingJobConfig
+
+    cfg = MappingJobConfig(language="en-GB")
+    assert cfg.language == "en-GB"
+    assert cfg.model_dump(by_alias=True, exclude_none=True) == {"language": "en-GB"}
+
+
+def test_reading_a_mapping_job_config_with_an_out_of_set_language_does_not_raise():
+    """Strict on write, LENIENT ON READ -- do not narrow these to the Literal.
+
+    ``MappingJobConfig`` parses server responses (nested on ``MappingJob`` and
+    ``MappingJobListItem``) as well as building requests. A legacy row holding
+    a code outside ``TranscriptionLanguage`` -- bare ``en`` is the real-world
+    candidate, since the API spec itself used to give it as an example -- must
+    still read back rather than raising ``ValidationError``. Same precedent as
+    ``MissionTestStatus`` keeping ``"queued"``: nothing that validated before
+    stops validating.
+    """
+    import typing
+
+    from nopaque import TranscriptionLanguage
+    from nopaque.models.mapping import MappingJobConfig
+
+    # Precondition: "en" really is outside the set, so this test is meaningful.
+    assert "en" not in typing.get_args(TranscriptionLanguage)
+
+    cfg = MappingJobConfig.model_validate({"language": "en"})
+    assert cfg.language == "en"
+
+
+def test_reading_response_models_with_an_out_of_set_language_does_not_raise():
+    """The same leniency on every response model that carries a language."""
+    from nopaque.models.mission_tests import MissionTestRun
+    from nopaque.models.testing import MissionTestRunResponse, TestConfig
+
+    # A transcription language the SDK has never heard of.
+    assert TestConfig.model_validate(
+        {"id": "cfg_1", "name": "T1", "language": "qq-ZZ"}
+    ).language == "qq-ZZ"
+    # A call language outside CallLanguage.
+    assert MissionTestRun.model_validate(
+        {"id": "mt_1", "workspaceId": "w", "status": "completed", "language": "zz"}
+    ).language == "zz"
+    assert MissionTestRunResponse.model_validate(
+        {"id": "mt_1", "language": "zz"}
+    ).language == "zz"
+
+
+def test_create_request_model_stays_strict_on_the_write_path():
+    """The request model DOES reject a bad code -- that is where typos die."""
+    import pydantic
+    import pytest as _pytest
+
+    from nopaque.models.mission_tests import CreateMissionTestRequest, MissionTestProfile
+
+    with _pytest.raises(pydantic.ValidationError):
+        CreateMissionTestRequest(
+            sector="s",
+            mission="m",
+            acceptance="a",
+            profile=MissionTestProfile(phone_number="+441234"),
+            language="en-GB",  # a TRANSCRIPTION code; not a valid call language
+        )
+
+
+def test_transcription_language_alias_is_exported():
+    """Exported like the other type aliases, and the two sets differ.
+
+    Bare `en` is the trap: valid as a CALL language, absent from the
+    transcription set, which wants a region (`en-GB`).
+    """
+    import typing
+
+    from nopaque import CallLanguage, TranscriptionLanguage
+
+    transcription = set(typing.get_args(TranscriptionLanguage))
+    call = set(typing.get_args(CallLanguage))
+    assert "en-GB" in transcription
+    assert "en" not in transcription
+    assert "en" in call
+    assert "en-GB" not in call
+    assert transcription != call
+    # Bare `en` is the ONLY call language missing from the transcription set:
+    # that is the whole trap. Every other call language appears in both.
+    assert call - transcription == {"en"}
+    # The transcription set is much the larger of the two.
+    assert transcription > (call - {"en"})
