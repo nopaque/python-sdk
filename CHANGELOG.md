@@ -6,6 +6,97 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+Response models that did not match what the API sends. Each was checked
+against the api handler code, which in places disagrees with the OpenAPI
+document; tests now parse a response built from the handler for every
+endpoint below.
+
+- **These raised `ValidationError` on every real response** and now parse:
+  - `compliance.get_catalogue()`: `catalogue.version` is an `int`,
+    `catalogue.regulations` is a dict keyed by regulation key (new
+    `ComplianceRegulation` fields `name`, `jurisdiction`, `url`, `full_ref`,
+    `in_force`, `in_force_phases`, `notes`, `sectors`), and each
+    `ComplianceTest` has `name`, `summary`, `channels`, `sectors`,
+    `jurisdictions`, `mission`, `pass_` (`pass` on the wire), `fail`,
+    `covers` (new `ComplianceCoversEntry`) and `probe_count`;
+    `regulation_keys` is now a property derived from `covers`. The response
+    gains `compliance_seconds_available`, which the API sends instead of
+    `s2stest_seconds_available` and which is `None` on paid tiers.
+  - `compliance.get_report()`: `ComplianceReport` is `workspace_id`,
+    `phone_number`, `catalogue_version`, `summary` (`ran`, `passed`,
+    `failed`, `total`), `regulations` (one `ComplianceRegulationSection` per
+    regulation with its own `summary` and `tests`, each test carrying its
+    `last_run`, or `None` if not run) and `metadata`. New models
+    `ComplianceReportTest`, `ComplianceLastRun`, `CompliancePassEvidence`,
+    `ComplianceFailEvidence`, `ComplianceSectionSummary` and
+    `ComplianceReportMetadata`.
+  - `compliance.rerun()` returns the new `ComplianceRerunResponse`
+    (`run_id`), which is what the API sends, instead of a `MissionTestRun`.
+  - `mission_tests.get_defaults()`: `MissionTestDefaults` is the sector
+    catalogue, `schema_version` and `sectors`, each with `missions` (`id`,
+    `label`, `default_acceptance`). New models `MissionDefaultsSector` and
+    `MissionDefaultsMission`.
+  - `mapping.tree()`: `TreeNode.path` is a `List[str]` (`[]` for the root),
+    and `step_type` is a plain `str` so voice-agent turns (`"s2s_node"`)
+    parse. `TreeNode` gains `full_transcript`, `audio_id`, `menus` (new
+    `TreeMenu`, `TreeMenuOption`), `skip_reason`, `original_step_id` and
+    `repeat_reason`.
+- `mapping.steps()`: `MappingStep.step_id` was always `None` (the API sends
+  `id`); it is now filled from `id`.
+- `enrichment.get()`: a completed enrichment is returned by the API as the
+  result itself, unwrapped, so `results` and `status` were always `None`.
+  Both response forms are now read into `EnrichmentResult`: `results` holds
+  the result, `status` is `"completed"` for an unwrapped one, `job_id`,
+  `run_id` and `type` are filled from the request, and the record form's
+  `enrichment_id`, `enrichment_type`, `data`, `error` and `completed_at`
+  are typed. The unwrapped fields stay readable as extras, as before.
+- `enrichment.token_usage()`: the API sends `{runId, services, total}`. New
+  fields `services` (dict of the new `ServiceTokenUsage`) and `total` (new
+  `TokenUsageTotals`); `job_id` is filled from the request, and `usage`,
+  always `None` before, is filled from the same numbers.
+- `load_testing.status()`: `LoadTestStatus` gains `current_second`,
+  `total_seconds`, `progress_percent`, `stats` (new `LoadTestRunStats`,
+  `LoadTestQualitySummary`, `LoadTestPercentiles`), `name`, the config and
+  group ids, the timestamps, `abort_reason`, `error_message` and `config`.
+  `progress` is never sent and stays `None`.
+- `sweeps.get_run()` and the sweep-run lists: `SweepRun` gains `summary`
+  (new `SweepRunSummary`), `test_run_ids`, `test_runs` (new
+  `SweepRunTestRun`, on `get_run()` only), `triggered_by`, `schedule_id`,
+  `workspace_id` and `created_by`. `results`, `passed`, `failed`,
+  `pass_rate` and `total_combinations` are never sent and stay `None`.
+- `sweeps.wait_for_run()` now stops on `"partial"` (every test run
+  finished, some failed). It used to poll until the timeout.
+
+### Added
+
+- `audio.create_upload_url()` and `audio.upload()` take `metadata`, a dict
+  stored on the audio row (the app shows `metadata["displayName"]` as the
+  file's name). Only sent when given.
+
+### Changed
+
+These change types that could never be read from a real response, so no
+working code depended on them, but code that names the old fields or
+annotates with them will need updating:
+
+- `compliance.rerun()` returns `ComplianceRerunResponse`, not
+  `MissionTestRun`.
+- `ComplianceCatalogue.regulations` is a dict, not a list;
+  `ComplianceCatalogue.version` and `ComplianceReport.catalogue_version`
+  are `int`. `ComplianceRegulation` loses `key`, `label` and `test_ids`;
+  `ComplianceTest` loses `title` and its `regulation_keys` field (now a
+  property). `ComplianceReport` loses `sections`, and
+  `ComplianceReportSummary` and `ComplianceRegulationSection` have the
+  report's real fields. `ComplianceTestVerdict` and
+  `ComplianceTestEvidence` are no longer used by any response and are kept
+  only so imports keep working.
+- `MissionTestDefaults` loses `sector`, `mission`, `acceptance` and
+  `catalogue_version`.
+- `TreeNode.path` is `List[str]`, not `Optional[str]`; `TreeNode.step_type`
+  is `Optional[str]`, not a `Literal`.
+
 ## [0.14.0] - 2026-11-12
 
 ### Added

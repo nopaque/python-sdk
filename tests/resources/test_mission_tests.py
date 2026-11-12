@@ -118,15 +118,19 @@ def test_get_defaults_returns_defaults(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/mission-tests/defaults",
         json={
-            "sector": "insurance",
-            "mission": "m",
-            "acceptance": "a",
-            "catalogueVersion": "v1",
+            "schemaVersion": 1,
+            "sectors": [
+                {
+                    "id": "insurance",
+                    "label": "Insurance",
+                    "missions": [{"id": "m", "label": "M", "defaultAcceptance": "a"}],
+                }
+            ],
         },
     )
     c = client()
     d = c.mission_tests.get_defaults()
-    assert d.catalogue_version == "v1"
+    assert d.sectors[0].missions[0].default_acceptance == "a"
     c.close()
 
 

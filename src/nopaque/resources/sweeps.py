@@ -10,7 +10,7 @@ from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
 from ..models.sweeps import Sweep, SweepRun
 
-RUN_TERMINAL_STATUSES: set[str] = {"completed", "failed", "cancelled"}
+RUN_TERMINAL_STATUSES: set[str] = {"completed", "failed", "partial", "cancelled"}
 
 
 class SweepsResource(SyncResource):

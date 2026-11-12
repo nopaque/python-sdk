@@ -15,16 +15,17 @@ def test_get_catalogue(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/compliance-catalogue",
         json={
-            "catalogue": {"version": "v1", "regulations": [], "tests": []},
+            "catalogue": {"version": 2, "regulations": {}, "tests": []},
             "pickerLimit": 50,
-            "s2stestSecondsAvailable": 600,
-            "tier": "pro",
+            "complianceSecondsAvailable": None,
+            "tier": "team",
         },
     )
     c = client()
     r = c.compliance.get_catalogue()
-    assert r.catalogue.version == "v1"
+    assert r.catalogue.version == 2
     assert r.picker_limit == 50
+    assert r.compliance_seconds_available is None
     c.close()
 
 
@@ -99,20 +100,23 @@ def test_get_report_url_encodes_phone_number(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/compliance-reports/%2B441234",
         json={
-            "summary": {
-                "phoneNumber": "+441234",
-                "catalogueVersion": "v1",
-                "passed": 2,
-                "failed": 3,
-                "pending": 0,
-                "generatedAt": "",
+            "workspaceId": "w",
+            "phoneNumber": "+441234",
+            "catalogueVersion": 2,
+            "summary": {"ran": 5, "passed": 2, "failed": 3, "total": 12},
+            "regulations": [],
+            "metadata": {
+                "displayName": None,
+                "additionalContext": None,
+                "carrierRouteId": None,
+                "updatedAt": None,
             },
-            "sections": [],
         },
     )
     c = client()
     r = c.compliance.get_report("+441234")
-    assert r.summary.phone_number == "+441234"
+    assert r.phone_number == "+441234"
+    assert r.summary.failed == 3
     req = httpx_mock.get_requests()[0]
     # httpx decodes url.path; the encoded form is preserved in raw_path / str(url).
     assert "/testing/compliance-reports/%2B441234" in str(req.url)
@@ -172,21 +176,11 @@ def test_rerun_posts_to_rerun(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/testing/compliance-runs/mt_old/rerun",
         method="POST",
-        json={
-            "id": "mt_3",
-            "kind": "compliance",
-            "status": "queued",
-            "workspaceId": "w",
-            "sector": "i",
-            "mission": "m",
-            "acceptance": "a",
-            "profile": {"phoneNumber": "+44"},
-            "createdAt": "",
-            "updatedAt": "",
-        },
+        json={"runId": "mt_3"},
     )
     c = client()
-    c.compliance.rerun("mt_old")
+    r = c.compliance.rerun("mt_old")
+    assert r.run_id == "mt_3"
     req = httpx_mock.get_requests()[0]
     assert req.url.path == "/testing/compliance-runs/mt_old/rerun"
     assert req.method == "POST"

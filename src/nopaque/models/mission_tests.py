@@ -1,7 +1,7 @@
 """Models for /testing/mission-tests endpoints."""
 from __future__ import annotations
 
-from typing import Any, Dict, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
 
@@ -20,6 +20,8 @@ _ALIAS_MAP = {
     "pass_evidence": "passEvidence",
     "error_message": "errorMessage",
     "run_id": "runId",
+    "schema_version": "schemaVersion",
+    "default_acceptance": "defaultAcceptance",
 }
 
 
@@ -130,11 +132,31 @@ class MissionTestRun(_MissionTestBase):
     updated_at: Optional[str] = None
 
 
+class MissionDefaultsMission(_MissionTestBase):
+    """A ready-made mission: what to attempt, and when it counts as done."""
+
+    id: str
+    label: Optional[str] = None
+    default_acceptance: Optional[str] = None
+
+
+class MissionDefaultsSector(_MissionTestBase):
+    id: str
+    label: Optional[str] = None
+    missions: List[MissionDefaultsMission] = []
+
+
 class MissionTestDefaults(_MissionTestBase):
-    sector: str
-    mission: str
-    acceptance: str
-    catalogue_version: str
+    """The sector catalogue from GET /testing/mission-tests/defaults.
+
+    Each sector lists ready-made missions with a default acceptance criterion,
+    for use as ``sector``, ``mission`` and ``acceptance`` on
+    ``mission_tests.create()``. The API passes through the catalogue the
+    mission-tester service publishes, so keys may be added without notice.
+    """
+
+    schema_version: Optional[int] = None
+    sectors: List[MissionDefaultsSector] = []
 
 
 def _camel(name: str) -> str:

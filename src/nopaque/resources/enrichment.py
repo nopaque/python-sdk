@@ -8,7 +8,12 @@ from __future__ import annotations
 
 from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
-from ..models.enrichment import EnrichmentJob, EnrichmentResult, TokenUsage
+from ..models.enrichment import (
+    EnrichmentJob,
+    EnrichmentResult,
+    TokenUsage,
+    _normalise_enrichment,
+)
 
 
 class EnrichmentResource(SyncResource):
@@ -25,7 +30,7 @@ class EnrichmentResource(SyncResource):
             f"/mapping/{job_id}/runs/{run_id}/enrichments/{type}",
             request_options=request_options,
         )
-        return EnrichmentResult.model_validate(raw)
+        return EnrichmentResult.model_validate(_normalise_enrichment(raw, job_id, run_id, type))
 
     def token_usage(
         self,
@@ -39,6 +44,8 @@ class EnrichmentResource(SyncResource):
             f"/mapping/{job_id}/runs/{run_id}/token-usage",
             request_options=request_options,
         )
+        if isinstance(raw, dict):
+            raw = {"jobId": job_id, **raw}
         return TokenUsage.model_validate(raw)
 
     def enrich(
@@ -70,7 +77,7 @@ class AsyncEnrichmentResource(AsyncResource):
             f"/mapping/{job_id}/runs/{run_id}/enrichments/{type}",
             request_options=request_options,
         )
-        return EnrichmentResult.model_validate(raw)
+        return EnrichmentResult.model_validate(_normalise_enrichment(raw, job_id, run_id, type))
 
     async def token_usage(
         self,
@@ -84,6 +91,8 @@ class AsyncEnrichmentResource(AsyncResource):
             f"/mapping/{job_id}/runs/{run_id}/token-usage",
             request_options=request_options,
         )
+        if isinstance(raw, dict):
+            raw = {"jobId": job_id, **raw}
         return TokenUsage.model_validate(raw)
 
     async def enrich(

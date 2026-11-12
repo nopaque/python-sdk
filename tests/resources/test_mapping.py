@@ -209,7 +209,7 @@ def test_tree_default_format(httpx_mock: HTTPXMock):
             "tree": {
                 "stepId": "s1",
                 "depth": 0,
-                "path": "/",
+                "path": [],
                 "status": "completed",
                 "isTerminal": False,
                 "children": [],
@@ -437,7 +437,7 @@ def test_tree_node_enrichment_fields(httpx_mock: HTTPXMock):
             "tree": {
                 "stepId": "s1",
                 "depth": 0,
-                "path": "/",
+                "path": [],
                 "status": "completed",
                 "isTerminal": False,
                 "children": [],

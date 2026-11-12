@@ -10,17 +10,14 @@ def client():
 def test_get(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url="https://api.nopaque.co.uk/mapping/map_1/runs/run_1/enrichments/quality_scoring",
-        json={
-            "jobId": "map_1",
-            "runId": "run_1",
-            "type": "quality_scoring",
-            "status": "completed",
-            "results": {"overallScore": 78},
-        },
+        # A completed enrichment comes back unwrapped: the result itself.
+        json={"schemaVersion": 2, "mode": "dtmf", "overallScore": 78, "dimensions": []},
     )
     c = client()
     res = c.enrichment.get("map_1", "run_1", "quality_scoring")
     assert res.type == "quality_scoring"
+    assert res.status == "completed"
+    assert res.results is not None
     assert res.results["overallScore"] == 78
     c.close()
 
