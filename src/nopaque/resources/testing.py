@@ -9,7 +9,7 @@ from typing import Any, Callable, Literal, Mapping, Sequence, Union
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._polling import wait_for_async, wait_for_sync
 from .._request_options import RequestOptions
-from .._resource import AsyncResource, SyncResource
+from .._resource import AsyncResource, SyncResource, seg
 from .._transport import AsyncTransport, SyncTransport
 from ..models.languages import LanguageCatalogue
 from ..models.mapping import TranscriptionLanguage
@@ -867,7 +867,7 @@ class TestingResource(SyncResource):
         """
         raw = self._transport.request(
             "GET",
-            f"/testing/voices/{voice_id}/sample",
+            f"/testing/voices/{seg(voice_id)}/sample",
             request_options=request_options,
         )
         return VoiceSample.model_validate(raw)
@@ -1520,7 +1520,7 @@ class AsyncTestingResource(AsyncResource):
         """
         raw = await self._transport.request(
             "GET",
-            f"/testing/voices/{voice_id}/sample",
+            f"/testing/voices/{seg(voice_id)}/sample",
             request_options=request_options,
         )
         return VoiceSample.model_validate(raw)

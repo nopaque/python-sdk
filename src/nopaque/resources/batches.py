@@ -5,8 +5,8 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._polling import wait_for_async, wait_for_sync
-from .._request_options import RequestOptions
-from .._resource import AsyncResource, SyncResource
+from .._request_options import RequestOptions, without_retries
+from .._resource import AsyncResource, SyncResource, seg
 from ..models.batches import Batch, BatchMember, BatchRun
 
 #: Which failures ``rerun`` re-runs. ``errors`` are runs whose outcome was
@@ -33,7 +33,8 @@ def _rerun_body(
         body["testConfigIds"] = list(test_config_ids)
     return body
 
-RUN_TERMINAL_STATUSES: set[str] = {"completed", "failed", "cancelled"}
+# `partial` (some tests passed, some failed) is a finished run, not a pause.
+RUN_TERMINAL_STATUSES: set[str] = {"completed", "failed", "partial", "cancelled"}
 
 
 class BatchesResource(SyncResource):
@@ -198,7 +199,7 @@ class BatchesResource(SyncResource):
 
     def rerun(
         self,
-        run_id: str,
+        batch_run_id: str,
         *,
         filter: RerunFilter | None = None,
         members: List[BatchMemberInput] | None = None,
@@ -208,9 +209,10 @@ class BatchesResource(SyncResource):
         """Re-run the failed tests of a batch run as a new, linked batch run.
 
         **This places real phone calls**, one per re-run test, and bills the
-        workspace for them.
+        workspace for them. It is never retried automatically: pass
+        ``request_options={"max_retries": n}`` to opt in.
 
-        ``run_id`` is the parent batch-run id. Only tests whose latest run in
+        ``batch_run_id`` is the parent batch run. Only tests whose latest run in
         the parent completed with a failing outcome are eligible; passing
         tests are never re-run. ``filter`` narrows that set (server default
         ``all-failed``). ``members`` (``BatchMember`` or
@@ -221,9 +223,9 @@ class BatchesResource(SyncResource):
         """
         raw = self._transport.request(
             "POST",
-            f"/testing/batch-runs/{run_id}/rerun",
+            f"/testing/batch-runs/{seg(batch_run_id)}/rerun",
             json=_rerun_body(filter=filter, members=members, test_config_ids=test_config_ids),
-            request_options=request_options,
+            request_options=without_retries(request_options),
         )
         return BatchRun.model_validate(raw)
 
@@ -410,7 +412,7 @@ class AsyncBatchesResource(AsyncResource):
 
     async def rerun(
         self,
-        run_id: str,
+        batch_run_id: str,
         *,
         filter: RerunFilter | None = None,
         members: List[BatchMemberInput] | None = None,
@@ -420,9 +422,10 @@ class AsyncBatchesResource(AsyncResource):
         """Re-run the failed tests of a batch run as a new, linked batch run.
 
         **This places real phone calls**, one per re-run test, and bills the
-        workspace for them.
+        workspace for them. It is never retried automatically: pass
+        ``request_options={"max_retries": n}`` to opt in.
 
-        ``run_id`` is the parent batch-run id. Only tests whose latest run in
+        ``batch_run_id`` is the parent batch run. Only tests whose latest run in
         the parent completed with a failing outcome are eligible; passing
         tests are never re-run. ``filter`` narrows that set (server default
         ``all-failed``). ``members`` (``BatchMember`` or
@@ -433,9 +436,9 @@ class AsyncBatchesResource(AsyncResource):
         """
         raw = await self._transport.request(
             "POST",
-            f"/testing/batch-runs/{run_id}/rerun",
+            f"/testing/batch-runs/{seg(batch_run_id)}/rerun",
             json=_rerun_body(filter=filter, members=members, test_config_ids=test_config_ids),
-            request_options=request_options,
+            request_options=without_retries(request_options),
         )
         return BatchRun.model_validate(raw)
 

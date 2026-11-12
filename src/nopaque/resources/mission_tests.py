@@ -5,7 +5,7 @@ from typing import Optional, Sequence, Union
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._request_options import RequestOptions
-from .._resource import AsyncResource, SyncResource
+from .._resource import AsyncResource, SyncResource, seg
 from ..models.mission_tests import (
     CallLanguage,
     CreateMissionTestRequest,
@@ -200,7 +200,7 @@ class MissionTestsResource(SyncResource):
         """
         raw = self._transport.request(
             "GET",
-            f"/testing/mission-tests/{run_id}/analyses",
+            f"/testing/mission-tests/{seg(run_id)}/analyses",
             request_options=request_options,
         )
         return MissionTestAnalyses.model_validate(raw)
@@ -346,7 +346,7 @@ class AsyncMissionTestsResource(AsyncResource):
         """
         raw = await self._transport.request(
             "GET",
-            f"/testing/mission-tests/{run_id}/analyses",
+            f"/testing/mission-tests/{seg(run_id)}/analyses",
             request_options=request_options,
         )
         return MissionTestAnalyses.model_validate(raw)

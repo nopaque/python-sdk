@@ -16,13 +16,14 @@ from .._polling import (
     wait_for_sync,
 )
 from .._request_options import RequestOptions
-from .._resource import AsyncResource, SyncResource
+from .._resource import AsyncResource, SyncResource, seg
 from ..models.digital_testing import (
     ConnectChatTarget,
     ConnectorTypeDescriptor,
     CreateDigitalTestRunRequest,
     CreateDigitalTestRunResponse,
     DigitalConnector,
+    DigitalConnectorType,
     DigitalProfile,
     DigitalTestKind,
     DigitalTestRun,
@@ -130,7 +131,7 @@ def _build_create_body(
 
 
 def _connector_list_params(
-    *, type: Optional[str], limit: Optional[int], cursor: Optional[str]
+    *, type: Optional[DigitalConnectorType], limit: Optional[int], cursor: Optional[str]
 ) -> dict:
     params: dict = {}
     if type is not None:
@@ -362,7 +363,7 @@ class DigitalTestingResource(SyncResource):
     def list_connectors(
         self,
         *,
-        type: str | None = None,
+        type: DigitalConnectorType | None = None,
         limit: int | None = None,
         cursor: str | None = None,
         request_options: RequestOptions | None = None,
@@ -392,7 +393,7 @@ class DigitalTestingResource(SyncResource):
     def list_connectors_page(
         self,
         *,
-        type: str | None = None,
+        type: DigitalConnectorType | None = None,
         limit: int | None = None,
         cursor: str | None = None,
         request_options: RequestOptions | None = None,
@@ -412,7 +413,7 @@ class DigitalTestingResource(SyncResource):
     ) -> DigitalConnector:
         raw = self._transport.request(
             "GET",
-            f"/digital-testing/connectors/{connector_id}",
+            f"/digital-testing/connectors/{seg(connector_id)}",
             request_options=request_options,
         )
         return DigitalConnector.model_validate(raw)
@@ -421,7 +422,7 @@ class DigitalTestingResource(SyncResource):
         self,
         *,
         name: str,
-        type: str,
+        type: DigitalConnectorType,
         target_ref: str,
         config: Dict[str, Any],
         description: str | None = None,
@@ -465,7 +466,7 @@ class DigitalTestingResource(SyncResource):
         """
         raw = self._transport.request(
             "PATCH",
-            f"/digital-testing/connectors/{connector_id}",
+            f"/digital-testing/connectors/{seg(connector_id)}",
             json=_connector_update_body(name=name, description=description, config=config),
             request_options=request_options,
         )
@@ -481,7 +482,7 @@ class DigitalTestingResource(SyncResource):
         """
         self._transport.request(
             "DELETE",
-            f"/digital-testing/connectors/{connector_id}",
+            f"/digital-testing/connectors/{seg(connector_id)}",
             request_options=request_options,
         )
 
@@ -684,7 +685,7 @@ class AsyncDigitalTestingResource(AsyncResource):
     def list_connectors(
         self,
         *,
-        type: str | None = None,
+        type: DigitalConnectorType | None = None,
         limit: int | None = None,
         cursor: str | None = None,
         request_options: RequestOptions | None = None,
@@ -708,7 +709,7 @@ class AsyncDigitalTestingResource(AsyncResource):
     async def list_connectors_page(
         self,
         *,
-        type: str | None = None,
+        type: DigitalConnectorType | None = None,
         limit: int | None = None,
         cursor: str | None = None,
         request_options: RequestOptions | None = None,
@@ -727,7 +728,7 @@ class AsyncDigitalTestingResource(AsyncResource):
     ) -> DigitalConnector:
         raw = await self._transport.request(
             "GET",
-            f"/digital-testing/connectors/{connector_id}",
+            f"/digital-testing/connectors/{seg(connector_id)}",
             request_options=request_options,
         )
         return DigitalConnector.model_validate(raw)
@@ -736,7 +737,7 @@ class AsyncDigitalTestingResource(AsyncResource):
         self,
         *,
         name: str,
-        type: str,
+        type: DigitalConnectorType,
         target_ref: str,
         config: Dict[str, Any],
         description: str | None = None,
@@ -770,7 +771,7 @@ class AsyncDigitalTestingResource(AsyncResource):
         """Change a connector's ``name``, ``description`` or ``config``."""
         raw = await self._transport.request(
             "PATCH",
-            f"/digital-testing/connectors/{connector_id}",
+            f"/digital-testing/connectors/{seg(connector_id)}",
             json=_connector_update_body(name=name, description=description, config=config),
             request_options=request_options,
         )
@@ -782,7 +783,7 @@ class AsyncDigitalTestingResource(AsyncResource):
         """Delete a connector. ``ConflictError`` while a config references it."""
         await self._transport.request(
             "DELETE",
-            f"/digital-testing/connectors/{connector_id}",
+            f"/digital-testing/connectors/{seg(connector_id)}",
             request_options=request_options,
         )
 

@@ -8,7 +8,7 @@ from typing import Callable, List, Optional
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._polling import wait_for_async, wait_for_sync
 from .._request_options import RequestOptions
-from .._resource import AsyncResource, SyncResource
+from .._resource import AsyncResource, SyncResource, seg
 from ..models.load_testing import (
     FailurePatternCall,
     FailurePatternScope,
@@ -360,7 +360,7 @@ class LoadTestingResource(SyncResource):
         self, report_id: str, *, request_options: RequestOptions | None = None
     ) -> Report:
         raw = self._transport.request(
-            "GET", f"/testing/reports/{report_id}", request_options=request_options
+            "GET", f"/testing/reports/{seg(report_id)}", request_options=request_options
         )
         return Report.model_validate(raw.get("report", raw))
 
@@ -373,7 +373,7 @@ class LoadTestingResource(SyncResource):
         (``ConflictError``). The load-test runs it covered are not touched.
         """
         self._transport.request(
-            "DELETE", f"/testing/reports/{report_id}", request_options=request_options
+            "DELETE", f"/testing/reports/{seg(report_id)}", request_options=request_options
         )
 
     def get_report_file_url(
@@ -389,7 +389,7 @@ class LoadTestingResource(SyncResource):
         """
         raw = self._transport.request(
             "GET",
-            f"/testing/reports/{report_id}/files/{pack}",
+            f"/testing/reports/{seg(report_id)}/files/{seg(pack)}",
             request_options=request_options,
         )
         return ReportFileDownload.model_validate(raw)
@@ -405,7 +405,7 @@ class LoadTestingResource(SyncResource):
         """
         raw = self._transport.request(
             "POST",
-            f"/testing/load-tests/{run_id}/exports",
+            f"/testing/load-tests/{seg(run_id)}/exports",
             request_options=request_options,
         )
         return LoadTestExport.model_validate(raw.get("export", raw))
@@ -416,7 +416,7 @@ class LoadTestingResource(SyncResource):
         """The run's exports, newest first (at most 20). Not paginated."""
         raw = self._transport.request(
             "GET",
-            f"/testing/load-tests/{run_id}/exports",
+            f"/testing/load-tests/{seg(run_id)}/exports",
             request_options=request_options,
         )
         return [LoadTestExport.model_validate(e) for e in raw.get("exports", [])]
@@ -432,7 +432,7 @@ class LoadTestingResource(SyncResource):
         call again for a fresh one."""
         raw = self._transport.request(
             "GET",
-            f"/testing/load-tests/{run_id}/exports/{export_id}",
+            f"/testing/load-tests/{seg(run_id)}/exports/{seg(export_id)}",
             request_options=request_options,
         )
         return LoadTestExport.model_validate(raw.get("export", raw))
@@ -453,7 +453,7 @@ class LoadTestingResource(SyncResource):
         """
         raw = self._transport.request(
             "GET",
-            f"/testing/load-tests/{run_id}/failure-patterns",
+            f"/testing/load-tests/{seg(run_id)}/failure-patterns",
             params=_scope_params(scope),
             request_options=request_options,
         )
@@ -473,7 +473,7 @@ class LoadTestingResource(SyncResource):
         """
         raw = self._transport.request(
             "POST",
-            f"/testing/load-tests/{run_id}/failure-patterns/reclassify",
+            f"/testing/load-tests/{seg(run_id)}/failure-patterns/reclassify",
             params=_scope_params(scope),
             request_options=request_options,
         )
@@ -499,7 +499,7 @@ class LoadTestingResource(SyncResource):
         def fetch(p: dict) -> dict:
             raw = self._transport.request(
                 "GET",
-                f"/testing/load-tests/{run_id}/failure-patterns/{pattern_id}/calls",
+                f"/testing/load-tests/{seg(run_id)}/failure-patterns/{seg(pattern_id)}/calls",
                 params=_apply_cursor(p),
                 request_options=request_options,
             )
@@ -520,7 +520,7 @@ class LoadTestingResource(SyncResource):
         """One page of a pattern's calls. Pass ``next_token`` back as ``cursor``."""
         raw = self._transport.request(
             "GET",
-            f"/testing/load-tests/{run_id}/failure-patterns/{pattern_id}/calls",
+            f"/testing/load-tests/{seg(run_id)}/failure-patterns/{seg(pattern_id)}/calls",
             params=_cursor_params(limit=limit, cursor=cursor, scope=scope),
             request_options=request_options,
         )
@@ -804,7 +804,7 @@ class AsyncLoadTestingResource(AsyncResource):
         self, report_id: str, *, request_options: RequestOptions | None = None
     ) -> Report:
         raw = await self._transport.request(
-            "GET", f"/testing/reports/{report_id}", request_options=request_options
+            "GET", f"/testing/reports/{seg(report_id)}", request_options=request_options
         )
         return Report.model_validate(raw.get("report", raw))
 
@@ -813,7 +813,7 @@ class AsyncLoadTestingResource(AsyncResource):
     ) -> None:
         """Permanently delete a finished report and its files."""
         await self._transport.request(
-            "DELETE", f"/testing/reports/{report_id}", request_options=request_options
+            "DELETE", f"/testing/reports/{seg(report_id)}", request_options=request_options
         )
 
     async def get_report_file_url(
@@ -826,7 +826,7 @@ class AsyncLoadTestingResource(AsyncResource):
         """A pre-signed link to one of the report's files, valid for 1 hour."""
         raw = await self._transport.request(
             "GET",
-            f"/testing/reports/{report_id}/files/{pack}",
+            f"/testing/reports/{seg(report_id)}/files/{seg(pack)}",
             request_options=request_options,
         )
         return ReportFileDownload.model_validate(raw)
@@ -836,7 +836,7 @@ class AsyncLoadTestingResource(AsyncResource):
     ) -> LoadTestExport:
         raw = await self._transport.request(
             "POST",
-            f"/testing/load-tests/{run_id}/exports",
+            f"/testing/load-tests/{seg(run_id)}/exports",
             request_options=request_options,
         )
         return LoadTestExport.model_validate(raw.get("export", raw))
@@ -846,7 +846,7 @@ class AsyncLoadTestingResource(AsyncResource):
     ) -> List[LoadTestExport]:
         raw = await self._transport.request(
             "GET",
-            f"/testing/load-tests/{run_id}/exports",
+            f"/testing/load-tests/{seg(run_id)}/exports",
             request_options=request_options,
         )
         return [LoadTestExport.model_validate(e) for e in raw.get("exports", [])]
@@ -860,7 +860,7 @@ class AsyncLoadTestingResource(AsyncResource):
     ) -> LoadTestExport:
         raw = await self._transport.request(
             "GET",
-            f"/testing/load-tests/{run_id}/exports/{export_id}",
+            f"/testing/load-tests/{seg(run_id)}/exports/{seg(export_id)}",
             request_options=request_options,
         )
         return LoadTestExport.model_validate(raw.get("export", raw))
@@ -874,7 +874,7 @@ class AsyncLoadTestingResource(AsyncResource):
     ) -> LoadTestFailurePatterns:
         raw = await self._transport.request(
             "GET",
-            f"/testing/load-tests/{run_id}/failure-patterns",
+            f"/testing/load-tests/{seg(run_id)}/failure-patterns",
             params=_scope_params(scope),
             request_options=request_options,
         )
@@ -889,7 +889,7 @@ class AsyncLoadTestingResource(AsyncResource):
     ) -> ReclassifyFailurePatternsResponse:
         raw = await self._transport.request(
             "POST",
-            f"/testing/load-tests/{run_id}/failure-patterns/reclassify",
+            f"/testing/load-tests/{seg(run_id)}/failure-patterns/reclassify",
             params=_scope_params(scope),
             request_options=request_options,
         )
@@ -910,7 +910,7 @@ class AsyncLoadTestingResource(AsyncResource):
         async def fetch(p: dict) -> dict:
             raw = await self._transport.request(
                 "GET",
-                f"/testing/load-tests/{run_id}/failure-patterns/{pattern_id}/calls",
+                f"/testing/load-tests/{seg(run_id)}/failure-patterns/{seg(pattern_id)}/calls",
                 params=_apply_cursor(p),
                 request_options=request_options,
             )
@@ -931,7 +931,7 @@ class AsyncLoadTestingResource(AsyncResource):
         """One page of a pattern's calls. Pass ``next_token`` back as ``cursor``."""
         raw = await self._transport.request(
             "GET",
-            f"/testing/load-tests/{run_id}/failure-patterns/{pattern_id}/calls",
+            f"/testing/load-tests/{seg(run_id)}/failure-patterns/{seg(pattern_id)}/calls",
             params=_cursor_params(limit=limit, cursor=cursor, scope=scope),
             request_options=request_options,
         )

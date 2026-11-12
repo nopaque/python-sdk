@@ -12,6 +12,7 @@ from .batches import (
     Batch,
     BatchMember,
     BatchRun,
+    BatchRunStatus,
 )
 from .compliance import (
     ComplianceCatalogue,
@@ -45,6 +46,7 @@ from .digital_testing import (
     CreateDigitalTestRunResponse,
     DigitalComplianceAuditSummary,
     DigitalConnector,
+    DigitalConnectorType,
     DigitalEvidence,
     DigitalOutcome,
     DigitalProfile,
@@ -236,6 +238,7 @@ __all__ = [
     "Batch",
     "BatchRun",
     "BatchMember",
+    "BatchRunStatus",
     # compliance
     "ComplianceCatalogue",
     "ComplianceCatalogueResponse",
@@ -294,6 +297,7 @@ __all__ = [
     "ConnectorFormField",
     "ConnectorTypeDescriptor",
     "DigitalConnector",
+    "DigitalConnectorType",
     # enrichment
     "EnrichmentJob",
     "EnrichmentResult",

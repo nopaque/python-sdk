@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
-from .._request_options import RequestOptions
+from .._request_options import RequestOptions, without_retries
 from .._resource import AsyncResource, SyncResource
 from .._s3 import (
     _read_bytes,
@@ -140,7 +140,9 @@ class AudioResource(SyncResource):
 
         **This is billed**, per character of ``text`` (markup included), on
         every call, including repeats of the same text, and counts against
-        the workspace's monthly character limit. It places no phone call.
+        the workspace's monthly character limit. It places no phone call. It
+        is never retried automatically: pass ``request_options={"max_retries": n}``
+        to opt in.
 
         ``voice_id`` is one of ``testing.list_voices()``. ``text`` is 1-1000
         characters. ``settings`` (``speed``, ``volume``, ``emotion``) applies
@@ -151,7 +153,7 @@ class AudioResource(SyncResource):
             "POST",
             "/audio/generate",
             json=_generate_body(voice_id=voice_id, text=text, settings=settings, name=name),
-            request_options=request_options,
+            request_options=without_retries(request_options),
         )
         return GeneratedSpeech.model_validate(raw)
 
@@ -317,7 +319,9 @@ class AsyncAudioResource(AsyncResource):
 
         **This is billed**, per character of ``text`` (markup included), on
         every call, including repeats of the same text, and counts against
-        the workspace's monthly character limit. It places no phone call.
+        the workspace's monthly character limit. It places no phone call. It
+        is never retried automatically: pass ``request_options={"max_retries": n}``
+        to opt in.
 
         ``voice_id`` is one of ``testing.list_voices()``. ``text`` is 1-1000
         characters. ``settings`` (``speed``, ``volume``, ``emotion``) applies
@@ -328,7 +332,7 @@ class AsyncAudioResource(AsyncResource):
             "POST",
             "/audio/generate",
             json=_generate_body(voice_id=voice_id, text=text, settings=settings, name=name),
-            request_options=request_options,
+            request_options=without_retries(request_options),
         )
         return GeneratedSpeech.model_validate(raw)
 

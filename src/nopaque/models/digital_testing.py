@@ -489,6 +489,11 @@ def _camel(name: str) -> str:
     return head + "".join(word.capitalize() for word in rest)
 
 
+#: A digital connector type. ``lex-v2`` and ``direct-line`` are connector-only
+#: targets, so this is wider than :data:`DigitalTransport`.
+DigitalConnectorType = Literal["web-widget", "connect-chat", "http-json", "lex-v2", "direct-line"]
+
+
 class _ConnectorBase(BaseModel):
     model_config = ConfigDict(
         extra="allow",

@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from .._request_options import RequestOptions
-from .._resource import AsyncResource, SyncResource
+from .._request_options import RequestOptions, without_retries
+from .._resource import AsyncResource, SyncResource, seg
 from ..models.numbers import (
     AvailableNumbers,
     NumberList,
@@ -145,9 +145,9 @@ class NumbersResource(SyncResource):
 
         A number carries a recurring monthly charge, and an order cannot be
         undone by retrying: a repeat request is a second number and a second
-        charge. The SDK retries a POST only when the request never reached
-        the API (a 429, or a connection failure before sending); do not wrap
-        this in a retry loop of your own.
+        charge. It is never retried automatically (pass
+        ``request_options={"max_retries": n}`` to opt in), and should not be
+        wrapped in a retry loop of your own.
 
         ``e164`` is a number exactly as :meth:`list_available` returned it.
         ``number_type`` is what the number is for, and decides the capabilities
@@ -168,7 +168,7 @@ class NumbersResource(SyncResource):
                 country=country,
                 phone_number_type=phone_number_type,
             ),
-            request_options=request_options,
+            request_options=without_retries(request_options),
         )
         return NumberOrder.model_validate(raw)
 
@@ -181,7 +181,7 @@ class NumbersResource(SyncResource):
         outstanding and who the order is waiting on.
         """
         raw = self._transport.request(
-            "GET", f"/numbers/orders/{order_id}", request_options=request_options
+            "GET", f"/numbers/orders/{seg(order_id)}", request_options=request_options
         )
         return NumberOrderStatus.model_validate(raw)
 
@@ -201,7 +201,7 @@ class NumbersResource(SyncResource):
         """
         raw = self._transport.request(
             "PATCH",
-            f"/numbers/{number_id}",
+            f"/numbers/{seg(number_id)}",
             json=_update_body(uses=uses, is_default=is_default),
             request_options=request_options,
         )
@@ -216,7 +216,7 @@ class NumbersResource(SyncResource):
         Only a ``live`` number can be released.
         """
         raw = self._transport.request(
-            "POST", f"/numbers/{number_id}/release", request_options=request_options
+            "POST", f"/numbers/{seg(number_id)}/release", request_options=request_options
         )
         return NumberRelease.model_validate(raw or {})
 
@@ -283,9 +283,9 @@ class AsyncNumbersResource(AsyncResource):
 
         A number carries a recurring monthly charge, and an order cannot be
         undone by retrying: a repeat request is a second number and a second
-        charge. The SDK retries a POST only when the request never reached
-        the API (a 429, or a connection failure before sending); do not wrap
-        this in a retry loop of your own.
+        charge. It is never retried automatically (pass
+        ``request_options={"max_retries": n}`` to opt in), and should not be
+        wrapped in a retry loop of your own.
 
         ``e164`` is a number exactly as :meth:`list_available` returned it.
         ``number_type`` is what the number is for, and decides the capabilities
@@ -306,7 +306,7 @@ class AsyncNumbersResource(AsyncResource):
                 country=country,
                 phone_number_type=phone_number_type,
             ),
-            request_options=request_options,
+            request_options=without_retries(request_options),
         )
         return NumberOrder.model_validate(raw)
 
@@ -315,7 +315,7 @@ class AsyncNumbersResource(AsyncResource):
     ) -> NumberOrderStatus:
         """Progress on an order, per regulatory requirement."""
         raw = await self._transport.request(
-            "GET", f"/numbers/orders/{order_id}", request_options=request_options
+            "GET", f"/numbers/orders/{seg(order_id)}", request_options=request_options
         )
         return NumberOrderStatus.model_validate(raw)
 
@@ -330,7 +330,7 @@ class AsyncNumbersResource(AsyncResource):
         """Set a number's use, its default flag, or both. Send at least one."""
         raw = await self._transport.request(
             "PATCH",
-            f"/numbers/{number_id}",
+            f"/numbers/{seg(number_id)}",
             json=_update_body(uses=uses, is_default=is_default),
             request_options=request_options,
         )
@@ -341,6 +341,6 @@ class AsyncNumbersResource(AsyncResource):
     ) -> NumberRelease:
         """Release a number the workspace rents. Billing for it stops."""
         raw = await self._transport.request(
-            "POST", f"/numbers/{number_id}/release", request_options=request_options
+            "POST", f"/numbers/{seg(number_id)}/release", request_options=request_options
         )
         return NumberRelease.model_validate(raw or {})

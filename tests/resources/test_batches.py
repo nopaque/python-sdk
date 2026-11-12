@@ -1,8 +1,9 @@
 import json
 
+import pytest
 from pytest_httpx import HTTPXMock
 
-from nopaque import AsyncNopaque, BatchMember, Nopaque
+from nopaque import AsyncNopaque, BatchMember, Nopaque, RateLimitError
 
 
 def client():
@@ -171,3 +172,30 @@ async def test_rerun_async_empty_body(httpx_mock: HTTPXMock):
     assert json.loads(httpx_mock.get_requests()[0].content) == {"testConfigIds": ["c1"]}
     assert out.status == "pending"
     await c.aclose()
+
+
+def test_rerun_is_never_retried_by_default(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/batch-runs/br1/rerun",
+        method="POST",
+        status_code=429,
+        headers={"retry-after": "0"},
+        json={"error": "rate"},
+    )
+    c = Nopaque(api_key="k", max_retries=3)
+    with pytest.raises(RateLimitError):
+        c.batches.rerun("br1")
+    assert len(httpx_mock.get_requests()) == 1
+    c.close()
+
+
+def test_wait_for_run_stops_on_partial(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/batch-runs/br1",
+        json={"id": "br1", "status": "partial"},
+    )
+    c = client()
+    out = c.batches.wait_for_run("br1", timeout=5, poll_interval=0.01)
+    assert out.status == "partial"
+    assert len(httpx_mock.get_requests()) == 1
+    c.close()

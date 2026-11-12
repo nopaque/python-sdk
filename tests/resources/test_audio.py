@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError as PydanticValidationError
 from pytest_httpx import HTTPXMock
 
-from nopaque import AsyncNopaque, Nopaque, SpeechSettings
+from nopaque import AsyncNopaque, Nopaque, RateLimitError, SpeechSettings
 from nopaque._errors import NotFoundError
 
 
@@ -296,3 +296,18 @@ async def test_generate_async(httpx_mock: HTTPXMock):
     }
     assert out.audio_id == "a1"
     await c.aclose()
+
+
+def test_generate_is_never_retried_by_default(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/audio/generate",
+        method="POST",
+        status_code=429,
+        headers={"retry-after": "0"},
+        json={"error": "rate"},
+    )
+    c = Nopaque(api_key="k", max_retries=3)
+    with pytest.raises(RateLimitError):
+        c.audio.generate(voice_id="v", text="t")
+    assert len(httpx_mock.get_requests()) == 1
+    c.close()

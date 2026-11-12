@@ -4,7 +4,7 @@ import json
 import pytest
 from pytest_httpx import HTTPXMock
 
-from nopaque import AsyncNopaque, Nopaque, PhoneNumber
+from nopaque import AsyncNopaque, Nopaque, PhoneNumber, RateLimitError
 
 BASE = "https://api.nopaque.co.uk"
 
@@ -271,3 +271,52 @@ async def test_async_numbers(httpx_mock: HTTPXMock):
     assert (await c.numbers.get_requirements(country="GB")).requirements == []
     assert (await c.numbers.get_order("o1")).progress.complete is True
     await c.aclose()
+
+
+def test_order_is_never_retried_by_default(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE}/numbers/orders",
+        method="POST",
+        status_code=429,
+        headers={"retry-after": "0"},
+        json={"error": "rate"},
+    )
+    c = Nopaque(api_key="k", max_retries=3)
+    with pytest.raises(RateLimitError):
+        c.numbers.order(e164=NUMBER["e164"], number_type="survey", country="GB")
+    assert len(httpx_mock.get_requests()) == 1
+    c.close()
+
+
+def test_order_retries_when_caller_opts_in(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE}/numbers/orders",
+        method="POST",
+        status_code=429,
+        headers={"retry-after": "0"},
+        json={"error": "rate"},
+    )
+    httpx_mock.add_response(
+        url=f"{BASE}/numbers/orders",
+        method="POST",
+        status_code=201,
+        json={"number": NUMBER, "activation": {}},
+    )
+    c = Nopaque(api_key="k", max_retries=0)
+    out = c.numbers.order(
+        e164=NUMBER["e164"],
+        number_type="survey",
+        country="GB",
+        request_options={"max_retries": 1},
+    )
+    assert out.number.number_id == "n1"
+    c.close()
+
+
+def test_ids_are_url_encoded(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{BASE}/numbers/a%2Fb/release", method="POST", json={"released": True}
+    )
+    c = client()
+    assert c.numbers.release("a/b").released is True
+    c.close()

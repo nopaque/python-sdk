@@ -6,7 +6,14 @@ separate classes because their method bodies differ.
 """
 from __future__ import annotations
 
+from urllib.parse import quote
+
 from ._transport import AsyncTransport, SyncTransport
+
+
+def seg(value: str) -> str:
+    """Percent-encode one path segment, so an id can never change the route."""
+    return quote(str(value), safe="")
 
 
 class SyncResource:

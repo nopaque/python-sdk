@@ -25,6 +25,11 @@ def _alias(name: str) -> str:
     return _ALIAS_MAP.get(name, name)
 
 
+#: Status of a batch run. ``partial`` means it finished with some tests
+#: passing and some failing.
+BatchRunStatus = Literal["pending", "running", "completed", "failed", "partial", "cancelled"]
+
+
 class _BatchesBase(BaseModel):
     model_config = ConfigDict(
         extra="allow",
@@ -47,6 +52,8 @@ class BatchRun(_BatchesBase):
     run_id: Optional[str] = None
     id: Optional[str] = None
     batch_id: Optional[str] = None
+    #: One of :data:`BatchRunStatus`; typed ``str`` so a new status never
+    #: makes a read raise.
     status: str
     total_numbers: Optional[int] = None
     passed: Optional[int] = None
