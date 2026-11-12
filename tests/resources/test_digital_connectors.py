@@ -152,3 +152,13 @@ async def test_async_connectors(httpx_mock: HTTPXMock):
     assert await dt.delete_connector("c1") is None
     assert await dt.list_connector_types() == []
     await c.aclose()
+
+
+def test_dot_and_empty_ids_are_rejected():
+    import pytest
+
+    c = client()
+    for bad in (".", "..", ""):
+        with pytest.raises(ValueError):
+            c.digital_testing.get_connector(bad)
+    c.close()
