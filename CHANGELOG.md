@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-12
+
 ### Added
 
 API coverage for features the SDK had fallen behind on. Every method has a
@@ -488,7 +490,8 @@ moved into it and the API requires the mode.
 - Method-aware retry with exponential jitter and `Retry-After` honor.
 - Typed exception hierarchy.
 
-[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/nopaque/python-sdk/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.14.0
 [0.13.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.13.0
 [0.12.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.12.0
 [0.11.0]: https://github.com/nopaque/python-sdk/releases/tag/v0.11.0
