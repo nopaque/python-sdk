@@ -1,5 +1,5 @@
 """Models for /mapping endpoints."""
-from typing import Any, List, Literal, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
@@ -289,12 +289,12 @@ class MappingStep(_MappingBase):
     created_at: Optional[str] = None
     completed_at: Optional[str] = None
 
-    @model_validator(mode="before")
-    @classmethod
-    def _step_id_from_id(cls, data: Any) -> Any:
-        if isinstance(data, dict) and data.get("stepId") is None and data.get("id") is not None:
-            data = {**data, "stepId": data["id"]}
-        return data
+    @model_validator(mode="after")
+    def _step_id_from_id(self) -> "MappingStep":
+        # After validation, so an explicit stepId or step_id is kept.
+        if self.step_id is None:
+            self.step_id = self.id
+        return self
 
 
 class InputRequired(_MappingBase):

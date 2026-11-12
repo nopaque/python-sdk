@@ -113,28 +113,18 @@ class TokenUsage(_EnrichmentBase):
     total: Optional[TokenUsageTotals] = None
     usage: Optional[TokenUsageDetails] = None
 
-    @model_validator(mode="before")
-    @classmethod
-    def _fill_usage(cls, data: Any) -> Any:
-        if not isinstance(data, dict) or data.get("usage") is not None:
-            return data
-        services = data.get("services")
-        total = data.get("total")
-        if not isinstance(services, dict) and not isinstance(total, dict):
-            return data
-
-        def tokens(block: Any) -> Optional[int]:
-            return block.get("totalTokens") if isinstance(block, dict) else None
-
-        services = services if isinstance(services, dict) else {}
-        return {
-            **data,
-            "usage": {
-                "ivrAnalysisTokens": tokens(services.get("ivr_analysis")),
-                "qualityScoringTokens": tokens(services.get("quality_scoring")),
-                "totalTokens": tokens(total),
-            },
-        }
+    @model_validator(mode="after")
+    def _fill_usage(self) -> "TokenUsage":
+        # After validation, so either spelling of the nested fields counts.
+        if self.usage is None and (self.services or self.total is not None):
+            ivr = self.services.get("ivr_analysis")
+            quality = self.services.get("quality_scoring")
+            self.usage = TokenUsageDetails(
+                ivr_analysis_tokens=ivr.total_tokens if ivr else None,
+                quality_scoring_tokens=quality.total_tokens if quality else None,
+                total_tokens=self.total.total_tokens if self.total else None,
+            )
+        return self
 
 
 class EnrichmentJob(_EnrichmentBase):

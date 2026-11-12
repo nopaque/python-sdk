@@ -367,3 +367,27 @@ def test_audio_create_upload_url_omits_metadata_by_default(httpx_mock: HTTPXMock
     )
     assert "metadata" not in json.loads(httpx_mock.get_requests()[0].content)
     c.close()
+
+
+def test_mapping_step_keeps_an_explicit_step_id():
+    from nopaque import MappingStep
+
+    by_alias = MappingStep.model_validate({"id": "row_1", "stepId": "step_1", "status": "completed"})
+    by_name = MappingStep(id="row_1", step_id="step_1", status="completed")
+    assert by_alias.step_id == "step_1"
+    assert by_name.step_id == "step_1"
+
+
+def test_token_usage_summary_accepts_field_names():
+    from nopaque import TokenUsage
+
+    u = TokenUsage.model_validate(
+        {
+            "run_id": "r",
+            "services": {"ivr_analysis": {"total_tokens": 5}},
+            "total": {"total_tokens": 12},
+        }
+    )
+    assert u.usage is not None
+    assert u.usage.ivr_analysis_tokens == 5
+    assert u.usage.total_tokens == 12
