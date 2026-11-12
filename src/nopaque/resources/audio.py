@@ -110,6 +110,7 @@ class AudioResource(SyncResource):
         size_bytes: int,
         associated_id: str | None = None,
         duration_secs: float | None = None,
+        metadata: Dict[str, Any] | None = None,
         request_options: RequestOptions | None = None,
     ) -> AudioUploadURL:
         raw = self._transport.request(
@@ -121,6 +122,7 @@ class AudioResource(SyncResource):
                 "category": category,
                 **({"associatedId": associated_id} if associated_id else {}),
                 **({"durationSecs": duration_secs} if duration_secs is not None else {}),
+                **({"metadata": metadata} if metadata is not None else {}),
                 "sizeBytes": size_bytes,
             },
             request_options=request_options,
@@ -181,12 +183,14 @@ class AudioResource(SyncResource):
         content_type: str | None = None,
         name: str | None = None,
         associated_id: str | None = None,
+        metadata: Dict[str, Any] | None = None,
         request_options: RequestOptions | None = None,
     ) -> AudioFile:
         """Upload a local file or bytes to Nopaque in one call.
 
         `file` may be a path string, Path, bytes, or a file-like object opened
-        in binary mode.
+        in binary mode. `metadata` is stored on the audio row as given; the
+        app shows `metadata["displayName"]` as the file's name when set.
         """
         data, inferred_name = _read_bytes(file)
         resolved_name = name or inferred_name or "upload.bin"
@@ -198,6 +202,7 @@ class AudioResource(SyncResource):
             category=category,
             associated_id=associated_id,
             size_bytes=len(data),
+            metadata=metadata,
             request_options=request_options,
         )
         s3_put_sync(presign.upload_url, data, content_type=resolved_type)
@@ -289,6 +294,7 @@ class AsyncAudioResource(AsyncResource):
         size_bytes: int,
         associated_id: str | None = None,
         duration_secs: float | None = None,
+        metadata: Dict[str, Any] | None = None,
         request_options: RequestOptions | None = None,
     ) -> AudioUploadURL:
         raw = await self._transport.request(
@@ -300,6 +306,7 @@ class AsyncAudioResource(AsyncResource):
                 "category": category,
                 **({"associatedId": associated_id} if associated_id else {}),
                 **({"durationSecs": duration_secs} if duration_secs is not None else {}),
+                **({"metadata": metadata} if metadata is not None else {}),
                 "sizeBytes": size_bytes,
             },
             request_options=request_options,
@@ -360,6 +367,7 @@ class AsyncAudioResource(AsyncResource):
         content_type: str | None = None,
         name: str | None = None,
         associated_id: str | None = None,
+        metadata: Dict[str, Any] | None = None,
         request_options: RequestOptions | None = None,
     ) -> AudioFile:
         """Async variant of AudioResource.upload."""
@@ -373,6 +381,7 @@ class AsyncAudioResource(AsyncResource):
             category=category,
             associated_id=associated_id,
             size_bytes=len(data),
+            metadata=metadata,
             request_options=request_options,
         )
         await s3_put_async(presign.upload_url, data, content_type=resolved_type)

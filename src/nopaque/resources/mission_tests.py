@@ -208,7 +208,10 @@ class MissionTestsResource(SyncResource):
     def get_defaults(
         self, *, request_options: RequestOptions | None = None
     ) -> MissionTestDefaults:
-        """Get default sector/mission/acceptance for ad-hoc runs.
+        """Get the catalogue of ready-made missions, grouped by sector.
+
+        Each mission has an ``id``, a ``label`` and a ``default_acceptance``,
+        for use as ``mission`` and ``acceptance`` on ``create()``.
 
         Raises ``ServerError`` with ``code='CATALOG_NOT_READY'`` until the
         mission-tester service publishes its SSM payload. Callers can catch

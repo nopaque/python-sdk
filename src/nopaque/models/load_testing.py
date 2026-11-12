@@ -68,9 +68,79 @@ class LoadTestProgress(_LoadTestingBase):
     pass_rate: Optional[float] = None
 
 
+class LoadTestPercentiles(_LoadTestingBase):
+    p50: Optional[float] = None
+    p5: Optional[float] = None
+    p95: Optional[float] = None
+    min: Optional[float] = None
+    max: Optional[float] = None
+
+
+class LoadTestQualitySummary(_LoadTestingBase):
+    """Call quality across the run. ``estimated_mos`` carries p50, p5 and min;
+    the others p50, p95 and max."""
+
+    calls: int = 0
+    poor_calls: int = 0
+    estimated_mos: Optional[LoadTestPercentiles] = None
+    packet_loss_pct: Optional[LoadTestPercentiles] = None
+    jitter_ms: Optional[LoadTestPercentiles] = None
+    answer_secs: Optional[LoadTestPercentiles] = None
+
+
+class LoadTestRunStats(_LoadTestingBase):
+    """Running totals for a load-test run. Percentiles are call durations in seconds."""
+
+    started: int = 0
+    completed: int = 0
+    failed: int = 0
+    errors: int = 0
+    p50: Optional[float] = None
+    p95: Optional[float] = None
+    p99: Optional[float] = None
+    offered: Optional[int] = None
+    dropped: Optional[int] = None
+    caller_id_pool: Optional[int] = None
+    caller_id_workspace_default: Optional[int] = None
+    caller_id_platform_default: Optional[int] = None
+    quality_calls: Optional[int] = None
+    poor_quality_calls: Optional[int] = None
+    quality: Optional[LoadTestQualitySummary] = None
+    #: Failed calls per failure-pattern id.
+    patterns: Optional[Dict[str, int]] = None
+    late_starts: Optional[int] = None
+    late_starts_passed: Optional[int] = None
+
+
 class LoadTestStatus(_LoadTestingBase):
+    """Response from GET /testing/load-tests/{id}/status.
+
+    Progress is ``current_second`` of ``total_seconds`` (``progress_percent``
+    rounds it); ``stats`` holds the call counts so far. ``status`` is one of
+    ``pending``, ``running``, ``completed``, ``aborted`` or ``failed``.
+    """
+
     id: Optional[str] = None
+    name: Optional[str] = None
+    test_config_id: Optional[str] = None
+    load_test_config_id: Optional[str] = None
+    group_id: Optional[str] = None
+    lane_index: Optional[int] = None
+    group_size: Optional[int] = None
     status: str
+    current_second: Optional[int] = None
+    total_seconds: Optional[int] = None
+    progress_percent: Optional[float] = None
+    stats: Optional[LoadTestRunStats] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    aborted_at: Optional[str] = None
+    abort_reason: Optional[str] = None
+    error_message: Optional[str] = None
+    #: The load-test config as this run sees it (a grouped run's own lane).
+    config: Optional[Dict[str, Any]] = None
+    #: Never sent by the API; always ``None``. Use ``current_second``,
+    #: ``total_seconds`` and ``stats``.
     progress: Optional[LoadTestProgress] = None
 
 

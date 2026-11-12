@@ -119,3 +119,17 @@ def test_wait_for_run(httpx_mock: HTTPXMock):
     run = c.sweeps.wait_for_run("r1", timeout=5.0, poll_interval=0.01)
     assert run.status == "completed"
     c.close()
+
+
+def test_wait_for_run_stops_on_partial(httpx_mock: HTTPXMock):
+    # The api reports "partial" when every test run has finished and some
+    # passed while others failed; it is terminal.
+    for status in ("running", "partial"):
+        httpx_mock.add_response(
+            url="https://api.nopaque.co.uk/testing/sweep-runs/r1",
+            json={"id": "r1", "status": status},
+        )
+    c = client()
+    run = c.sweeps.wait_for_run("r1", timeout=5.0, poll_interval=0.01)
+    assert run.status == "partial"
+    c.close()

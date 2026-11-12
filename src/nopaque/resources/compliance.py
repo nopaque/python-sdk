@@ -11,12 +11,12 @@ from ..models.compliance import (
     ComplianceCatalogueResponse,
     ComplianceReport,
     ComplianceReportListItem,
+    ComplianceRerunResponse,
     CreateComplianceBatchRequest,
     CreateComplianceBatchResponse,
     GeneratePdfRequest,
     GeneratePdfResponse,
 )
-from ..models.mission_tests import MissionTestRun
 
 
 def _encode_phone(phone_number: str) -> str:
@@ -181,13 +181,13 @@ class ComplianceResource(SyncResource):
 
     def rerun(
         self, run_id: str, *, request_options: RequestOptions | None = None
-    ) -> MissionTestRun:
+    ) -> ComplianceRerunResponse:
         raw = self._transport.request(
             "POST",
             f"/testing/compliance-runs/{run_id}/rerun",
             request_options=request_options,
         )
-        return MissionTestRun.model_validate(raw)
+        return ComplianceRerunResponse.model_validate(raw)
 
 
 class AsyncComplianceResource(AsyncResource):
@@ -325,10 +325,10 @@ class AsyncComplianceResource(AsyncResource):
 
     async def rerun(
         self, run_id: str, *, request_options: RequestOptions | None = None
-    ) -> MissionTestRun:
+    ) -> ComplianceRerunResponse:
         raw = await self._transport.request(
             "POST",
             f"/testing/compliance-runs/{run_id}/rerun",
             request_options=request_options,
         )
-        return MissionTestRun.model_validate(raw)
+        return ComplianceRerunResponse.model_validate(raw)

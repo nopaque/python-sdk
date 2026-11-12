@@ -1,7 +1,7 @@
 """Models for /mapping endpoints."""
-from typing import List, Literal, Optional
+from typing import Any, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 
 def _alias(name: str) -> str:
@@ -269,6 +269,9 @@ class StepResult(_MappingBase):
 
 class MappingStep(_MappingBase):
     id: Optional[str] = None
+    #: The same value as ``id``. The API sends only ``id``; this is filled from
+    #: it so code written against earlier versions, where it was always
+    #: ``None``, gets the step's id.
     step_id: Optional[str] = None
     job_id: Optional[str] = None
     run_id: Optional[str] = None
@@ -286,6 +289,13 @@ class MappingStep(_MappingBase):
     created_at: Optional[str] = None
     completed_at: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def _step_id_from_id(cls, data: Any) -> Any:
+        if isinstance(data, dict) and data.get("stepId") is None and data.get("id") is not None:
+            data = {**data, "stepId": data["id"]}
+        return data
+
 
 class InputRequired(_MappingBase):
     """Per-step UX hint for prompts that require user input (e.g. PIN/account)."""
@@ -297,9 +307,28 @@ class InputRequired(_MappingBase):
     start_time_ms: Optional[int] = None
 
 
+class TreeMenuOption(_MappingBase):
+    digit: str
+    label: Optional[str] = None
+    spoken_text: Optional[str] = None
+    offer_secs: Optional[float] = None
+
+
+class TreeMenu(_MappingBase):
+    """A menu heard in a node's recording, in the order heard."""
+
+    label: Optional[str] = None
+    entered_by: Optional[str] = None
+    start_secs: Optional[float] = None
+    end_secs: Optional[float] = None
+    options: List[TreeMenuOption] = []
+
+
 class TreeNode(_MappingBase):
     step_id: Optional[str] = None
-    path: Optional[str] = None
+    #: The digits (or voice branches) pressed from the root to reach this
+    #: node; ``[]`` for the root. ``digit`` is its last element.
+    path: List[str] = []
     dtmf_option: Optional[str] = None
     digit: Optional[str] = None
     label: Optional[str] = None
@@ -311,7 +340,9 @@ class TreeNode(_MappingBase):
     duration: Optional[float] = None
     audio_url: Optional[str] = None
     # v0.3.0 enrichment fields (optional, omitted when absent)
-    step_type: Optional[Literal["dtmf", "voice"]] = None
+    #: ``"dtmf"``, ``"voice"`` or ``"s2s_node"`` (a voice-agent conversation
+    #: turn). A plain string so a type added later still parses.
+    step_type: Optional[str] = None
     voice_prompt: Optional[str] = None
     menu_label: Optional[str] = None
     spoken_response: Optional[str] = None
@@ -319,6 +350,13 @@ class TreeNode(_MappingBase):
     probe_classification: Optional[str] = None
     probe_rationale: Optional[str] = None
     input_required: Optional[InputRequired] = None
+    full_transcript: Optional[str] = None
+    audio_id: Optional[str] = None
+    menus: Optional[List[TreeMenu]] = None
+    skip_reason: Optional[str] = None
+    original_step_id: Optional[str] = None
+    #: ``"loop_detected"``, ``"repeat_detected"`` or ``"repeat_limit"``.
+    repeat_reason: Optional[str] = None
 
 
 TreeNode.model_rebuild()
