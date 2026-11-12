@@ -9,7 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 API coverage for features the SDK had fallen behind on. Every method has a
-sync and an async form.
+sync and an async form, and the names match the Node SDK's. Ids in the new
+methods are URL-encoded into the path. `numbers.order()`, `audio.generate()`
+and `batches.rerun()` are never retried automatically; pass
+`request_options={"max_retries": n}` to opt in.
 
 - Load-test reports on `load_testing`: `create_report()`, `list_reports()`,
   `list_reports_page()`, `get_report()`, `delete_report()` and
@@ -29,7 +32,8 @@ sync and an async form.
 - Digital testing connectors (beta) on `digital_testing`:
   `create_connector()`, `list_connectors()`, `list_connectors_page()`,
   `get_connector()`, `update_connector()`, `delete_connector()` and
-  `list_connector_types()`. New models `DigitalConnector`,
+  `list_connector_types()`. `type` is a `DigitalConnectorType`: `web-widget`,
+  `connect-chat`, `http-json`, `lex-v2` or `direct-line`. New models `DigitalConnector`,
   `ConnectorTypeDescriptor`, `ConnectorFormField`, `ConnectorCrossAccount`.
 - Numbers, a new `numbers` resource on both clients: `list()`,
   `list_available()`, `get_requirements()`, `order()`, `get_order()`,
@@ -42,9 +46,9 @@ sync and an async form.
 - `audio.generate()` (`POST /audio/generate`) speaks text in an enabled voice
   and stores it as a voice clip. **It is billed** per character. New models
   `GeneratedSpeech` and `SpeechSettings`.
-- `batches.rerun(run_id)` (`POST /testing/batch-runs/{id}/rerun`) re-runs the
-  failed tests of a batch run as a new batch run. **It places real calls.**
-  New model `BatchMember`. `BatchRun` gains `workspace_id`, `test_run_ids`,
+- `batches.rerun(batch_run_id)` (`POST /testing/batch-runs/{id}/rerun`)
+  re-runs the failed tests of a batch run as a new batch run. **It places real
+  calls.** New model `BatchMember` and the `BatchRunStatus` alias. `BatchRun` gains `workspace_id`, `test_run_ids`,
   `summary`, `triggered_by` and `parent_batch_run_id`.
 - `testing.check_destination()` (`POST /testing/destination-check`): would a
   number be dialled, and why not. Nothing is dialled. New model
@@ -61,6 +65,9 @@ sync and an async form.
   and `TestRunAnalysis`.
 
 ### Fixed
+
+- `batches.wait_for_run()` waited out its timeout on a run that finished
+  `partial` (some tests passed, some failed). `partial` is now terminal.
 
 - A POST could be sent twice. The transport treated any connection-level
   failure as "never sent", including a response that failed to arrive after
