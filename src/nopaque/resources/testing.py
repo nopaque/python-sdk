@@ -1,5 +1,6 @@
 """Testing resource - /testing/configs, /testing/jobs, /testing/runs,
-/testing/carrier-integrations."""
+/testing/carrier-integrations, plus /testing/voices, /testing/destination-check
+and /languages."""
 from __future__ import annotations
 
 import builtins
@@ -8,13 +9,15 @@ from typing import Any, Callable, Literal, Mapping, Sequence, Union
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._polling import wait_for_async, wait_for_sync
 from .._request_options import RequestOptions
-from .._resource import AsyncResource, SyncResource
+from .._resource import AsyncResource, SyncResource, seg
 from .._transport import AsyncTransport, SyncTransport
+from ..models.languages import LanguageCatalogue
 from ..models.mapping import TranscriptionLanguage
 from ..models.testing import (
     CarrierCustomHeader,
     CarrierIntegration,
     CarrierRoute,
+    DestinationCheck,
     ListVoicesResponse,
     MissionTestRunResponse,
     TestConfig,
@@ -23,9 +26,17 @@ from ..models.testing import (
     TestRunAggregateResponse,
     TestRunDetails,
     TestRunListItem,
+    VoiceSample,
 )
 
 RUN_TERMINAL_STATUSES: set[str] = {"completed", "failed", "cancelled"}
+
+
+def _destination_body(*, phone_number: str, carrier_route_id: str | None) -> dict:
+    body: dict = {"phoneNumber": phone_number}
+    if carrier_route_id is not None:
+        body["carrierRouteId"] = carrier_route_id
+    return body
 
 
 def _is_run_settled(run: TestRun) -> bool:
@@ -845,6 +856,59 @@ class TestingResource(SyncResource):
         )
         return ListVoicesResponse.model_validate(raw)
 
+    def get_voice_sample(
+        self, voice_id: str, *, request_options: RequestOptions | None = None
+    ) -> VoiceSample:
+        """A short-lived presigned URL for a voice's stored sample.
+
+        Fetch it only when someone asks to hear the voice; check
+        ``Voice.has_sample`` first. A voice with no sample is a
+        ``NotFoundError``.
+        """
+        raw = self._transport.request(
+            "GET",
+            f"/testing/voices/{seg(voice_id)}/sample",
+            request_options=request_options,
+        )
+        return VoiceSample.model_validate(raw)
+
+    def check_destination(
+        self,
+        *,
+        phone_number: str,
+        carrier_route_id: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> DestinationCheck:
+        """Would a test, mission test or map to this number be dialled?
+
+        Nothing is saved and nothing is dialled, so it is safe to call as a
+        number is typed. ``phone_number`` is E.164. Pass ``carrier_route_id``
+        to check the number as one of your own carrier routes would dial it.
+        When refused, ``message`` is a sentence to show a person.
+        """
+        raw = self._transport.request(
+            "POST",
+            "/testing/destination-check",
+            json=_destination_body(
+                phone_number=phone_number, carrier_route_id=carrier_route_id
+            ),
+            request_options=request_options,
+        )
+        return DestinationCheck.model_validate(raw)
+
+    def list_languages(
+        self, *, request_options: RequestOptions | None = None
+    ) -> LanguageCatalogue:
+        """Both language sets, with labels and each set's default - GET /languages.
+
+        ``transcription`` is for standard tests and mapping
+        (:data:`TranscriptionLanguage`); ``call`` is for mission tests
+        (:data:`CallLanguage`). The two are distinct: bare ``en`` is a call
+        language only.
+        """
+        raw = self._transport.request("GET", "/languages", request_options=request_options)
+        return LanguageCatalogue.model_validate(raw)
+
 
 # ==== Async sub-namespaces ====================================================
 
@@ -1444,3 +1508,56 @@ class AsyncTestingResource(AsyncResource):
             "GET", "/testing/voices", request_options=request_options
         )
         return ListVoicesResponse.model_validate(raw)
+
+    async def get_voice_sample(
+        self, voice_id: str, *, request_options: RequestOptions | None = None
+    ) -> VoiceSample:
+        """A short-lived presigned URL for a voice's stored sample.
+
+        Fetch it only when someone asks to hear the voice; check
+        ``Voice.has_sample`` first. A voice with no sample is a
+        ``NotFoundError``.
+        """
+        raw = await self._transport.request(
+            "GET",
+            f"/testing/voices/{seg(voice_id)}/sample",
+            request_options=request_options,
+        )
+        return VoiceSample.model_validate(raw)
+
+    async def check_destination(
+        self,
+        *,
+        phone_number: str,
+        carrier_route_id: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> DestinationCheck:
+        """Would a test, mission test or map to this number be dialled?
+
+        Nothing is saved and nothing is dialled, so it is safe to call as a
+        number is typed. ``phone_number`` is E.164. Pass ``carrier_route_id``
+        to check the number as one of your own carrier routes would dial it.
+        When refused, ``message`` is a sentence to show a person.
+        """
+        raw = await self._transport.request(
+            "POST",
+            "/testing/destination-check",
+            json=_destination_body(
+                phone_number=phone_number, carrier_route_id=carrier_route_id
+            ),
+            request_options=request_options,
+        )
+        return DestinationCheck.model_validate(raw)
+
+    async def list_languages(
+        self, *, request_options: RequestOptions | None = None
+    ) -> LanguageCatalogue:
+        """Both language sets, with labels and each set's default - GET /languages.
+
+        ``transcription`` is for standard tests and mapping
+        (:data:`TranscriptionLanguage`); ``call`` is for mission tests
+        (:data:`CallLanguage`). The two are distinct: bare ``en`` is a call
+        language only.
+        """
+        raw = await self._transport.request("GET", "/languages", request_options=request_options)
+        return LanguageCatalogue.model_validate(raw)

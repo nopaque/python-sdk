@@ -28,3 +28,15 @@ def merge_options(
         if headers:
             base["headers"] = headers
     return base
+
+
+def without_retries(options: RequestOptions | None) -> RequestOptions:
+    """Default ``max_retries`` to 0, keeping any value the caller passed.
+
+    For POSTs that spend money (a number order, a speech generation, a batch
+    re-run): even a retry the transport judges safe is not worth the risk of
+    a second charge, so these are never retried unless the caller asks.
+    """
+    merged: RequestOptions = dict(options) if options else {}  # type: ignore[assignment]
+    merged.setdefault("max_retries", 0)
+    return merged

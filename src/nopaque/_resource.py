@@ -6,7 +6,21 @@ separate classes because their method bodies differ.
 """
 from __future__ import annotations
 
+from urllib.parse import quote
+
 from ._transport import AsyncTransport, SyncTransport
+
+
+def seg(value: str) -> str:
+    """Percent-encode one path segment, so an id can never change the route.
+
+    ``quote`` leaves ``.`` and ``..`` as they are, and URL normalisation would
+    resolve them, so those (and an empty id) are rejected outright.
+    """
+    encoded = quote(str(value), safe="")
+    if encoded in ("", ".", ".."):
+        raise ValueError(f"Invalid id for a URL path segment: {value!r}")
+    return encoded
 
 
 class SyncResource:

@@ -31,6 +31,7 @@ from .resources.mission_test_configs import (
     MissionTestConfigsResource,
 )
 from .resources.mission_tests import AsyncMissionTestsResource, MissionTestsResource
+from .resources.numbers import AsyncNumbersResource, NumbersResource
 from .resources.profiles import AsyncProfilesResource, ProfilesResource
 from .resources.scheduler import AsyncSchedulerResource, SchedulerResource
 from .resources.surveys import AsyncSurveysResource, SurveysResource
@@ -78,6 +79,7 @@ class Nopaque:
         self.digital_test_configs = DigitalTestConfigsResource(self._transport)
         self.digital_compliance = DigitalComplianceResource(self._transport)
         self.surveys = SurveysResource(self._transport)
+        self.numbers = NumbersResource(self._transport)
 
     def close(self) -> None:
         self._transport.close()
@@ -129,6 +131,7 @@ class AsyncNopaque:
         self.digital_test_configs = AsyncDigitalTestConfigsResource(self._transport)
         self.digital_compliance = AsyncDigitalComplianceResource(self._transport)
         self.surveys = AsyncSurveysResource(self._transport)
+        self.numbers = AsyncNumbersResource(self._transport)
 
     async def aclose(self) -> None:
         await self._transport.aclose()

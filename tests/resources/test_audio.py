@@ -1,7 +1,10 @@
+import json
+
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 from pytest_httpx import HTTPXMock
 
-from nopaque import Nopaque
+from nopaque import AsyncNopaque, Nopaque, RateLimitError, SpeechSettings
 from nopaque._errors import NotFoundError
 
 
@@ -236,3 +239,75 @@ def test_create_upload_url_sends_lowercase_filename_and_category(
     }
     c.close()
 
+
+
+def test_generate(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/audio/generate",
+        method="POST",
+        status_code=201,
+        json={
+            "audioId": "a1",
+            "url": "https://s3.example/a1.mp3",
+            "expiresInSecs": 3600,
+            "characters": 11,
+            "sizeBytes": 2048,
+            "durationSecs": 1.2,
+            "voiceId": "Telnyx.Ultra.v1",
+            "name": "Hello there",
+        },
+    )
+    c = client()
+    out = c.audio.generate(
+        voice_id="Telnyx.Ultra.v1", text="Hello there", settings={"speed": 1.1}, name="Greeting"
+    )
+    assert json.loads(httpx_mock.get_requests()[0].content) == {
+        "voiceId": "Telnyx.Ultra.v1",
+        "text": "Hello there",
+        "settings": {"speed": 1.1},
+        "name": "Greeting",
+    }
+    assert out.audio_id == "a1" and out.characters == 11
+    c.close()
+
+
+def test_generate_rejects_unknown_setting():
+    c = client()
+    with pytest.raises(PydanticValidationError):
+        c.audio.generate(voice_id="v", text="t", settings={"pitch": 2})
+    c.close()
+
+
+async def test_generate_async(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/audio/generate",
+        method="POST",
+        status_code=201,
+        json={"audioId": "a1", "url": "u"},
+    )
+    c = AsyncNopaque(api_key="k", max_retries=0)
+    out = await c.audio.generate(
+        voice_id="v", text="t", settings=SpeechSettings(emotion="happy")
+    )
+    assert json.loads(httpx_mock.get_requests()[0].content) == {
+        "voiceId": "v",
+        "text": "t",
+        "settings": {"emotion": "happy"},
+    }
+    assert out.audio_id == "a1"
+    await c.aclose()
+
+
+def test_generate_is_never_retried_by_default(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/audio/generate",
+        method="POST",
+        status_code=429,
+        headers={"retry-after": "0"},
+        json={"error": "rate"},
+    )
+    c = Nopaque(api_key="k", max_retries=3)
+    with pytest.raises(RateLimitError):
+        c.audio.generate(voice_id="v", text="t")
+    assert len(httpx_mock.get_requests()) == 1
+    c.close()

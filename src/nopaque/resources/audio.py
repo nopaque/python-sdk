@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, Optional, Union
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
-from .._request_options import RequestOptions
+from .._request_options import RequestOptions, without_retries
 from .._resource import AsyncResource, SyncResource
 from .._s3 import (
     _read_bytes,
@@ -20,7 +20,26 @@ from ..models.audio import (
     AudioDownloadURL,
     AudioFile,
     AudioUploadURL,
+    GeneratedSpeech,
+    SpeechSettings,
 )
+
+SpeechSettingsInput = Union[SpeechSettings, Dict[str, Any]]
+
+
+def _generate_body(
+    *,
+    voice_id: str,
+    text: str,
+    settings: Optional[SpeechSettingsInput],
+    name: Optional[str],
+) -> dict:
+    body: dict = {"voiceId": voice_id, "text": text}
+    if settings is not None:
+        body["settings"] = SpeechSettings.model_validate(settings).model_dump(exclude_none=True)
+    if name is not None:
+        body["name"] = name
+    return body
 
 
 class AudioResource(SyncResource):
@@ -107,6 +126,36 @@ class AudioResource(SyncResource):
             request_options=request_options,
         )
         return AudioUploadURL.model_validate(raw)
+
+    def generate(
+        self,
+        *,
+        voice_id: str,
+        text: str,
+        settings: SpeechSettingsInput | None = None,
+        name: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> GeneratedSpeech:
+        """Speak ``text`` in an enabled voice and store it as an MP3 voice clip.
+
+        **This is billed**, per character of ``text`` (markup included), on
+        every call, including repeats of the same text, and counts against
+        the workspace's monthly character limit. It places no phone call. It
+        is never retried automatically: pass ``request_options={"max_retries": n}``
+        to opt in.
+
+        ``voice_id`` is one of ``testing.list_voices()``. ``text`` is 1-1000
+        characters. ``settings`` (``speed``, ``volume``, ``emotion``) applies
+        to Ultra voices only. ``name`` defaults to the start of the text. To
+        use the clip in a test, add it to a profile as a voice item.
+        """
+        raw = self._transport.request(
+            "POST",
+            "/audio/generate",
+            json=_generate_body(voice_id=voice_id, text=text, settings=settings, name=name),
+            request_options=without_retries(request_options),
+        )
+        return GeneratedSpeech.model_validate(raw)
 
     def create_download_url(
         self,
@@ -256,6 +305,36 @@ class AsyncAudioResource(AsyncResource):
             request_options=request_options,
         )
         return AudioUploadURL.model_validate(raw)
+
+    async def generate(
+        self,
+        *,
+        voice_id: str,
+        text: str,
+        settings: SpeechSettingsInput | None = None,
+        name: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> GeneratedSpeech:
+        """Speak ``text`` in an enabled voice and store it as an MP3 voice clip.
+
+        **This is billed**, per character of ``text`` (markup included), on
+        every call, including repeats of the same text, and counts against
+        the workspace's monthly character limit. It places no phone call. It
+        is never retried automatically: pass ``request_options={"max_retries": n}``
+        to opt in.
+
+        ``voice_id`` is one of ``testing.list_voices()``. ``text`` is 1-1000
+        characters. ``settings`` (``speed``, ``volume``, ``emotion``) applies
+        to Ultra voices only. ``name`` defaults to the start of the text. To
+        use the clip in a test, add it to a profile as a voice item.
+        """
+        raw = await self._transport.request(
+            "POST",
+            "/audio/generate",
+            json=_generate_body(voice_id=voice_id, text=text, settings=settings, name=name),
+            request_options=without_retries(request_options),
+        )
+        return GeneratedSpeech.model_validate(raw)
 
     async def create_download_url(
         self,

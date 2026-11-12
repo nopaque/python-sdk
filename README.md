@@ -74,6 +74,23 @@ Reusable configs live under `client.digital_test_configs`
 `client.digital_compliance` lists compliance audits and fetches a per-target
 report.
 
+Saved connection definitions are on `client.digital_testing` too:
+`create_connector`, `list_connectors`, `list_connectors_page`, `get_connector`,
+`update_connector` and `delete_connector`.
+`client.digital_testing.list_connector_types()` returns each connector type
+with the form fields its `config` takes. A connector's `type` and `target_ref`
+cannot be changed after creation, and deleting one that a saved config still
+uses raises `ConflictError`.
+
+```python
+connector = client.digital_testing.create_connector(
+    name="Billing bot",
+    type="http-json",
+    target_ref="acme/billing-bot",
+    config={"url": "https://bot.example.com/chat"},
+)
+```
+
 ## Survey tests
 
 A survey test runs the other way round from a call test: your survey platform
@@ -112,6 +129,25 @@ voices = client.testing.list_voices()
 for voice in voices.voices:
     print(voice.voice_id, voice.name)
 print("default:", voices.default_voice_id)
+
+# A short-lived link to hear one, when the voice has a sample.
+if voices.voices[0].has_sample:
+    print(client.testing.get_voice_sample(voices.voices[0].voice_id).url)
+```
+
+### Generating speech
+
+`client.audio.generate()` speaks text in one of those voices and stores the
+result as an MP3 voice clip in your workspace. **It is billed** per character
+of `text`, on every call, including repeats. It places no phone call.
+
+```python
+clip = client.audio.generate(
+    voice_id=voices.default_voice_id,
+    text="I'd like to check my balance, please.",
+    settings={"speed": 0.9},   # Ultra voices only: speed, volume, emotion
+)
+print(clip.audio_id, clip.characters)
 ```
 
 ## Test configs
@@ -169,6 +205,14 @@ client.mission_tests.create(
     profile={"phone_number": "+34910000000"},
     language="es",
 )
+```
+
+`client.testing.list_languages()` returns both sets with their labels and
+defaults (`GET /languages`), for showing a person a picker:
+
+```python
+langs = client.testing.list_languages()
+print([lang.code for lang in langs.transcription.languages], langs.call.default)
 ```
 
 The trap: bare `en` is a valid **call** language but is rejected as a
@@ -243,6 +287,106 @@ Also available: `carrier_integrations.get(integration_id)`,
 `routes.update(integration_id, route_id, name=..., tech_prefix=..., custom_headers=..., enabled=...)`.
 `enabled=False` turns a route off. `configs.update(config_id, carrier_route_id=None)`
 removes the route from a config, and the number is dialled normally again.
+
+## Checking a destination
+
+`client.testing.check_destination()` says whether a test, mission test or map
+to a number would be dialled, and why not if it would not. Nothing is saved or
+dialled.
+
+```python
+check = client.testing.check_destination(phone_number="+6493000000")
+if not check.allowed:
+    print(check.message)   # a sentence to show the person
+```
+
+## Re-running failed batch tests
+
+`client.batches.rerun(batch_run_id)` starts a new batch run of only the failed
+tests from an earlier one. **It places real calls.** Pass `filter="errors"` or
+`"mismatches"` to narrow it, or `members=[...]` to pick tests.
+
+```python
+child = client.batches.rerun(batch_run.id, filter="errors")
+client.batches.wait_for_run(child.id)
+```
+
+## Mission test analyses
+
+`client.mission_tests.get_analyses(run_id)` returns the post-call analyses of a
+mission test run, the newest of each type. A type that has not run yet is
+`None`.
+
+```python
+analyses = client.mission_tests.get_analyses(run.id).analyses
+if analyses.judge_mission and analyses.judge_mission.status == "completed":
+    print(analyses.judge_mission.data)
+```
+
+## Load-test reports, exports and failure patterns
+
+These are on `client.load_testing`. Each takes a load-test **run** id, not the
+load-test config id (reports take a list of them).
+
+```python
+lt = client.load_testing
+
+# Why calls failed, grouped into patterns, and the calls in one pattern.
+patterns = lt.get_failure_patterns(run_id)
+for p in patterns.patterns:
+    print(p.id, p.label, p.owner, p.count)
+if patterns.patterns:                      # empty when every call passed
+    for call in lt.list_failure_pattern_calls(run_id, patterns.patterns[0].id):
+        print(call.call_id, call.failed_step_name)
+lt.reclassify_failure_patterns(run_id)   # rerun the rules in the background
+
+# A zip of every call and step in one run.
+export = lt.create_export(run_id)
+export = lt.get_export(run_id, export.export_id)   # poll until status == "ready"
+print(export.download_url)
+
+# A report (data zip, Excel workbook, PDF) over up to 20 finished runs.
+report = lt.create_report(load_test_run_ids=[run_id], packs=["pdf"])
+report = lt.get_report(report.report_id)           # poll until status == "ready"
+print(lt.get_report_file_url(report.report_id, "pdf").url)
+```
+
+Also available: `list_reports`, `list_reports_page`, `delete_report`,
+`list_exports` and `list_failure_pattern_calls_page`.
+
+## Numbers
+
+The phone numbers your workspace rents: caller IDs for tests, and numbers your
+systems dial or text back. **Ordering a number spends money**: it carries a
+monthly charge, and repeating an order buys a second number.
+
+```python
+held = client.numbers.list()
+print(len(held.numbers), held.allowance.remaining if held.allowance else None)
+
+found = client.numbers.list_available(country="GB", number_type="outbound")
+if not found.numbers:
+    raise SystemExit("No number available to order")
+
+order = client.numbers.order(e164=found.numbers[0].e164, number_type="outbound", country="GB")
+if order.order_id:                       # not live yet; UK mobiles take about a day
+    print(client.numbers.get_order(order.order_id).progress.waiting_on)
+
+client.numbers.update(order.number.number_id, uses=["load"])
+```
+
+Later, to stop paying for it, release it. Only a `live` number can be
+released; one still being activated is refused until it is live.
+
+```python
+number_id = order.number.number_id
+live = [n for n in client.numbers.list().numbers if n.number_id == number_id and n.state == "live"]
+if live:
+    client.numbers.release(number_id)    # billing stops
+```
+
+`client.numbers.get_requirements(country="GB")` lists what a country's regulator
+asks for. nopaque supplies all of it; nothing is asked of you.
 
 ## Features
 

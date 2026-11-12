@@ -1,7 +1,7 @@
 """Models for /testing/mission-tests endpoints."""
 from __future__ import annotations
 
-from typing import Literal, Optional, Union
+from typing import Any, Dict, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict
 
@@ -19,6 +19,7 @@ _ALIAS_MAP = {
     "pass_reasoning": "passReasoning",
     "pass_evidence": "passEvidence",
     "error_message": "errorMessage",
+    "run_id": "runId",
 }
 
 
@@ -134,3 +135,55 @@ class MissionTestDefaults(_MissionTestBase):
     mission: str
     acceptance: str
     catalogue_version: str
+
+
+def _camel(name: str) -> str:
+    head, *rest = name.split("_")
+    return head + "".join(word.capitalize() for word in rest)
+
+
+class TestRunAnalysis(BaseModel):
+    """One post-call analysis of a test run, as stored.
+
+    ``type`` is ``judge_mission``, ``transcribe_words``, ``compute_latencies``
+    or ``detect_silences``; ``status`` is ``pending``, ``completed`` or
+    ``failed``. The shape of ``data`` depends on ``type``.
+    """
+
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+        alias_generator=_camel,
+    )
+
+    run_id: str
+    type: str
+    status: str
+    version: Optional[str] = None
+    produced_at: Optional[str] = None
+    workspace_id: Optional[str] = None
+    phone_number: Optional[str] = None
+    range_key: Optional[str] = None
+    status_produced_at: Optional[str] = None
+    data: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    model: Optional[str] = None
+    raw_response: Optional[Any] = None
+
+
+class MissionTestAnalysesByType(BaseModel):
+    """The newest analysis of each type. A type that has not run yet is None."""
+
+    model_config = ConfigDict(extra="allow")
+
+    judge_mission: Optional[TestRunAnalysis] = None
+    transcribe_words: Optional[TestRunAnalysis] = None
+    compute_latencies: Optional[TestRunAnalysis] = None
+    detect_silences: Optional[TestRunAnalysis] = None
+
+
+class MissionTestAnalyses(_MissionTestBase):
+    """Response for ``GET /testing/mission-tests/{id}/analyses``."""
+
+    run_id: str
+    analyses: MissionTestAnalysesByType

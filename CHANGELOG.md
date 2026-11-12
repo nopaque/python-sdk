@@ -6,6 +6,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+API coverage for features the SDK had fallen behind on. Every method has a
+sync and an async form, and the names match the Node SDK's. Ids in the new
+methods are URL-encoded into the path. `numbers.order()`, `audio.generate()`
+and `batches.rerun()` are never retried automatically; pass
+`request_options={"max_retries": n}` to opt in.
+
+- Load-test reports on `load_testing`: `create_report()`, `list_reports()`,
+  `list_reports_page()`, `get_report()`, `delete_report()` and
+  `get_report_file_url(report_id, pack)` (`/testing/reports`). New models
+  `Report`, `ReportFile`, `ReportCounts`, `ReportFileDownload` and the
+  `ReportPack` alias.
+- Load-test exports on `load_testing`: `create_export(run_id)`,
+  `list_exports(run_id)` and `get_export(run_id, export_id)`
+  (`/testing/load-tests/{id}/exports`). New model `LoadTestExport`.
+- Load-test failure patterns on `load_testing`:
+  `get_failure_patterns(run_id)`, `reclassify_failure_patterns(run_id)`,
+  `list_failure_pattern_calls(run_id, pattern_id)` and
+  `list_failure_pattern_calls_page()`, each with an optional `scope`
+  (`group` or `lane`). New models `LoadTestFailurePatterns`,
+  `FailurePattern`, `FailurePatternCall`, `ReclassifyFailurePatternsResponse`
+  and the timeline and lane models.
+- Digital testing connectors (beta) on `digital_testing`:
+  `create_connector()`, `list_connectors()`, `list_connectors_page()`,
+  `get_connector()`, `update_connector()`, `delete_connector()` and
+  `list_connector_types()`. `type` is a `DigitalConnectorType`: `web-widget`,
+  `connect-chat`, `http-json`, `lex-v2` or `direct-line`. New models `DigitalConnector`,
+  `ConnectorTypeDescriptor`, `ConnectorFormField`, `ConnectorCrossAccount`.
+- Numbers, a new `numbers` resource on both clients: `list()`,
+  `list_available()`, `get_requirements()`, `order()`, `get_order()`,
+  `update()` and `release()` (`/numbers`). **`order()` spends money**: a
+  number carries a monthly charge, and repeating an order buys a second
+  number. New models
+  `PhoneNumber`, `NumberList`, `NumberAllowance`, `AvailableNumbers`,
+  `NumberRequirements`, `NumberOrder`, `NumberOrderStatus`, `NumberRelease`
+  and the `NumberType`, `NumberUse` and `OrderablePhoneNumberType` aliases.
+- `audio.generate()` (`POST /audio/generate`) speaks text in an enabled voice
+  and stores it as a voice clip. **It is billed** per character. New models
+  `GeneratedSpeech` and `SpeechSettings`.
+- `batches.rerun(batch_run_id)` (`POST /testing/batch-runs/{id}/rerun`)
+  re-runs the failed tests of a batch run as a new batch run. **It places real
+  calls.** New model `BatchMember` and the `BatchRunStatus` alias. `BatchRun` gains `workspace_id`, `test_run_ids`,
+  `summary`, `triggered_by` and `parent_batch_run_id`.
+- `testing.check_destination()` (`POST /testing/destination-check`): would a
+  number be dialled, and why not. Nothing is dialled. New model
+  `DestinationCheck`.
+- `testing.get_voice_sample(voice_id)`
+  (`GET /testing/voices/{voiceId}/sample`). New model `VoiceSample`; `Voice`
+  gains `has_sample`.
+- `testing.list_languages()` (`GET /languages`): both language sets with
+  labels and defaults. New model `LanguageCatalogue` and its set and entry
+  models.
+- `mission_tests.get_analyses(run_id)`
+  (`GET /testing/mission-tests/{id}/analyses`): the newest post-call analysis
+  of each type. New models `MissionTestAnalyses`, `MissionTestAnalysesByType`
+  and `TestRunAnalysis`.
+
+### Fixed
+
+- `batches.wait_for_run()` waited out its timeout on a run that finished
+  `partial` (some tests passed, some failed). `partial` is now terminal.
+
+- A POST could be sent twice. The transport treated any connection-level
+  failure as "never sent", including a response that failed to arrive after
+  the API had accepted the request, and retried it. That could repeat a
+  billed call such as a test run, a number order or a speech generation. Now
+  only a failed connect is retried for a POST; a read or protocol error is
+  raised as `APIConnectionError` without a retry. GET, PUT, PATCH and DELETE
+  are unchanged.
+
+### Changed
+
+- CI runs on `ubuntu-24.04` rather than `ubuntu-latest`, which moved to an
+  image with no Python 3.9 build.
+
 ## [0.13.0] - 2026-10-26
 
 ### Added

@@ -154,6 +154,11 @@ class SyncTransport:
                 err = APITimeoutError(str(e))
             except httpx.HTTPError as e:
                 err = APIConnectionError(str(e), cause=e)
+                # httpx sends the request and reads the response inside the
+                # one call, so reaching here does not mean nothing was sent.
+                # Only a failed connect proves the API never saw the request;
+                # a read or protocol error may follow a POST it accepted.
+                before_send = isinstance(e, httpx.ConnectError)
             except NopaqueAPIError as e:
                 err = e
             else:
@@ -228,6 +233,11 @@ class AsyncTransport:
                 err = APITimeoutError(str(e))
             except httpx.HTTPError as e:
                 err = APIConnectionError(str(e), cause=e)
+                # httpx sends the request and reads the response inside the
+                # one call, so reaching here does not mean nothing was sent.
+                # Only a failed connect proves the API never saw the request;
+                # a read or protocol error may follow a POST it accepted.
+                before_send = isinstance(e, httpx.ConnectError)
             except NopaqueAPIError as e:
                 err = e
             else:
