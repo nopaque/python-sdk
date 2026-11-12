@@ -258,7 +258,13 @@ async def test_async_numbers(httpx_mock: HTTPXMock):
     )
     c = AsyncNopaque(api_key="k", max_retries=0)
     assert (await c.numbers.list()).numbers[0].e164 == "+447700900123"
-    assert (await c.numbers.order(e164="+1", number_type="survey", country="GB")).order_id == "o1"
+    order = await c.numbers.order(e164=NUMBER["e164"], number_type="survey", country="GB")
+    assert order.order_id == "o1"
+    assert json.loads(httpx_mock.get_requests()[1].content) == {
+        "e164": NUMBER["e164"],
+        "numberType": "survey",
+        "country": "GB",
+    }
     assert (await c.numbers.update("n1", uses=["outbound"])).uses == ["outbound"]
     assert (await c.numbers.release("n1")).released is False
     assert (await c.numbers.list_available(country="GB")).numbers == []

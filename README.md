@@ -335,8 +335,9 @@ lt = client.load_testing
 patterns = lt.get_failure_patterns(run_id)
 for p in patterns.patterns:
     print(p.id, p.label, p.owner, p.count)
-for call in lt.list_failure_pattern_calls(run_id, patterns.patterns[0].id):
-    print(call.call_id, call.failed_step_name)
+if patterns.patterns:                      # empty when every call passed
+    for call in lt.list_failure_pattern_calls(run_id, patterns.patterns[0].id):
+        print(call.call_id, call.failed_step_name)
 lt.reclassify_failure_patterns(run_id)   # rerun the rules in the background
 
 # A zip of every call and step in one run.
@@ -364,14 +365,24 @@ held = client.numbers.list()
 print(len(held.numbers), held.allowance.remaining if held.allowance else None)
 
 found = client.numbers.list_available(country="GB", number_type="outbound")
-choice = found.numbers[0]
+if not found.numbers:
+    raise SystemExit("No number available to order")
 
-order = client.numbers.order(e164=choice.e164, number_type="outbound", country="GB")
+order = client.numbers.order(e164=found.numbers[0].e164, number_type="outbound", country="GB")
 if order.order_id:                       # not live yet; UK mobiles take about a day
     print(client.numbers.get_order(order.order_id).progress.waiting_on)
 
 client.numbers.update(order.number.number_id, uses=["load"])
-client.numbers.release(order.number.number_id)   # billing stops
+```
+
+Later, to stop paying for it, release it. Only a `live` number can be
+released; one still being activated is refused until it is live.
+
+```python
+number_id = order.number.number_id
+live = [n for n in client.numbers.list().numbers if n.number_id == number_id and n.state == "live"]
+if live:
+    client.numbers.release(number_id)    # billing stops
 ```
 
 `client.numbers.get_requirements(country="GB")` lists what a country's regulator

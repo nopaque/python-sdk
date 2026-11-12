@@ -60,6 +60,21 @@ sync and an async form.
   of each type. New models `MissionTestAnalyses`, `MissionTestAnalysesByType`
   and `TestRunAnalysis`.
 
+### Fixed
+
+- A POST could be sent twice. The transport treated any connection-level
+  failure as "never sent", including a response that failed to arrive after
+  the API had accepted the request, and retried it. That could repeat a
+  billed call such as a test run, a number order or a speech generation. Now
+  only a failed connect is retried for a POST; a read or protocol error is
+  raised as `APIConnectionError` without a retry. GET, PUT, PATCH and DELETE
+  are unchanged.
+
+### Changed
+
+- CI runs on `ubuntu-24.04` rather than `ubuntu-latest`, which moved to an
+  image with no Python 3.9 build.
+
 ## [0.13.0] - 2026-10-26
 
 ### Added

@@ -220,3 +220,39 @@ def test_on_retry_callback_fires(httpx_mock: HTTPXMock):
     assert events[0][0] == 0
     assert events[0][1] == "ServerError"
     t.close()
+
+
+def test_sync_does_not_retry_post_after_response_read_fails(httpx_mock: HTTPXMock):
+    # The API may have accepted the POST (an order, a billed generation)
+    # before the response failed to arrive; sending it again would repeat it.
+    httpx_mock.add_exception(httpx.ReadError("connection reset"))
+    t = SyncTransport(NopaqueConfig(api_key="k", max_retries=3))
+    with pytest.raises(APIConnectionError):
+        t.request("POST", "/numbers/orders", json={"e164": "+447700900123"})
+    assert len(httpx_mock.get_requests()) == 1
+    t.close()
+
+
+def test_sync_retries_post_when_connect_fails(httpx_mock: HTTPXMock):
+    httpx_mock.add_exception(httpx.ConnectError("refused"))
+    httpx_mock.add_response(url="https://api.nopaque.co.uk/mapping", json={"ok": True})
+    t = SyncTransport(NopaqueConfig(api_key="k", max_retries=1))
+    assert t.request("POST", "/mapping", json={"x": 1}) == {"ok": True}
+    t.close()
+
+
+async def test_async_does_not_retry_post_after_response_read_fails(httpx_mock: HTTPXMock):
+    httpx_mock.add_exception(httpx.RemoteProtocolError("server disconnected"))
+    t = AsyncTransport(NopaqueConfig(api_key="k", max_retries=3))
+    with pytest.raises(APIConnectionError):
+        await t.request("POST", "/audio/generate", json={"text": "hi"})
+    assert len(httpx_mock.get_requests()) == 1
+    await t.aclose()
+
+
+def test_sync_still_retries_get_after_response_read_fails(httpx_mock: HTTPXMock):
+    httpx_mock.add_exception(httpx.ReadError("connection reset"))
+    httpx_mock.add_response(url="https://api.nopaque.co.uk/numbers", json={"numbers": []})
+    t = SyncTransport(NopaqueConfig(api_key="k", max_retries=1))
+    assert t.request("GET", "/numbers") == {"numbers": []}
+    t.close()
