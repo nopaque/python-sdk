@@ -423,3 +423,56 @@ def test_call_language_alias_is_exported():
         "ru",
         "ja",
     }
+
+
+ANALYSES = {
+    "runId": "run1",
+    "analyses": {
+        "judge_mission": {
+            "runId": "run1",
+            "rangeKey": "judge_mission#v1#2026-11-12T09:00:00Z",
+            "workspaceId": "w1",
+            "phoneNumber": "+442039770688",
+            "type": "judge_mission",
+            "version": "v1",
+            "producedAt": "2026-11-12T09:00:00Z",
+            "status": "completed",
+            "statusProducedAt": "completed#2026-11-12T09:00:00Z",
+            "data": {"verdict": "pass"},
+            "model": "claude",
+        },
+        "transcribe_words": None,
+        "compute_latencies": {
+            "runId": "run1",
+            "type": "compute_latencies",
+            "status": "pending",
+        },
+        "detect_silences": None,
+    },
+}
+
+
+def test_get_analyses(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/mission-tests/run1/analyses", json=ANALYSES
+    )
+    c = client()
+    out = c.mission_tests.get_analyses("run1")
+    assert out.run_id == "run1"
+    judge = out.analyses.judge_mission
+    assert judge is not None and judge.status == "completed"
+    assert judge.data == {"verdict": "pass"} and judge.produced_at == "2026-11-12T09:00:00Z"
+    assert out.analyses.transcribe_words is None
+    assert out.analyses.compute_latencies is not None
+    assert out.analyses.compute_latencies.status == "pending"
+    c.close()
+
+
+async def test_get_analyses_async(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/mission-tests/run1/analyses", json=ANALYSES
+    )
+    c = AsyncNopaque(api_key="k", max_retries=0)
+    out = await c.mission_tests.get_analyses("run1")
+    assert out.analyses.detect_silences is None
+    await c.aclose()

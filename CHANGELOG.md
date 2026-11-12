@@ -6,6 +6,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+API coverage for features the SDK had fallen behind on. Every method has a
+sync and an async form.
+
+- Load-test reports on `load_testing`: `create_report()`, `list_reports()`,
+  `list_reports_page()`, `get_report()`, `delete_report()` and
+  `get_report_file_url(report_id, pack)` (`/testing/reports`). New models
+  `Report`, `ReportFile`, `ReportCounts`, `ReportFileDownload` and the
+  `ReportPack` alias.
+- Load-test exports on `load_testing`: `create_export(run_id)`,
+  `list_exports(run_id)` and `get_export(run_id, export_id)`
+  (`/testing/load-tests/{id}/exports`). New model `LoadTestExport`.
+- Load-test failure patterns on `load_testing`:
+  `get_failure_patterns(run_id)`, `reclassify_failure_patterns(run_id)`,
+  `list_failure_pattern_calls(run_id, pattern_id)` and
+  `list_failure_pattern_calls_page()`, each with an optional `scope`
+  (`group` or `lane`). New models `LoadTestFailurePatterns`,
+  `FailurePattern`, `FailurePatternCall`, `ReclassifyFailurePatternsResponse`
+  and the timeline and lane models.
+- Digital testing connectors (beta) on `digital_testing`:
+  `create_connector()`, `list_connectors()`, `list_connectors_page()`,
+  `get_connector()`, `update_connector()`, `delete_connector()` and
+  `list_connector_types()`. New models `DigitalConnector`,
+  `ConnectorTypeDescriptor`, `ConnectorFormField`, `ConnectorCrossAccount`.
+- Numbers, a new `numbers` resource on both clients: `list()`,
+  `list_available()`, `get_requirements()`, `order()`, `get_order()`,
+  `update()` and `release()` (`/numbers`). **`order()` spends money**: a
+  number carries a monthly charge, and repeating an order buys a second
+  number. New models
+  `PhoneNumber`, `NumberList`, `NumberAllowance`, `AvailableNumbers`,
+  `NumberRequirements`, `NumberOrder`, `NumberOrderStatus`, `NumberRelease`
+  and the `NumberType`, `NumberUse` and `OrderablePhoneNumberType` aliases.
+- `audio.generate()` (`POST /audio/generate`) speaks text in an enabled voice
+  and stores it as a voice clip. **It is billed** per character. New models
+  `GeneratedSpeech` and `SpeechSettings`.
+- `batches.rerun(run_id)` (`POST /testing/batch-runs/{id}/rerun`) re-runs the
+  failed tests of a batch run as a new batch run. **It places real calls.**
+  New model `BatchMember`. `BatchRun` gains `workspace_id`, `test_run_ids`,
+  `summary`, `triggered_by` and `parent_batch_run_id`.
+- `testing.check_destination()` (`POST /testing/destination-check`): would a
+  number be dialled, and why not. Nothing is dialled. New model
+  `DestinationCheck`.
+- `testing.get_voice_sample(voice_id)`
+  (`GET /testing/voices/{voiceId}/sample`). New model `VoiceSample`; `Voice`
+  gains `has_sample`.
+- `testing.list_languages()` (`GET /languages`): both language sets with
+  labels and defaults. New model `LanguageCatalogue` and its set and entry
+  models.
+- `mission_tests.get_analyses(run_id)`
+  (`GET /testing/mission-tests/{id}/analyses`): the newest post-call analysis
+  of each type. New models `MissionTestAnalyses`, `MissionTestAnalysesByType`
+  and `TestRunAnalysis`.
+
 ## [0.13.0] - 2026-10-26
 
 ### Added

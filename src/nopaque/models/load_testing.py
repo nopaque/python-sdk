@@ -1,5 +1,5 @@
-"""Models for /testing/load-tests endpoints."""
-from typing import Optional
+"""Models for /testing/load-tests and /testing/reports endpoints."""
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -21,7 +21,15 @@ _ALIAS_MAP = {
 
 
 def _alias(name: str) -> str:
-    return _ALIAS_MAP.get(name, name)
+    """snake_case field name -> camelCase wire name.
+
+    The listed names win; anything else is camelised, so a new field binds
+    from the camelCase response rather than leaking through as a raw extra.
+    """
+    if name in _ALIAS_MAP:
+        return _ALIAS_MAP[name]
+    head, *rest = name.split("_")
+    return head + "".join(word.capitalize() for word in rest)
 
 
 class _LoadTestingBase(BaseModel):
@@ -74,3 +82,172 @@ class LoadTestRun(_LoadTestingBase):
     pass_rate: Optional[float] = None
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
+
+
+# ==== Reports - /testing/reports =============================================
+
+#: A report file. ``data`` is a zip of every record, CSVs, recordings and a
+#: manual; ``excel`` a workbook; ``pdf`` a written report.
+ReportPack = Literal["data", "excel", "pdf"]
+#: ``group`` (default) covers every lane started with the run; ``lane`` the run only.
+FailurePatternScope = Literal["group", "lane"]
+
+
+class ReportFile(_LoadTestingBase):
+    """One built file of a report. ``pack`` is ``data``, ``excel`` or ``pdf``."""
+
+    pack: str
+    file_name: str
+    size_bytes: int
+    content_type: str
+
+
+class ReportCounts(_LoadTestingBase):
+    runs: Optional[int] = None
+    calls: Optional[int] = None
+    steps: Optional[int] = None
+    recordings: Optional[int] = None
+
+
+class Report(_LoadTestingBase):
+    """A detailed report over one or more finished load-test runs.
+
+    ``status`` moves ``pending`` -> ``running`` -> ``ready`` (or ``failed``).
+    ``files`` is empty until the report is ``ready``.
+    """
+
+    report_id: str
+    name: str
+    kind: Optional[str] = None
+    load_test_run_ids: List[str] = []
+    packs: List[str] = []
+    include_audio: Optional[bool] = None
+    #: ``pending``, ``running``, ``ready`` or ``failed``. Typed ``str`` so a new
+    #: server status never makes a read raise.
+    status: str
+    progress: Optional[str] = None
+    requested_by: Optional[str] = None
+    created_at: Optional[str] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    counts: Optional[ReportCounts] = None
+    files: List[ReportFile] = []
+    error: Optional[str] = None
+
+
+class ReportFileDownload(_LoadTestingBase):
+    """A pre-signed link to one report file, valid for 1 hour."""
+
+    url: str
+    file_name: str
+    size_bytes: int
+    expires_at: str
+
+
+# ==== Exports - /testing/load-tests/{id}/exports ==============================
+
+
+class LoadTestExportCounts(_LoadTestingBase):
+    calls: Optional[int] = None
+    steps: Optional[int] = None
+
+
+class LoadTestExport(_LoadTestingBase):
+    """A zip of every call and step in a load-test run.
+
+    ``status`` moves ``pending`` -> ``running`` -> ``ready`` (or ``failed``).
+    ``download_url`` is present only when ``ready`` and is valid for 1 hour;
+    fetch the export again for a fresh one. Files are kept for 30 days.
+    """
+
+    export_id: str
+    run_id: str
+    status: str
+    created_at: Optional[str] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    file_name: Optional[str] = None
+    size_bytes: Optional[int] = None
+    counts: Optional[LoadTestExportCounts] = None
+    error: Optional[str] = None
+    expires_at: Optional[str] = None
+    download_url: Optional[str] = None
+
+
+# ==== Failure patterns - /testing/load-tests/{id}/failure-patterns ============
+
+
+class FailurePattern(_LoadTestingBase):
+    """One failure pattern in a run, with its count and where it was seen.
+
+    ``owner`` is ``platform``, ``carrier``, ``system-under-test``,
+    ``test-definition`` or ``unknown``. ``share`` is the fraction of failed
+    calls. ``by_lane`` counts calls per lane run id.
+    """
+
+    id: str
+    label: Optional[str] = None
+    owner: Optional[str] = None
+    description: Optional[str] = None
+    count: int
+    share: Optional[float] = None
+    by_lane: Dict[str, int] = {}
+    first_seen: Optional[str] = None
+    last_seen: Optional[str] = None
+    examples: List[Any] = []
+
+
+class FailurePatternTimelineBucket(_LoadTestingBase):
+    #: The bucket's start.
+    t: str
+    #: Calls in progress at any point in the bucket.
+    in_flight: int
+    #: Failed calls started in the bucket, per pattern id.
+    counts: Dict[str, int] = {}
+
+
+class FailurePatternTimeline(_LoadTestingBase):
+    bucket_secs: int
+    buckets: List[FailurePatternTimelineBucket] = []
+
+
+class FailurePatternLane(_LoadTestingBase):
+    run_id: str
+    name: str
+
+
+class LoadTestFailurePatterns(_LoadTestingBase):
+    """A load-test run's failures grouped by pattern."""
+
+    run_id: str
+    group_id: Optional[str] = None
+    scope: Optional[str] = None
+    rules_version: Optional[int] = None
+    total_calls: Optional[int] = None
+    failed_calls: Optional[int] = None
+    unclassified: Optional[int] = None
+    late_starts: Optional[int] = None
+    late_starts_passed: Optional[int] = None
+    patterns: List[FailurePattern] = []
+    timeline: Optional[FailurePatternTimeline] = None
+    lanes: List[FailurePatternLane] = []
+
+
+class FailurePatternCall(_LoadTestingBase):
+    """One call in a failure pattern, with the evidence that put it there."""
+
+    call_id: str
+    #: The lane (load-test run) the call belongs to.
+    run_id: str
+    lane_name: Optional[str] = None
+    started_at: Optional[str] = None
+    failed_step_index: Optional[int] = None
+    failed_step_name: Optional[str] = None
+    evidence: Dict[str, Any] = {}
+    recording_available: Optional[bool] = None
+
+
+class ReclassifyFailurePatternsResponse(_LoadTestingBase):
+    """Returned at once; the reclassification runs in the background."""
+
+    job_id: str

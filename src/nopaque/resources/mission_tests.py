@@ -9,6 +9,7 @@ from .._resource import AsyncResource, SyncResource
 from ..models.mission_tests import (
     CallLanguage,
     CreateMissionTestRequest,
+    MissionTestAnalyses,
     MissionTestDefaults,
     MissionTestKind,
     MissionTestProfile,
@@ -186,6 +187,24 @@ class MissionTestsResource(SyncResource):
         )
         return MissionTestRun.model_validate(raw)
 
+    def get_analyses(
+        self, run_id: str, *, request_options: RequestOptions | None = None
+    ) -> MissionTestAnalyses:
+        """The post-call analyses of a mission test run: the newest of each type.
+
+        ``analyses.judge_mission`` is the mission verdict; the others are word
+        timings (``transcribe_words``), turn latencies (``compute_latencies``)
+        and silences (``detect_silences``). A type that has not run yet is
+        None, and a row may still be ``pending`` or ``failed``. ``run_id`` is
+        the test-run id from :meth:`list` / :meth:`create`.
+        """
+        raw = self._transport.request(
+            "GET",
+            f"/testing/mission-tests/{run_id}/analyses",
+            request_options=request_options,
+        )
+        return MissionTestAnalyses.model_validate(raw)
+
     def get_defaults(
         self, *, request_options: RequestOptions | None = None
     ) -> MissionTestDefaults:
@@ -313,6 +332,24 @@ class AsyncMissionTestsResource(AsyncResource):
             "POST", "/testing/mission-tests", json=body, request_options=request_options
         )
         return MissionTestRun.model_validate(raw)
+
+    async def get_analyses(
+        self, run_id: str, *, request_options: RequestOptions | None = None
+    ) -> MissionTestAnalyses:
+        """The post-call analyses of a mission test run: the newest of each type.
+
+        ``analyses.judge_mission`` is the mission verdict; the others are word
+        timings (``transcribe_words``), turn latencies (``compute_latencies``)
+        and silences (``detect_silences``). A type that has not run yet is
+        None, and a row may still be ``pending`` or ``failed``. ``run_id`` is
+        the test-run id from :meth:`list` / :meth:`create`.
+        """
+        raw = await self._transport.request(
+            "GET",
+            f"/testing/mission-tests/{run_id}/analyses",
+            request_options=request_options,
+        )
+        return MissionTestAnalyses.model_validate(raw)
 
     async def get_defaults(
         self, *, request_options: RequestOptions | None = None

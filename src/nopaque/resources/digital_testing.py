@@ -1,4 +1,5 @@
-"""Digital testing resource - the /digital-testing/runs endpoints (chat channel).
+"""Digital testing resource - the /digital-testing/runs endpoints (chat channel),
+plus saved connectors (/digital-testing/connectors) and connector types.
 
 Beta. Access is limited to beta workspaces during the beta period.
 """
@@ -18,8 +19,10 @@ from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
 from ..models.digital_testing import (
     ConnectChatTarget,
+    ConnectorTypeDescriptor,
     CreateDigitalTestRunRequest,
     CreateDigitalTestRunResponse,
+    DigitalConnector,
     DigitalProfile,
     DigitalTestKind,
     DigitalTestRun,
@@ -126,8 +129,56 @@ def _build_create_body(
     return model.model_dump(by_alias=True, exclude_none=True)
 
 
+def _connector_list_params(
+    *, type: Optional[str], limit: Optional[int], cursor: Optional[str]
+) -> dict:
+    params: dict = {}
+    if type is not None:
+        params["type"] = type
+    if limit is not None:
+        params["limit"] = limit
+    if cursor is not None:
+        params["cursor"] = cursor
+    return params
+
+
+def _connector_create_body(
+    *,
+    name: str,
+    type: str,
+    target_ref: str,
+    config: Dict[str, Any],
+    description: Optional[str],
+) -> dict:
+    body: dict = {"name": name, "type": type, "targetRef": target_ref, "config": config}
+    if description is not None:
+        body["description"] = description
+    return body
+
+
+def _connector_update_body(
+    *,
+    name: Optional[str],
+    description: Optional[str],
+    config: Optional[Dict[str, Any]],
+) -> dict:
+    body: dict = {}
+    if name is not None:
+        body["name"] = name
+    if description is not None:
+        body["description"] = description
+    if config is not None:
+        body["config"] = config
+    return body
+
+
+def _connectors_page(raw: dict) -> dict:
+    return {"connectors": raw.get("connectors", []), "nextToken": raw.get("nextCursor")}
+
+
 class DigitalTestingResource(SyncResource):
-    """Synchronous /digital-testing/runs endpoints."""
+    """Synchronous /digital-testing/runs endpoints, plus saved connectors
+    (/digital-testing/connectors) and connector types."""
 
     def create(
         self,
@@ -308,9 +359,148 @@ class DigitalTestingResource(SyncResource):
             on_update=on_update,
         )
 
+    def list_connectors(
+        self,
+        *,
+        type: str | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> SyncPaginator[DigitalConnector]:
+        """The workspace's saved connectors, most recently updated first.
+
+        Beta. Access is limited to beta workspaces during the beta period.
+
+        Iterates every page. ``type`` filters to one connector type; an
+        unknown type is a ``ValidationError``, not an empty list.
+        """
+        params = _connector_list_params(type=type, limit=limit, cursor=cursor)
+
+        def fetch(p: dict) -> dict:
+            raw = self._transport.request(
+                "GET",
+                "/digital-testing/connectors",
+                params=_apply_cursor(p),
+                request_options=request_options,
+            )
+            return _connectors_page(raw)
+
+        return SyncPaginator(
+            fetch_page=fetch, params=params, model_cls=DigitalConnector, items_key="connectors"
+        )
+
+    def list_connectors_page(
+        self,
+        *,
+        type: str | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> Page[DigitalConnector]:
+        """One page of connectors. Pass ``next_token`` back as ``cursor``."""
+        raw = self._transport.request(
+            "GET",
+            "/digital-testing/connectors",
+            params=_connector_list_params(type=type, limit=limit, cursor=cursor),
+            request_options=request_options,
+        )
+        items = [DigitalConnector.model_validate(c) for c in raw.get("connectors", [])]
+        return Page(items=items, next_token=raw.get("nextCursor"))
+
+    def get_connector(
+        self, connector_id: str, *, request_options: RequestOptions | None = None
+    ) -> DigitalConnector:
+        raw = self._transport.request(
+            "GET",
+            f"/digital-testing/connectors/{connector_id}",
+            request_options=request_options,
+        )
+        return DigitalConnector.model_validate(raw)
+
+    def create_connector(
+        self,
+        *,
+        name: str,
+        type: str,
+        target_ref: str,
+        config: Dict[str, Any],
+        description: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> DigitalConnector:
+        """Save a reusable connection definition.
+
+        Beta. Access is limited to beta workspaces during the beta period.
+
+        ``type`` (for example ``web-widget``, ``connect-chat``, ``http-json``)
+        and ``target_ref`` cannot be changed later. ``config`` is the target
+        object minus ``transport``, validated against ``type``: see
+        ``list_connector_types()`` for the fields each type accepts.
+        """
+        raw = self._transport.request(
+            "POST",
+            "/digital-testing/connectors",
+            json=_connector_create_body(
+                name=name,
+                type=type,
+                target_ref=target_ref,
+                config=config,
+                description=description,
+            ),
+            request_options=request_options,
+        )
+        return DigitalConnector.model_validate(raw)
+
+    def update_connector(
+        self,
+        connector_id: str,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        config: Dict[str, Any] | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> DigitalConnector:
+        """Change a connector's ``name``, ``description`` or ``config``.
+
+        Only what you pass is sent. The merged config is validated server-side.
+        """
+        raw = self._transport.request(
+            "PATCH",
+            f"/digital-testing/connectors/{connector_id}",
+            json=_connector_update_body(name=name, description=description, config=config),
+            request_options=request_options,
+        )
+        return DigitalConnector.model_validate(raw)
+
+    def delete_connector(
+        self, connector_id: str, *, request_options: RequestOptions | None = None
+    ) -> None:
+        """Delete a connector.
+
+        Refused with ``ConflictError`` while any saved config still references
+        it; the error names those configs.
+        """
+        self._transport.request(
+            "DELETE",
+            f"/digital-testing/connectors/{connector_id}",
+            request_options=request_options,
+        )
+
+    def list_connector_types(
+        self, *, request_options: RequestOptions | None = None
+    ) -> List[ConnectorTypeDescriptor]:
+        """Every connector type with the form fields its ``config`` takes.
+
+        Beta. Access is limited to beta workspaces during the beta period.
+        """
+        raw = self._transport.request(
+            "GET", "/digital-testing/connector-types", request_options=request_options
+        )
+        return [ConnectorTypeDescriptor.model_validate(t) for t in raw.get("types", [])]
+
 
 class AsyncDigitalTestingResource(AsyncResource):
-    """Asynchronous /digital-testing/runs endpoints."""
+    """Asynchronous /digital-testing/runs endpoints, plus saved connectors
+    (/digital-testing/connectors) and connector types."""
 
     async def create(
         self,
@@ -490,3 +680,118 @@ class AsyncDigitalTestingResource(AsyncResource):
             interval_cap=interval_cap,
             on_update=on_update,
         )
+
+    def list_connectors(
+        self,
+        *,
+        type: str | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> AsyncPaginator[DigitalConnector]:
+        """The workspace's connectors, most recently updated first."""
+        params = _connector_list_params(type=type, limit=limit, cursor=cursor)
+
+        async def fetch(p: dict) -> dict:
+            raw = await self._transport.request(
+                "GET",
+                "/digital-testing/connectors",
+                params=_apply_cursor(p),
+                request_options=request_options,
+            )
+            return _connectors_page(raw)
+
+        return AsyncPaginator(
+            fetch_page=fetch, params=params, model_cls=DigitalConnector, items_key="connectors"
+        )
+
+    async def list_connectors_page(
+        self,
+        *,
+        type: str | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> Page[DigitalConnector]:
+        raw = await self._transport.request(
+            "GET",
+            "/digital-testing/connectors",
+            params=_connector_list_params(type=type, limit=limit, cursor=cursor),
+            request_options=request_options,
+        )
+        items = [DigitalConnector.model_validate(c) for c in raw.get("connectors", [])]
+        return Page(items=items, next_token=raw.get("nextCursor"))
+
+    async def get_connector(
+        self, connector_id: str, *, request_options: RequestOptions | None = None
+    ) -> DigitalConnector:
+        raw = await self._transport.request(
+            "GET",
+            f"/digital-testing/connectors/{connector_id}",
+            request_options=request_options,
+        )
+        return DigitalConnector.model_validate(raw)
+
+    async def create_connector(
+        self,
+        *,
+        name: str,
+        type: str,
+        target_ref: str,
+        config: Dict[str, Any],
+        description: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> DigitalConnector:
+        """Save a reusable connection definition. ``type`` and ``target_ref``
+        cannot be changed later."""
+        raw = await self._transport.request(
+            "POST",
+            "/digital-testing/connectors",
+            json=_connector_create_body(
+                name=name,
+                type=type,
+                target_ref=target_ref,
+                config=config,
+                description=description,
+            ),
+            request_options=request_options,
+        )
+        return DigitalConnector.model_validate(raw)
+
+    async def update_connector(
+        self,
+        connector_id: str,
+        *,
+        name: str | None = None,
+        description: str | None = None,
+        config: Dict[str, Any] | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> DigitalConnector:
+        """Change a connector's ``name``, ``description`` or ``config``."""
+        raw = await self._transport.request(
+            "PATCH",
+            f"/digital-testing/connectors/{connector_id}",
+            json=_connector_update_body(name=name, description=description, config=config),
+            request_options=request_options,
+        )
+        return DigitalConnector.model_validate(raw)
+
+    async def delete_connector(
+        self, connector_id: str, *, request_options: RequestOptions | None = None
+    ) -> None:
+        """Delete a connector. ``ConflictError`` while a config references it."""
+        await self._transport.request(
+            "DELETE",
+            f"/digital-testing/connectors/{connector_id}",
+            request_options=request_options,
+        )
+
+    async def list_connector_types(
+        self, *, request_options: RequestOptions | None = None
+    ) -> List[ConnectorTypeDescriptor]:
+        raw = await self._transport.request(
+            "GET", "/digital-testing/connector-types", request_options=request_options
+        )
+        return [ConnectorTypeDescriptor.model_validate(t) for t in raw.get("types", [])]
+
+

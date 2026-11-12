@@ -256,6 +256,32 @@ class Voice(_TestingBase):
     provider: Optional[str] = None
     label: Optional[str] = None
     is_default: Optional[bool] = None
+    #: Whether a preview sample exists. When true, fetch a short-lived
+    #: playback URL with ``testing.get_voice_sample(voice_id)``.
+    has_sample: Optional[bool] = None
+
+
+class VoiceSample(_TestingBase):
+    """A short-lived presigned URL for a voice's ``audio/mpeg`` sample."""
+
+    url: str
+    expires_in_secs: Optional[int] = None
+
+
+class DestinationCheck(_TestingBase):
+    """Whether a test, mission test or map to a number would be dialled.
+
+    When refused, ``kind`` is ``policy-denied``, ``unparseable`` or
+    ``anchor-missing``, ``reason`` is the technical reason and ``message`` a
+    sentence to show a person.
+    """
+
+    allowed: bool
+    country: Optional[str] = None
+    number_type: Optional[str] = None
+    kind: Optional[str] = None
+    reason: Optional[str] = None
+    message: Optional[str] = None
 
 
 class ListVoicesResponse(_TestingBase):

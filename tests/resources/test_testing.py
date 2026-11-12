@@ -1114,3 +1114,96 @@ def test_transcription_language_alias_is_exported():
     assert call - transcription == {"en"}
     # The transcription set is much the larger of the two.
     assert transcription > (call - {"en"})
+
+
+# ---- voice sample, destination check, languages ----------------------------
+
+
+def test_get_voice_sample(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/voices/Telnyx.Ultra.v1/sample",
+        json={"url": "https://s3.example/sample.mp3", "expiresInSecs": 300},
+    )
+    c = Nopaque(api_key="k", max_retries=0)
+    out = c.testing.get_voice_sample("Telnyx.Ultra.v1")
+    assert out.url.endswith("sample.mp3") and out.expires_in_secs == 300
+    c.close()
+
+
+def test_list_voices_has_sample(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/voices",
+        json={"voices": [{"voiceId": "v1", "name": "Amy", "hasSample": True}]},
+    )
+    c = Nopaque(api_key="k", max_retries=0)
+    assert c.testing.list_voices().voices[0].has_sample is True
+    c.close()
+
+
+def test_check_destination(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/destination-check",
+        method="POST",
+        json={
+            "allowed": False,
+            "country": "NZ",
+            "numberType": "FIXED_LINE",
+            "kind": "policy-denied",
+            "reason": "country not enabled",
+            "message": "We can't call numbers in New Zealand yet.",
+        },
+    )
+    c = Nopaque(api_key="k", max_retries=0)
+    out = c.testing.check_destination(phone_number="+6493000000", carrier_route_id="r1")
+    assert json.loads(httpx_mock.get_requests()[0].content) == {
+        "phoneNumber": "+6493000000",
+        "carrierRouteId": "r1",
+    }
+    assert out.allowed is False and out.number_type == "FIXED_LINE"
+    assert out.kind == "policy-denied"
+    c.close()
+
+
+LANGUAGES = {
+    "transcription": {
+        "default": "en-GB",
+        "languages": [
+            {"code": "en-GB", "label": "English (UK)", "models": ["nova-3"], "codeSwitching": False},
+            {"code": "multi", "label": "Multilingual", "models": ["nova-3"], "codeSwitching": True},
+        ],
+    },
+    "call": {
+        "default": "en",
+        "languages": [{"code": "en", "label": "English", "model": "flux", "codeSwitching": False}],
+    },
+}
+
+
+def test_list_languages(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(url="https://api.nopaque.co.uk/languages", json=LANGUAGES)
+    c = Nopaque(api_key="k", max_retries=0)
+    out = c.testing.list_languages()
+    assert out.transcription.default == "en-GB"
+    assert out.transcription.languages[1].code_switching is True
+    assert out.call.languages[0].model == "flux"
+    c.close()
+
+
+async def test_async_voice_sample_destination_languages(httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/voices/v1/sample",
+        json={"url": "u", "expiresInSecs": 60},
+    )
+    httpx_mock.add_response(
+        url="https://api.nopaque.co.uk/testing/destination-check",
+        method="POST",
+        json={"allowed": True, "country": "GB", "numberType": "MOBILE"},
+    )
+    httpx_mock.add_response(url="https://api.nopaque.co.uk/languages", json=LANGUAGES)
+    c = AsyncNopaque(api_key="k", max_retries=0)
+    assert (await c.testing.get_voice_sample("v1")).url == "u"
+    out = await c.testing.check_destination(phone_number="+447700900123")
+    assert json.loads(httpx_mock.get_requests()[1].content) == {"phoneNumber": "+447700900123"}
+    assert out.allowed is True
+    assert (await c.testing.list_languages()).call.default == "en"
+    await c.aclose()

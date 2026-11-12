@@ -1,23 +1,88 @@
-"""Load testing resource - /testing/load-tests."""
+"""Load testing resource - /testing/load-tests, plus the run reports
+(/testing/reports), exports and failure patterns that hang off a load-test run.
+"""
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, List, Optional
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._polling import wait_for_async, wait_for_sync
 from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
 from ..models.load_testing import (
+    FailurePatternCall,
+    FailurePatternScope,
     LoadTest,
     LoadTestEstimate,
+    LoadTestExport,
+    LoadTestFailurePatterns,
     LoadTestRun,
     LoadTestStatus,
+    ReclassifyFailurePatternsResponse,
+    Report,
+    ReportFileDownload,
+    ReportPack,
 )
 
 TERMINAL_STATUSES: set[str] = {"completed", "aborted", "failed"}
 
 
+def _cursor_params(
+    *, limit: Optional[int], cursor: Optional[str], scope: Optional[str] = None
+) -> dict:
+    params: dict = {}
+    if scope is not None:
+        params["scope"] = scope
+    if limit is not None:
+        params["limit"] = limit
+    if cursor is not None:
+        params["cursor"] = cursor
+    return params
+
+
+def _apply_cursor(params: dict) -> dict:
+    """Translate the paginator's injected `nextToken` into the api's `cursor`."""
+    p = dict(params)
+    if "nextToken" in p:
+        p["cursor"] = p.pop("nextToken")
+    return p
+
+
+def _reports_page(raw: dict) -> dict:
+    """`{reports, nextCursor}` -> the paginator's `{items, nextToken}`."""
+    return {"items": raw.get("reports", []), "nextToken": raw.get("nextCursor")}
+
+
+def _calls_page(raw: dict) -> dict:
+    """`{items, cursor}` -> the paginator's `{items, nextToken}`."""
+    return {"items": raw.get("items", []), "nextToken": raw.get("cursor")}
+
+
+def _report_body(
+    *,
+    load_test_run_ids: List[str],
+    name: Optional[str],
+    packs: Optional[List[ReportPack]],
+    include_audio: Optional[bool],
+) -> dict:
+    body: dict = {"loadTestRunIds": list(load_test_run_ids)}
+    if name is not None:
+        body["name"] = name
+    if packs is not None:
+        body["packs"] = list(packs)
+    if include_audio is not None:
+        body["includeAudio"] = include_audio
+    return body
+
+
+def _scope_params(scope: Optional[str]) -> Optional[dict]:
+    return {"scope": scope} if scope is not None else None
+
+
 class LoadTestingResource(SyncResource):
+    """Synchronous /testing/load-tests endpoints, plus the reports, exports and
+    failure patterns of load-test runs."""
+
     def list(
         self,
         *,
@@ -223,8 +288,250 @@ class LoadTestingResource(SyncResource):
             on_update=on_update,
         )
 
+    def create_report(
+        self,
+        *,
+        load_test_run_ids: List[str],
+        name: str | None = None,
+        packs: List[ReportPack] | None = None,
+        include_audio: bool | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> Report:
+        """Start building a report over 1-20 finished load-test runs.
+
+        ``packs`` picks the files to build (``data``, ``excel``, ``pdf``;
+        default all three). ``include_audio`` puts call recordings in the data
+        pack (server default True). The build runs in the background: poll
+        :meth:`get_report` until ``status`` is ``ready`` or ``failed``, then
+        fetch each file with :meth:`get_report_file_url`.
+        """
+        raw = self._transport.request(
+            "POST",
+            "/testing/reports",
+            json=_report_body(
+                load_test_run_ids=load_test_run_ids,
+                name=name,
+                packs=packs,
+                include_audio=include_audio,
+            ),
+            request_options=request_options,
+        )
+        return Report.model_validate(raw.get("report", raw))
+
+    def list_reports(
+        self,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> SyncPaginator[Report]:
+        """The workspace's reports, newest first. Iterates every page."""
+        params = _cursor_params(limit=limit, cursor=cursor)
+
+        def fetch(p: dict) -> dict:
+            raw = self._transport.request(
+                "GET",
+                "/testing/reports",
+                params=_apply_cursor(p),
+                request_options=request_options,
+            )
+            return _reports_page(raw)
+
+        return SyncPaginator(fetch_page=fetch, params=params, model_cls=Report)
+
+    def list_reports_page(
+        self,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> Page[Report]:
+        """One page of reports. Pass ``next_token`` back as ``cursor``."""
+        raw = self._transport.request(
+            "GET",
+            "/testing/reports",
+            params=_cursor_params(limit=limit, cursor=cursor),
+            request_options=request_options,
+        )
+        items = [Report.model_validate(r) for r in raw.get("reports", [])]
+        return Page(items=items, next_token=raw.get("nextCursor"))
+
+    def get_report(
+        self, report_id: str, *, request_options: RequestOptions | None = None
+    ) -> Report:
+        raw = self._transport.request(
+            "GET", f"/testing/reports/{report_id}", request_options=request_options
+        )
+        return Report.model_validate(raw.get("report", raw))
+
+    def delete_report(
+        self, report_id: str, *, request_options: RequestOptions | None = None
+    ) -> None:
+        """Permanently delete a finished report and its files.
+
+        A report still ``pending`` or ``running`` cannot be deleted
+        (``ConflictError``). The load-test runs it covered are not touched.
+        """
+        self._transport.request(
+            "DELETE", f"/testing/reports/{report_id}", request_options=request_options
+        )
+
+    def get_report_file_url(
+        self,
+        report_id: str,
+        pack: ReportPack,
+        *,
+        request_options: RequestOptions | None = None,
+    ) -> ReportFileDownload:
+        """A pre-signed link to one of the report's files, valid for 1 hour.
+
+        Call again for a fresh link.
+        """
+        raw = self._transport.request(
+            "GET",
+            f"/testing/reports/{report_id}/files/{pack}",
+            request_options=request_options,
+        )
+        return ReportFileDownload.model_validate(raw)
+
+    def create_export(
+        self, run_id: str, *, request_options: RequestOptions | None = None
+    ) -> LoadTestExport:
+        """Start building a zip of every call and step in the run.
+
+        If an export of the run is already in progress it is returned instead
+        of starting another. Poll :meth:`get_export` until ``status`` is ``ready``,
+        then download from ``download_url``.
+        """
+        raw = self._transport.request(
+            "POST",
+            f"/testing/load-tests/{run_id}/exports",
+            request_options=request_options,
+        )
+        return LoadTestExport.model_validate(raw.get("export", raw))
+
+    def list_exports(
+        self, run_id: str, *, request_options: RequestOptions | None = None
+    ) -> List[LoadTestExport]:
+        """The run's exports, newest first (at most 20). Not paginated."""
+        raw = self._transport.request(
+            "GET",
+            f"/testing/load-tests/{run_id}/exports",
+            request_options=request_options,
+        )
+        return [LoadTestExport.model_validate(e) for e in raw.get("exports", [])]
+
+    def get_export(
+        self,
+        run_id: str,
+        export_id: str,
+        *,
+        request_options: RequestOptions | None = None,
+    ) -> LoadTestExport:
+        """One export. When ``ready``, ``download_url`` is valid for 1 hour;
+        call again for a fresh one."""
+        raw = self._transport.request(
+            "GET",
+            f"/testing/load-tests/{run_id}/exports/{export_id}",
+            request_options=request_options,
+        )
+        return LoadTestExport.model_validate(raw.get("export", raw))
+
+    def get_failure_patterns(
+        self,
+        run_id: str,
+        *,
+        scope: FailurePatternScope | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> LoadTestFailurePatterns:
+        """A load-test run's failed calls grouped into named patterns.
+
+        ``run_id`` is the load-test RUN id, not the config id, as for every
+        report, export and failure-pattern method. ``scope`` is ``group`` (the
+        server default: every lane started with the run) or ``lane`` (this run
+        only).
+        """
+        raw = self._transport.request(
+            "GET",
+            f"/testing/load-tests/{run_id}/failure-patterns",
+            params=_scope_params(scope),
+            request_options=request_options,
+        )
+        return LoadTestFailurePatterns.model_validate(raw)
+
+    def reclassify_failure_patterns(
+        self,
+        run_id: str,
+        *,
+        scope: FailurePatternScope | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> ReclassifyFailurePatternsResponse:
+        """Rerun the current rules over every call of the run, in the background.
+
+        Use for runs from before failure patterns, or after a rule change.
+        Returns at once with a ``job_id``.
+        """
+        raw = self._transport.request(
+            "POST",
+            f"/testing/load-tests/{run_id}/failure-patterns/reclassify",
+            params=_scope_params(scope),
+            request_options=request_options,
+        )
+        return ReclassifyFailurePatternsResponse.model_validate(raw)
+
+    def list_failure_pattern_calls(
+        self,
+        run_id: str,
+        pattern_id: str,
+        *,
+        scope: FailurePatternScope | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> SyncPaginator[FailurePatternCall]:
+        """The calls in one pattern, oldest first. Iterates every page.
+
+        ``pattern_id`` is a pattern's ``id`` (``P1``, ``P2a``, ...,
+        ``UNCLASSIFIED``) or ``LATE_START`` for the calls that started late.
+        """
+        params = _cursor_params(limit=limit, cursor=cursor, scope=scope)
+
+        def fetch(p: dict) -> dict:
+            raw = self._transport.request(
+                "GET",
+                f"/testing/load-tests/{run_id}/failure-patterns/{pattern_id}/calls",
+                params=_apply_cursor(p),
+                request_options=request_options,
+            )
+            return _calls_page(raw)
+
+        return SyncPaginator(fetch_page=fetch, params=params, model_cls=FailurePatternCall)
+
+    def list_failure_pattern_calls_page(
+        self,
+        run_id: str,
+        pattern_id: str,
+        *,
+        scope: FailurePatternScope | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> Page[FailurePatternCall]:
+        """One page of a pattern's calls. Pass ``next_token`` back as ``cursor``."""
+        raw = self._transport.request(
+            "GET",
+            f"/testing/load-tests/{run_id}/failure-patterns/{pattern_id}/calls",
+            params=_cursor_params(limit=limit, cursor=cursor, scope=scope),
+            request_options=request_options,
+        )
+        items = [FailurePatternCall.model_validate(c) for c in raw.get("items", [])]
+        return Page(items=items, next_token=raw.get("cursor"))
+
 
 class AsyncLoadTestingResource(AsyncResource):
+    """Asynchronous /testing/load-tests endpoints, plus the reports, exports and
+    failure patterns of load-test runs."""
+
     def list(
         self,
         *,
@@ -429,3 +736,206 @@ class AsyncLoadTestingResource(AsyncResource):
             initial_interval=poll_interval,
             on_update=on_update,
         )
+
+    async def create_report(
+        self,
+        *,
+        load_test_run_ids: List[str],
+        name: str | None = None,
+        packs: List[ReportPack] | None = None,
+        include_audio: bool | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> Report:
+        """Start building a report over 1-20 finished load-test runs.
+
+        See :meth:`LoadTestingResource.create_report`.
+        """
+        raw = await self._transport.request(
+            "POST",
+            "/testing/reports",
+            json=_report_body(
+                load_test_run_ids=load_test_run_ids,
+                name=name,
+                packs=packs,
+                include_audio=include_audio,
+            ),
+            request_options=request_options,
+        )
+        return Report.model_validate(raw.get("report", raw))
+
+    def list_reports(
+        self,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> AsyncPaginator[Report]:
+        """The workspace's reports, newest first. Iterates every page."""
+        params = _cursor_params(limit=limit, cursor=cursor)
+
+        async def fetch(p: dict) -> dict:
+            raw = await self._transport.request(
+                "GET",
+                "/testing/reports",
+                params=_apply_cursor(p),
+                request_options=request_options,
+            )
+            return _reports_page(raw)
+
+        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=Report)
+
+    async def list_reports_page(
+        self,
+        *,
+        limit: int | None = None,
+        cursor: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> Page[Report]:
+        raw = await self._transport.request(
+            "GET",
+            "/testing/reports",
+            params=_cursor_params(limit=limit, cursor=cursor),
+            request_options=request_options,
+        )
+        items = [Report.model_validate(r) for r in raw.get("reports", [])]
+        return Page(items=items, next_token=raw.get("nextCursor"))
+
+    async def get_report(
+        self, report_id: str, *, request_options: RequestOptions | None = None
+    ) -> Report:
+        raw = await self._transport.request(
+            "GET", f"/testing/reports/{report_id}", request_options=request_options
+        )
+        return Report.model_validate(raw.get("report", raw))
+
+    async def delete_report(
+        self, report_id: str, *, request_options: RequestOptions | None = None
+    ) -> None:
+        """Permanently delete a finished report and its files."""
+        await self._transport.request(
+            "DELETE", f"/testing/reports/{report_id}", request_options=request_options
+        )
+
+    async def get_report_file_url(
+        self,
+        report_id: str,
+        pack: ReportPack,
+        *,
+        request_options: RequestOptions | None = None,
+    ) -> ReportFileDownload:
+        """A pre-signed link to one of the report's files, valid for 1 hour."""
+        raw = await self._transport.request(
+            "GET",
+            f"/testing/reports/{report_id}/files/{pack}",
+            request_options=request_options,
+        )
+        return ReportFileDownload.model_validate(raw)
+
+    async def create_export(
+        self, run_id: str, *, request_options: RequestOptions | None = None
+    ) -> LoadTestExport:
+        raw = await self._transport.request(
+            "POST",
+            f"/testing/load-tests/{run_id}/exports",
+            request_options=request_options,
+        )
+        return LoadTestExport.model_validate(raw.get("export", raw))
+
+    async def list_exports(
+        self, run_id: str, *, request_options: RequestOptions | None = None
+    ) -> List[LoadTestExport]:
+        raw = await self._transport.request(
+            "GET",
+            f"/testing/load-tests/{run_id}/exports",
+            request_options=request_options,
+        )
+        return [LoadTestExport.model_validate(e) for e in raw.get("exports", [])]
+
+    async def get_export(
+        self,
+        run_id: str,
+        export_id: str,
+        *,
+        request_options: RequestOptions | None = None,
+    ) -> LoadTestExport:
+        raw = await self._transport.request(
+            "GET",
+            f"/testing/load-tests/{run_id}/exports/{export_id}",
+            request_options=request_options,
+        )
+        return LoadTestExport.model_validate(raw.get("export", raw))
+
+    async def get_failure_patterns(
+        self,
+        run_id: str,
+        *,
+        scope: FailurePatternScope | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> LoadTestFailurePatterns:
+        raw = await self._transport.request(
+            "GET",
+            f"/testing/load-tests/{run_id}/failure-patterns",
+            params=_scope_params(scope),
+            request_options=request_options,
+        )
+        return LoadTestFailurePatterns.model_validate(raw)
+
+    async def reclassify_failure_patterns(
+        self,
+        run_id: str,
+        *,
+        scope: FailurePatternScope | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> ReclassifyFailurePatternsResponse:
+        raw = await self._transport.request(
+            "POST",
+            f"/testing/load-tests/{run_id}/failure-patterns/reclassify",
+            params=_scope_params(scope),
+            request_options=request_options,
+        )
+        return ReclassifyFailurePatternsResponse.model_validate(raw)
+
+    def list_failure_pattern_calls(
+        self,
+        run_id: str,
+        pattern_id: str,
+        *,
+        scope: FailurePatternScope | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> AsyncPaginator[FailurePatternCall]:
+        params = _cursor_params(limit=limit, cursor=cursor, scope=scope)
+
+        async def fetch(p: dict) -> dict:
+            raw = await self._transport.request(
+                "GET",
+                f"/testing/load-tests/{run_id}/failure-patterns/{pattern_id}/calls",
+                params=_apply_cursor(p),
+                request_options=request_options,
+            )
+            return _calls_page(raw)
+
+        return AsyncPaginator(fetch_page=fetch, params=params, model_cls=FailurePatternCall)
+
+    async def list_failure_pattern_calls_page(
+        self,
+        run_id: str,
+        pattern_id: str,
+        *,
+        scope: FailurePatternScope | None = None,
+        limit: int | None = None,
+        cursor: str | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> Page[FailurePatternCall]:
+        """One page of a pattern's calls. Pass ``next_token`` back as ``cursor``."""
+        raw = await self._transport.request(
+            "GET",
+            f"/testing/load-tests/{run_id}/failure-patterns/{pattern_id}/calls",
+            params=_cursor_params(limit=limit, cursor=cursor, scope=scope),
+            request_options=request_options,
+        )
+        items = [FailurePatternCall.model_validate(c) for c in raw.get("items", [])]
+        return Page(items=items, next_token=raw.get("cursor"))
+
+

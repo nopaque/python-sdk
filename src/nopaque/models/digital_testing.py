@@ -477,3 +477,75 @@ class DigitalComplianceAuditSummary(_DigitalBase):
     last_run_at: str
     run_count: int
     catalogue_test_ids: List[str]
+
+
+# ---------------------------------------------------------------------------
+# Connectors - /digital-testing/connectors and /digital-testing/connector-types
+# ---------------------------------------------------------------------------
+
+
+def _camel(name: str) -> str:
+    head, *rest = name.split("_")
+    return head + "".join(word.capitalize() for word in rest)
+
+
+class _ConnectorBase(BaseModel):
+    model_config = ConfigDict(
+        extra="allow",
+        populate_by_name=True,
+        alias_generator=_camel,
+    )
+
+
+class DigitalConnector(_ConnectorBase):
+    """A saved, reusable connection definition for a digital test target.
+
+    ``type`` and ``target_ref`` are immutable after creation. ``config`` is the
+    target object minus ``transport``; the fields each ``type`` accepts are
+    listed by ``digital_testing.connector_types.list()``. ``type`` is typed
+    ``str`` because the server's set of types grows.
+    """
+
+    id: str
+    workspace_id: Optional[str] = None
+    user_id: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    type: str
+    target_ref: str
+    config: Dict[str, Any] = {}
+    type_updated_at: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+class ConnectorFormField(_ConnectorBase):
+    """One form field of a connector type. ``type`` is ``text``, ``boolean``
+    or ``keyvalue``."""
+
+    name: str
+    label: str
+    type: str
+    required: bool
+    placeholder: Optional[str] = None
+    hint: Optional[str] = None
+
+
+class ConnectorCrossAccount(_ConnectorBase):
+    """Present only for a type whose target can run in the customer's own AWS
+    account: the trust the customer's IAM role must grant nopaque."""
+
+    principal_arn: str
+    role_name_prefix: str
+    actions: List[str] = []
+    external_id: Optional[str] = None
+
+
+class ConnectorTypeDescriptor(_ConnectorBase):
+    """One connector type, with the form fields its ``config`` takes."""
+
+    type: str
+    label: str
+    hint: Optional[str] = None
+    form_fields: List[ConnectorFormField] = []
+    cross_account: Optional[ConnectorCrossAccount] = None

@@ -1,13 +1,37 @@
 """Batches resource - /testing/batches and /testing/batch-runs."""
 from __future__ import annotations
 
-from typing import Callable
+from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
 from .._pagination import AsyncPaginator, Page, SyncPaginator
 from .._polling import wait_for_async, wait_for_sync
 from .._request_options import RequestOptions
 from .._resource import AsyncResource, SyncResource
-from ..models.batches import Batch, BatchRun
+from ..models.batches import Batch, BatchMember, BatchRun
+
+#: Which failures ``rerun`` re-runs. ``errors`` are runs whose outcome was
+#: ``ERROR`` (could not be evaluated); ``mismatches`` failed on evaluation.
+RerunFilter = Literal["all-failed", "errors", "mismatches"]
+BatchMemberInput = Union[BatchMember, Dict[str, Any]]
+
+
+def _rerun_body(
+    *,
+    filter: Optional[str],
+    members: Optional[List[BatchMemberInput]],
+    test_config_ids: Optional[List[str]],
+) -> dict:
+    body: dict = {}
+    if filter is not None:
+        body["filter"] = filter
+    if members is not None:
+        body["members"] = [
+            BatchMember.model_validate(m).model_dump(by_alias=True, include={"type", "config_id"})
+            for m in members
+        ]
+    if test_config_ids is not None:
+        body["testConfigIds"] = list(test_config_ids)
+    return body
 
 RUN_TERMINAL_STATUSES: set[str] = {"completed", "failed", "cancelled"}
 
@@ -169,6 +193,37 @@ class BatchesResource(SyncResource):
     ) -> BatchRun:
         raw = self._transport.request(
             "GET", f"/testing/batch-runs/{run_id}", request_options=request_options
+        )
+        return BatchRun.model_validate(raw)
+
+    def rerun(
+        self,
+        run_id: str,
+        *,
+        filter: RerunFilter | None = None,
+        members: List[BatchMemberInput] | None = None,
+        test_config_ids: List[str] | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> BatchRun:
+        """Re-run the failed tests of a batch run as a new, linked batch run.
+
+        **This places real phone calls**, one per re-run test, and bills the
+        workspace for them.
+
+        ``run_id`` is the parent batch-run id. Only tests whose latest run in
+        the parent completed with a failing outcome are eligible; passing
+        tests are never re-run. ``filter`` narrows that set (server default
+        ``all-failed``). ``members`` (``BatchMember`` or
+        ``{"type": "param" | "mission", "config_id": ...}``) or the legacy
+        ``test_config_ids`` pick tests explicitly; either is intersected with
+        the eligible set, and ``members`` wins if both are given. Returns the
+        new batch run; follow it with :meth:`wait_for_run`.
+        """
+        raw = self._transport.request(
+            "POST",
+            f"/testing/batch-runs/{run_id}/rerun",
+            json=_rerun_body(filter=filter, members=members, test_config_ids=test_config_ids),
+            request_options=request_options,
         )
         return BatchRun.model_validate(raw)
 
@@ -350,6 +405,37 @@ class AsyncBatchesResource(AsyncResource):
     ) -> BatchRun:
         raw = await self._transport.request(
             "GET", f"/testing/batch-runs/{run_id}", request_options=request_options
+        )
+        return BatchRun.model_validate(raw)
+
+    async def rerun(
+        self,
+        run_id: str,
+        *,
+        filter: RerunFilter | None = None,
+        members: List[BatchMemberInput] | None = None,
+        test_config_ids: List[str] | None = None,
+        request_options: RequestOptions | None = None,
+    ) -> BatchRun:
+        """Re-run the failed tests of a batch run as a new, linked batch run.
+
+        **This places real phone calls**, one per re-run test, and bills the
+        workspace for them.
+
+        ``run_id`` is the parent batch-run id. Only tests whose latest run in
+        the parent completed with a failing outcome are eligible; passing
+        tests are never re-run. ``filter`` narrows that set (server default
+        ``all-failed``). ``members`` (``BatchMember`` or
+        ``{"type": "param" | "mission", "config_id": ...}``) or the legacy
+        ``test_config_ids`` pick tests explicitly; either is intersected with
+        the eligible set, and ``members`` wins if both are given. Returns the
+        new batch run; follow it with :meth:`wait_for_run`.
+        """
+        raw = await self._transport.request(
+            "POST",
+            f"/testing/batch-runs/{run_id}/rerun",
+            json=_rerun_body(filter=filter, members=members, test_config_ids=test_config_ids),
+            request_options=request_options,
         )
         return BatchRun.model_validate(raw)
 

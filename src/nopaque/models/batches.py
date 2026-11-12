@@ -1,5 +1,5 @@
 """Models for /testing/batches endpoints."""
-from typing import Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -14,6 +14,10 @@ _ALIAS_MAP = {
     "updated_at": "updatedAt",
     "started_at": "startedAt",
     "completed_at": "completedAt",
+    "test_run_ids": "testRunIds",
+    "triggered_by": "triggeredBy",
+    "parent_batch_run_id": "parentBatchRunId",
+    "workspace_id": "workspaceId",
 }
 
 
@@ -50,3 +54,23 @@ class BatchRun(_BatchesBase):
     pass_rate: Optional[float] = None
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
+    workspace_id: Optional[str] = None
+    #: Test run IDs created by this batch run.
+    test_run_ids: Optional[List[str]] = None
+    #: Roll-up counters (``total``, ``pending``, ``running``, ``passed``,
+    #: ``failed``, ``error``).
+    summary: Optional[Dict[str, Any]] = None
+    #: ``manual``, ``schedule`` or ``rerun``.
+    triggered_by: Optional[str] = None
+    #: Set on a run created by ``batches.rerun()``: the run it re-ran.
+    parent_batch_run_id: Optional[str] = None
+
+
+class BatchMember(BaseModel):
+    """One member of a batch: ``param`` is a step-based test config,
+    ``mission`` a mission test config."""
+
+    model_config = ConfigDict(extra="allow", populate_by_name=True, alias_generator=_alias)
+
+    type: Literal["param", "mission"]
+    config_id: str
