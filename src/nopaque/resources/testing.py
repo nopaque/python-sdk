@@ -327,6 +327,11 @@ class _SyncConfigs:
     ) -> TestConfig:
         """Create a test config.
 
+        ``steps`` is a list of dicts, one per step (``name``, ``type`` and, for
+        ``dtmf`` / ``audio`` / ``listen``, ``expected``). A step's ``id`` may be
+        left out: the API generates one, and every step on the returned config
+        has it.
+
         Only the arguments you pass are sent. ``type`` is ``"standard"`` (the
         server default) or ``"parameterized"``; a parameterized config lists the
         labels it needs filled at run time in ``required_parameters``, while
@@ -386,6 +391,10 @@ class _SyncConfigs:
         request_options: RequestOptions | None = None,
     ) -> TestConfig:
         """Update a test config. Only supplied fields change.
+
+        When ``steps`` is given it replaces the whole list. Send a step's
+        existing ``id`` to keep it the same step; a step sent without one is
+        stored with a new ``id``.
 
         ``name``, ``description``, ``phone_number``, ``type``, ``profile_id``,
         ``required_parameters``, ``steps`` and ``language`` are sent only when
@@ -982,6 +991,11 @@ class _AsyncConfigs:
     ) -> TestConfig:
         """Create a test config.
 
+        ``steps`` is a list of dicts, one per step (``name``, ``type`` and, for
+        ``dtmf`` / ``audio`` / ``listen``, ``expected``). A step's ``id`` may be
+        left out: the API generates one, and every step on the returned config
+        has it.
+
         Only the arguments you pass are sent. ``type`` is ``"standard"`` (the
         server default) or ``"parameterized"``; a parameterized config lists the
         labels it needs filled at run time in ``required_parameters``, while
@@ -1041,6 +1055,10 @@ class _AsyncConfigs:
         request_options: RequestOptions | None = None,
     ) -> TestConfig:
         """Update a test config. Only supplied fields change.
+
+        When ``steps`` is given it replaces the whole list. Send a step's
+        existing ``id`` to keep it the same step; a step sent without one is
+        stored with a new ``id``.
 
         ``name``, ``description``, ``phone_number``, ``type``, ``profile_id``,
         ``required_parameters``, ``steps`` and ``language`` are sent only when
