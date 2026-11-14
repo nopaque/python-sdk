@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Docs only: `testing.configs.create()` says that a step's `id` may be left
+  out (the API generates one) and that every step on a returned config has
+  it. This follows the OpenAPI document, which now describes a step as sent
+  (`TestStepInput`, `id` optional) separately from a step as stored
+  (`TestStep`, `id` required). No behaviour changes: `steps` was and is a
+  list of plain dicts, sent as given.
+
 ## [0.15.0] - 2026-11-12
 
 ### Fixed
